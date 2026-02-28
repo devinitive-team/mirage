@@ -48,6 +48,21 @@ const FILE_ACTION_BUTTON_CLASS =
 const FILE_ACTION_DESTRUCTIVE_BUTTON_CLASS =
 	"rounded-lg border border-red-200 bg-red-50/70 px-2 py-1 text-xs font-medium text-red-700 hover:bg-red-100/70 disabled:cursor-not-allowed disabled:opacity-60";
 
+function buildUploadedFilePreviewReference(
+	documentId: string,
+	documentName: string,
+): ReferenceListItemData {
+	return {
+		id: `uploaded-preview:${documentId}`,
+		documentId,
+		documentName,
+		nodeId: "uploaded-file-preview",
+		nodeTitle: "Uploaded file preview",
+		pageStart: 1,
+		pageEnd: 1,
+	};
+}
+
 function Dashboard() {
 	const [searchQuery, setSearchQuery] = useState("");
 	const [isDragging, setIsDragging] = useState(false);
@@ -209,6 +224,15 @@ function Dashboard() {
 		setSelectedReference(reference);
 		setIsPreviewOpen(true);
 	}, []);
+
+	const handleUploadedFilePreview = useCallback(
+		(documentId: string, documentName: string) => {
+			handlePreview(
+				buildUploadedFilePreviewReference(documentId, documentName),
+			);
+		},
+		[handlePreview],
+	);
 
 	const handlePreviewOpenChange = useCallback((open: boolean) => {
 		setIsPreviewOpen(open);
@@ -469,10 +493,10 @@ function Dashboard() {
 						filteredDocuments.map((document) => (
 							<div
 								key={document.id}
-								className={`group flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors ${
+								className={`group flex items-center gap-2 rounded-lg border border-transparent px-3 py-2 text-sm transition-colors ${
 									selectedDocumentIds.includes(document.id)
-										? "bg-[var(--lagoon)]/10"
-										: "hover:bg-[var(--sea-ink)]/5"
+										? "bg-[var(--lagoon)]/10 hover:bg-[var(--lagoon)]/15"
+										: "hover:bg-[var(--sea-ink)]/5 hover:border-[var(--line)]"
 								}`}
 							>
 								<input
@@ -483,13 +507,22 @@ function Dashboard() {
 									aria-label={`Select ${document.name}`}
 									className="h-3.5 w-3.5 shrink-0 rounded border-[var(--line)] text-[var(--lagoon)] focus:ring-[var(--lagoon)]"
 								/>
-								<FileText className="w-4 h-4 shrink-0 text-[var(--lagoon-deep)]" />
-								<span className="truncate flex-1 text-[var(--sea-ink)]">
-									{document.name}
-								</span>
-								<span className="text-xs text-[var(--sea-ink-soft)] shrink-0">
-									{STATUS_LABEL[document.status] ?? document.status}
-								</span>
+								<button
+									type="button"
+									onClick={() =>
+										handleUploadedFilePreview(document.id, document.name)
+									}
+									aria-label={`Preview ${document.name}`}
+									className="flex min-w-0 flex-1 cursor-pointer items-center gap-2 rounded-md text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lagoon)]"
+								>
+									<FileText className="w-4 h-4 shrink-0 text-[var(--lagoon-deep)]" />
+									<span className="truncate flex-1 text-[var(--sea-ink)]">
+										{document.name}
+									</span>
+									<span className="text-xs text-[var(--sea-ink-soft)] shrink-0">
+										{STATUS_LABEL[document.status] ?? document.status}
+									</span>
+								</button>
 								<button
 									type="button"
 									onClick={() =>

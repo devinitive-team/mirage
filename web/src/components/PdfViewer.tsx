@@ -119,7 +119,7 @@ export function PdfViewer({
 
 	return (
 		<div
-			className={`h-full w-full ${compact ? "overflow-hidden rounded-md" : ""}`}
+			className={`relative h-full w-full overflow-hidden ${compact ? "rounded-md" : ""}`}
 		>
 			<PdfLoader url={pdfUrl} beforeLoad={<div>Loading PDF...</div>}>
 				{(pdfDocument) => (
