@@ -22,7 +22,7 @@ func openAPICmd() *cli.Command {
 }
 
 func runOpenAPI() {
-	a := api.New(nil, nil, nil, nil)
+	a := api.New(nil, nil, nil, nil, api.CORSConfig{})
 
 	spec := a.OpenAPI()
 

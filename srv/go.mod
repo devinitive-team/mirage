@@ -8,4 +8,7 @@ require (
 	github.com/oklog/ulid/v2 v2.1.1
 )
 
-require github.com/urfave/cli/v3 v3.6.2
+require (
+	github.com/go-chi/cors v1.2.2
+	github.com/urfave/cli/v3 v3.6.2
+)

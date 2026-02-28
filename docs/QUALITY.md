@@ -7,6 +7,8 @@ Run this full baseline for every code change:
 - `task lint` passes.
 - `task test` passes.
 
+Current caveat: `task test` invokes `web:test` (`vitest run`), which exits with code 1 when there are no frontend test files. For backend-only validation in the current repository state, run `cd srv && go test ./...`.
+
 For any UI or behavior change, also run interactive validation by driving the app in a browser:
 
 1. Start the app: `task run` (server on `:2137`, frontend on `:3000`).
@@ -29,3 +31,12 @@ For any UI or behavior change, also run interactive validation by driving the ap
      `agent-browser screenshot`
    - Close when done:
      `agent-browser close`
+
+For backend CORS changes, add this API smoke check:
+
+1. Start server with an explicit origin allowlist in `srv/.env`, for example:
+   `CORS_ALLOWED_ORIGINS=http://localhost:3000`
+2. Verify preflight from an allowed origin:
+   `curl -i -X OPTIONS http://localhost:2137/health -H 'Origin: http://localhost:3000' -H 'Access-Control-Request-Method: GET'`
+3. Verify disallowed origin does not receive `Access-Control-Allow-Origin`:
+   `curl -i -X OPTIONS http://localhost:2137/health -H 'Origin: http://evil.example' -H 'Access-Control-Request-Method: GET'`

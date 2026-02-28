@@ -18,7 +18,7 @@ Monorepo with two projects:
 - `srv/internal/adapter/fs` — Filesystem storage implementation (atomic JSON writes).
 - `srv/internal/adapter/mistral` — Mistral OCR and chat completions client.
 - `srv/internal/service` — Business logic: Ingest (pipeline orchestrator), Indexer (tree construction), Retrieval (reasoning loop).
-- `srv/internal/api` — HTTP layer: Huma router, document and query handlers, middleware.
+- `srv/internal/api` — HTTP layer: Chi/Huma router, document and query handlers, middleware (including optional CORS).
 - `srv/internal/worker` — Bounded goroutine pool for background jobs.
 - `srv/internal/config` — Environment variable loading.
 
@@ -45,6 +45,6 @@ Monorepo with two projects:
 - **Domain types**: `srv/internal/domain/`
 - **New external integrations**: Add interface in `srv/internal/port/`, implement in `srv/internal/adapter/`
 - **Business logic**: `srv/internal/service/`
-- **REST endpoints**: Add handler in `srv/internal/api/`, register in `api.NewRouter()`
+- **REST endpoints**: Add handler in `srv/internal/api/`, register in `api.New(...)`
 - **Configuration**: Add env var to `srv/.env.example`, parse in `srv/internal/config/config.go`
 - **Frontend features**: `web/src/`

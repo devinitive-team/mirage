@@ -12,7 +12,13 @@ task setup                     # install dependencies
 task run                       # start server and frontend
 ```
 
-The server starts on `:8080` and the frontend on `:3000`.
+The server starts on `:2137` by default (`LISTEN_ADDR`) and the frontend on `:3000`.
+
+If the frontend is served from a different origin than the API, configure CORS in `srv/.env`:
+
+```env
+CORS_ALLOWED_ORIGINS=http://localhost:3000
+```
 
 ## Dependencies
 

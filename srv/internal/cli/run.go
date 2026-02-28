@@ -47,7 +47,14 @@ func runServer() {
 
 	pool := worker.New(cfg.WorkerCount)
 
-	a := api.New(storage, ingest, retrieval, pool)
+	a := api.New(storage, ingest, retrieval, pool, api.CORSConfig{
+		AllowedOrigins:   cfg.CORSAllowedOrigins,
+		AllowedMethods:   cfg.CORSAllowedMethods,
+		AllowedHeaders:   cfg.CORSAllowedHeaders,
+		ExposedHeaders:   cfg.CORSExposedHeaders,
+		AllowCredentials: cfg.CORSAllowCredentials,
+		MaxAge:           cfg.CORSMaxAge,
+	})
 
 	srv := &http.Server{
 		Addr:    cfg.ListenAddr,
