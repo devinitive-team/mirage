@@ -1,6 +1,13 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { FileText, Loader2, SendHorizontal, Upload, X } from "lucide-react";
+import {
+	FileText,
+	Loader2,
+	MoreHorizontal,
+	SendHorizontal,
+	Upload,
+	X,
+} from "lucide-react";
 import {
 	useCallback,
 	useEffect,
@@ -17,9 +24,16 @@ import {
 	ReferenceListItem,
 	type ReferenceListItemData,
 } from "#/components/ReferenceListItem";
+import {
+	DropdownMenu,
+	DropdownMenuContent,
+	DropdownMenuItem,
+	DropdownMenuSeparator,
+	DropdownMenuShortcut,
+	DropdownMenuTrigger,
+} from "#/components/ui/dropdown-menu";
 import { Input } from "#/components/ui/input";
 import {
-	useDeleteDocument,
 	useDeleteDocuments,
 	useDocuments,
 	useUploadDocument,
@@ -42,28 +56,6 @@ const STATUS_LABEL: Record<string, string> = {
 	complete: "Ready",
 	failed: "Failed",
 };
-
-const FILE_STATUS_CHIP_CLASS: Record<string, string> = {
-	pending:
-		"border-[var(--line)] bg-[var(--surface-strong)] text-[var(--sea-ink-soft)]",
-	processing:
-		"border-[var(--lagoon)]/25 bg-[var(--lagoon)]/8 text-[var(--sea-ink)]",
-	complete:
-		"border-emerald-300/70 bg-emerald-50/80 text-emerald-800 dark:border-emerald-600/55 dark:bg-emerald-950/45 dark:text-emerald-300",
-	failed:
-		"border-red-300/80 bg-red-50/80 text-red-800 dark:border-red-600/55 dark:bg-red-950/45 dark:text-red-300",
-};
-
-const FILE_PROCESSING_HELPER_LABEL: Record<string, string> = {
-	pending: "Queued for processing",
-	processing: "Extracting text and indexing",
-};
-
-const FILE_ACTION_BUTTON_CLASS =
-	"rounded-lg border border-[var(--line)] px-2 py-1 text-xs font-medium text-[var(--sea-ink)] hover:bg-[var(--sea-ink)]/5 disabled:cursor-not-allowed disabled:opacity-60";
-
-const FILE_ACTION_DESTRUCTIVE_BUTTON_CLASS =
-	"rounded-lg border border-red-200 bg-red-50/70 px-2 py-1 text-xs font-medium text-red-700 hover:bg-red-100/70 disabled:cursor-not-allowed disabled:opacity-60";
 
 function buildUploadedFilePreviewReference(
 	documentId: string,
@@ -128,6 +120,13 @@ function EvidenceLoadingState({ compact = false }: { compact?: boolean }) {
 	);
 }
 
+function isInteractiveTarget(target: EventTarget | null): boolean {
+	if (!(target instanceof HTMLElement)) return false;
+	if (target.isContentEditable) return true;
+	const tag = target.tagName.toLowerCase();
+	return tag === "input" || tag === "textarea" || tag === "select";
+}
+
 function Dashboard() {
 	const [searchQuery, setSearchQuery] = useState("");
 	const [isDragging, setIsDragging] = useState(false);
@@ -147,7 +146,6 @@ function Dashboard() {
 
 	const { data: documents = [], isLoading } = useDocuments();
 	const upload = useUploadDocument();
-	const remove = useDeleteDocument();
 	const removeMany = useDeleteDocuments();
 
 	const documentsById = useMemo(() => {
@@ -166,16 +164,11 @@ function Dashboard() {
 		[filteredDocuments],
 	);
 	const selectedCount = selectedDocumentIds.length;
+	const allFilesSelected = documents.length > 0 && selectedCount === documents.length;
 	const processingCount = documents.filter((document) =>
 		["pending", "processing"].includes(document.status),
 	).length;
-	const selectedVisibleCount = filteredDocumentIds.filter((id) =>
-		selectedDocumentIds.includes(id),
-	).length;
-	const allVisibleSelected =
-		filteredDocumentIds.length > 0 &&
-		selectedVisibleCount === filteredDocumentIds.length;
-	const isDeleting = remove.isPending || removeMany.isPending;
+	const isDeleting = removeMany.isPending;
 
 	const visibleDocumentIDs = useMemo(
 		() => new Set(filteredDocuments.map((document) => document.id)),
@@ -330,16 +323,9 @@ function Dashboard() {
 		);
 	}, []);
 
-	const toggleVisibleSelection = useCallback(() => {
+	const selectVisibleFiles = useCallback(() => {
 		setSelectedDocumentIds((current) => {
 			if (filteredDocumentIds.length === 0) return current;
-			const visibleSet = new Set(filteredDocumentIds);
-			const selectedVisible = filteredDocumentIds.filter((id) =>
-				current.includes(id),
-			);
-			if (selectedVisible.length === filteredDocumentIds.length) {
-				return current.filter((id) => !visibleSet.has(id));
-			}
 			const next = new Set(current);
 			for (const id of filteredDocumentIds) next.add(id);
 			return Array.from(next);
@@ -349,21 +335,6 @@ function Dashboard() {
 	const clearSelection = useCallback(() => {
 		setSelectedDocumentIds([]);
 	}, []);
-
-	const handleDeleteSingle = useCallback(
-		async (id: string, name: string) => {
-			setSelectedDocumentIds((current) =>
-				current.filter((selectedId) => selectedId !== id),
-			);
-			try {
-				await remove.mutateAsync(id);
-				toast.success(`Deleted "${name}"`);
-			} catch {
-				toast.error(`Failed to delete "${name}"`);
-			}
-		},
-		[remove],
-	);
 
 	const handleDeleteSelected = useCallback(async () => {
 		if (selectedCount === 0) return;
@@ -394,6 +365,57 @@ function Dashboard() {
 			toast.error("Failed to delete all files");
 		}
 	}, [documents, removeMany]);
+
+	const handleMenuDeleteSelected = useCallback(() => {
+		void handleDeleteSelected();
+	}, [handleDeleteSelected]);
+
+	const handleMenuDeleteAll = useCallback(() => {
+		void handleDeleteAll();
+	}, [handleDeleteAll]);
+
+	useEffect(() => {
+		const onKeyDown = (event: KeyboardEvent) => {
+			if (event.defaultPrevented) return;
+			if (isInteractiveTarget(event.target)) return;
+			if (!(event.metaKey || event.ctrlKey)) return;
+			if (event.shiftKey || event.altKey) return;
+			if (event.repeat) return;
+
+			switch (event.code) {
+				case "KeyA": {
+					if (isDeleting) return;
+					event.preventDefault();
+					if (allFilesSelected) {
+						clearSelection();
+						return;
+					}
+					if (filteredDocumentIds.length === 0) return;
+					selectVisibleFiles();
+					return;
+				}
+				case "KeyR": {
+					if (isDeleting || documents.length === 0) return;
+					event.preventDefault();
+					void handleDeleteAll();
+					return;
+				}
+				default:
+					return;
+			}
+		};
+
+		window.addEventListener("keydown", onKeyDown);
+		return () => window.removeEventListener("keydown", onKeyDown);
+	}, [
+		allFilesSelected,
+		clearSelection,
+		documents.length,
+		filteredDocumentIds.length,
+		handleDeleteAll,
+		isDeleting,
+		selectVisibleFiles,
+	]);
 
 	const handleRunQuery = useCallback(async () => {
 		const trimmedQuestion = question.trim();
@@ -517,41 +539,59 @@ function Dashboard() {
 						)}
 					</div>
 					{documents.length > 0 && (
-						<div className="mt-3 flex flex-wrap items-center gap-2">
-							<button
-								type="button"
-								onClick={toggleVisibleSelection}
-								disabled={isDeleting || filteredDocumentIds.length === 0}
-								className={FILE_ACTION_BUTTON_CLASS}
-							>
-								{allVisibleSelected ? "Clear visible" : "Select visible"}
-							</button>
-							<button
-								type="button"
-								onClick={clearSelection}
-								disabled={isDeleting || selectedCount === 0}
-								className={FILE_ACTION_BUTTON_CLASS}
-							>
-								Clear selection
-							</button>
-							<button
-								type="button"
-								onClick={handleDeleteSelected}
-								disabled={isDeleting || selectedCount === 0}
-								className={FILE_ACTION_DESTRUCTIVE_BUTTON_CLASS}
-							>
-								{removeMany.isPending
-									? "Deleting..."
-									: `Delete selected (${selectedCount})`}
-							</button>
-							<button
-								type="button"
-								onClick={handleDeleteAll}
-								disabled={isDeleting || documents.length === 0}
-								className={FILE_ACTION_DESTRUCTIVE_BUTTON_CLASS}
-							>
-								{removeMany.isPending ? "Deleting..." : "Delete all"}
-							</button>
+						<div className="mt-3 flex items-center justify-end">
+							<DropdownMenu>
+								<DropdownMenuTrigger asChild>
+									<button
+										type="button"
+										className="inline-flex items-center gap-1 rounded-lg border border-[var(--line)] px-2 py-1 text-xs font-medium text-[var(--sea-ink)] hover:bg-[var(--sea-ink)]/5"
+									>
+										<MoreHorizontal className="h-4 w-4" />
+										Actions
+									</button>
+								</DropdownMenuTrigger>
+								<DropdownMenuContent align="end" className="w-56">
+									<DropdownMenuItem
+										onSelect={selectVisibleFiles}
+										disabled={isDeleting || filteredDocumentIds.length === 0}
+										className="text-xs"
+									>
+										<span>Select all visible files</span>
+										<DropdownMenuShortcut>⌘A</DropdownMenuShortcut>
+									</DropdownMenuItem>
+									<DropdownMenuItem
+										onSelect={clearSelection}
+										disabled={isDeleting || selectedCount === 0}
+										className="text-xs"
+									>
+										<span>Clear selected files</span>
+									</DropdownMenuItem>
+									<DropdownMenuSeparator />
+									<DropdownMenuItem
+										onSelect={handleMenuDeleteSelected}
+										disabled={isDeleting || selectedCount === 0}
+										className="text-xs text-red-700 focus:text-red-700 dark:text-red-300 dark:focus:text-red-300"
+									>
+										<span>
+											{removeMany.isPending
+												? "Deleting..."
+												: `Delete selected (${selectedCount})`}
+										</span>
+									</DropdownMenuItem>
+									<DropdownMenuItem
+										onSelect={handleMenuDeleteAll}
+										disabled={isDeleting || documents.length === 0}
+										className="text-xs text-red-700 focus:text-red-700 dark:text-red-300 dark:focus:text-red-300"
+									>
+										<span>
+											{removeMany.isPending
+												? "Deleting..."
+												: `Delete all (${documents.length})`}
+										</span>
+										<DropdownMenuShortcut>⌘R</DropdownMenuShortcut>
+									</DropdownMenuItem>
+								</DropdownMenuContent>
+							</DropdownMenu>
 						</div>
 					)}
 				</div>
@@ -575,11 +615,12 @@ function Dashboard() {
 							const isProcessingStatus = ["pending", "processing"].includes(
 								document.status,
 							);
-							const statusChipClass =
-								FILE_STATUS_CHIP_CLASS[document.status] ??
-								"border-[var(--line)] bg-[var(--surface-strong)] text-[var(--sea-ink-soft)]";
-							const processingHelperLabel =
-								FILE_PROCESSING_HELPER_LABEL[document.status];
+							const statusTextClass =
+								document.status === "complete"
+									? "text-emerald-700 dark:text-emerald-300"
+									: document.status === "failed"
+										? "text-red-700 dark:text-red-300"
+										: "text-[var(--sea-ink-soft)]";
 							return (
 								<div
 									key={document.id}
@@ -610,38 +651,19 @@ function Dashboard() {
 											<span className="block truncate text-[var(--sea-ink)]">
 												{document.name}
 											</span>
-											{isProcessingStatus && processingHelperLabel ? (
-												<span className="mt-0.5 flex items-center gap-1 text-[11px] text-[var(--sea-ink-soft)]">
-													<Loader2 className="h-3 w-3 animate-spin text-[var(--lagoon-deep)]" />
-													{processingHelperLabel}
-												</span>
-											) : null}
-										</div>
-										<div className="flex shrink-0 flex-col items-end">
-											<span
-												className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium ${statusChipClass}`}
-											>
-												{isProcessingStatus ? (
-													<span className="h-1.5 w-1.5 rounded-full bg-current animate-pulse" />
-												) : null}
-												{STATUS_LABEL[document.status] ?? document.status}
-											</span>
 											{isProcessingStatus ? (
-												<span className="relative mt-1 block h-1.5 w-16 overflow-hidden rounded-full bg-[var(--lagoon)]/12">
+												<span className="relative mt-1 block h-1.5 w-full overflow-hidden rounded-full bg-[var(--lagoon)]/12">
 													<span className="absolute inset-y-0 left-[-45%] w-2/5 rounded-full bg-[var(--lagoon)]/60 animate-[file-processing_1.05s_ease-in-out_infinite]" />
 												</span>
 											) : null}
 										</div>
-									</button>
-									<button
-										type="button"
-										onClick={() =>
-											void handleDeleteSingle(document.id, document.name)
-										}
-										disabled={isDeleting}
-										className="shrink-0 rounded-md p-1 opacity-60 text-[var(--sea-ink-soft)] transition hover:bg-[var(--sea-ink)]/8 hover:text-[var(--sea-ink)] group-hover:opacity-100"
-									>
-										<X className="w-3.5 h-3.5" />
+										{isProcessingStatus ? null : (
+											<span
+												className={`shrink-0 text-[11px] font-medium ${statusTextClass}`}
+											>
+												{STATUS_LABEL[document.status] ?? document.status}
+											</span>
+										)}
 									</button>
 								</div>
 							);
