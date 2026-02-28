@@ -1,5 +1,5 @@
-import { useEffect, useState } from "react";
 import { Laptop, Moon, Sun } from "lucide-react";
+import { useEffect, useState } from "react";
 
 type ThemeMode = "light" | "dark" | "auto";
 
