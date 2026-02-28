@@ -26,7 +26,8 @@ export function PreviewDialog({
 }: PreviewDialogProps) {
 	const searchPhrase = reference?.searchPhrase?.trim() ?? "";
 	const phraseLabel = searchPhrase ? `"${searchPhrase}"` : "N/A";
-	const contextLabel = reference?.areaLabel ?? `Page ${reference?.pageNumber ?? "-"}`;
+	const contextLabel =
+		reference?.areaLabel ?? `Page ${reference?.pageNumber ?? "-"}`;
 
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
@@ -46,6 +47,7 @@ export function PreviewDialog({
 						{reference ? (
 							<PdfViewer
 								key={`${reference.id}-${reference.pageNumber}-${searchPhrase}`}
+								documentId={reference.documentId}
 								documentName={reference.documentName}
 								pageNumber={reference.pageNumber}
 								searchPhrase={searchPhrase || "Selected region"}

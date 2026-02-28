@@ -23,6 +23,10 @@ function getInitialMode(): ThemeMode {
 }
 
 function applyThemeMode(mode: ThemeMode) {
+	if (typeof window === "undefined") {
+		return;
+	}
+
 	const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
 	const resolved = mode === "auto" ? (prefersDark ? "dark" : "light") : mode;
 
@@ -39,13 +43,11 @@ function applyThemeMode(mode: ThemeMode) {
 }
 
 export default function ThemeToggle() {
-	const [mode, setMode] = useState<ThemeMode>("auto");
+	const [mode, setMode] = useState<ThemeMode>(getInitialMode);
 
 	useEffect(() => {
-		const initialMode = getInitialMode();
-		setMode(initialMode);
-		applyThemeMode(initialMode);
-	}, []);
+		applyThemeMode(mode);
+	}, [mode]);
 
 	useEffect(() => {
 		if (mode !== "auto") {
@@ -55,9 +57,17 @@ export default function ThemeToggle() {
 		const media = window.matchMedia("(prefers-color-scheme: dark)");
 		const onChange = () => applyThemeMode("auto");
 
-		media.addEventListener("change", onChange);
+		if (typeof media.addEventListener === "function") {
+			media.addEventListener("change", onChange);
+		} else {
+			media.addListener(onChange);
+		}
 		return () => {
-			media.removeEventListener("change", onChange);
+			if (typeof media.removeEventListener === "function") {
+				media.removeEventListener("change", onChange);
+			} else {
+				media.removeListener(onChange);
+			}
 		};
 	}, [mode]);
 
@@ -68,7 +78,7 @@ export default function ThemeToggle() {
 	}
 
 	return (
-		<fieldset className="inline-flex items-center gap-1 rounded-full border border-[var(--chip-line)] bg-[var(--chip-bg)] p-1">
+		<fieldset className="inline-flex items-center gap-1 rounded-full border border-border bg-background p-1">
 			<legend className="sr-only">Theme mode</legend>
 			{MODE_OPTIONS.map(({ value, label, Icon }) => {
 				const isActive = mode === value;
@@ -82,8 +92,8 @@ export default function ThemeToggle() {
 						title={label}
 						className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1.5 text-xs font-semibold transition sm:px-3 sm:text-sm ${
 							isActive
-								? "bg-[var(--link-bg-hover)] text-[var(--sea-ink)]"
-								: "text-[var(--sea-ink-soft)] hover:bg-[var(--link-bg-hover)] hover:text-[var(--sea-ink)]"
+								? "bg-primary text-primary-foreground"
+								: "text-foreground/75 hover:bg-primary/10 hover:text-foreground"
 						}`}
 					>
 						<Icon size={15} aria-hidden="true" />

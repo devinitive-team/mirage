@@ -2,7 +2,8 @@ import type { Document, QueryRequest, QueryResult } from "#/lib/types";
 
 export type { Document, QueryRequest, QueryResult } from "#/lib/types";
 
-const BASE = "http://localhost:2137/api/v1";
+const API_BASE = "http://localhost:2137";
+const BASE = `${API_BASE}/api/v1`;
 
 // ─── Documents ────────────────────────────────────────────────────────────────
 
@@ -40,6 +41,10 @@ export async function deleteDocument(id: string): Promise<void> {
 export async function deleteDocuments(ids: string[]): Promise<void> {
 	if (ids.length === 0) return;
 	await Promise.all(ids.map((id) => deleteDocument(id)));
+}
+
+export function getDocumentPdfUrl(id: string): string {
+	return `${BASE}/documents/${id}/pdf`;
 }
 
 // ─── Query ────────────────────────────────────────────────────────────────────

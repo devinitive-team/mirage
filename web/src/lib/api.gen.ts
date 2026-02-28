@@ -40,6 +40,23 @@ export interface paths {
 		patch?: never;
 		trace?: never;
 	};
+	"/api/v1/documents/{document-id}/pdf": {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** Get document PDF */
+		get: operations["get-document-pdf"];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
 	"/api/v1/query": {
 		parameters: {
 			query?: never;
@@ -198,7 +215,9 @@ export interface operations {
 	"upload-document": {
 		parameters: {
 			query?: never;
-			header?: never;
+			header: {
+				"Content-Type": string;
+			};
 			path?: never;
 			cookie?: never;
 		};
@@ -276,6 +295,38 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content?: never;
+			};
+			/** @description Error */
+			default: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ErrorModel"];
+				};
+			};
+		};
+	};
+	"get-document-pdf": {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				"document-id": string;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description OK */
+			200: {
+				headers: {
+					"Content-Type"?: string;
+					[name: string]: unknown;
+				};
+				content: {
+					"application/json": string;
+				};
 			};
 			/** @description Error */
 			default: {

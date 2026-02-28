@@ -139,6 +139,7 @@ function Dashboard() {
 							...current,
 							[uploadedDocument.id]: {
 								id: referenceID,
+								documentId: uploadedDocument.id,
 								documentName: uploadedDocument.name,
 								pageNumber: randomPreview.pageNumber,
 								areaLabel: randomPreview.areaLabel,
@@ -399,14 +400,7 @@ function Dashboard() {
 						type="button"
 						onClick={() => fileInputRef.current?.click()}
 						disabled={upload.isPending}
-						className="w-full flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed"
-						style={{
-							background:
-								"linear-gradient(135deg, var(--lagoon), var(--lagoon-deep))",
-							color: "white",
-							boxShadow:
-								"0 4px 14px rgba(79, 184, 178, 0.35), 0 2px 6px rgba(23, 58, 64, 0.12)",
-						}}
+						className="w-full flex items-center justify-center gap-2 rounded-xl bg-primary dark:bg-white dark:text-primary px-4 py-2.5 text-sm font-semibold text-primary-foreground shadow-sm transition-all hover:scale-[1.02] hover:bg-primary/90 active:scale-[0.98] disabled:cursor-not-allowed disabled:opacity-70"
 					>
 						{upload.isPending ? (
 							<Loader2 className="w-4 h-4 animate-spin" />

@@ -7,10 +7,10 @@ import {
 	Tip,
 } from "react-pdf-highlighter";
 import "react-pdf-highlighter/dist/style.css";
-
-const pdfUrl = "/example.pdf";
+import { getDocumentPdfUrl } from "#/lib/api";
 
 type PdfViewerProps = {
+	documentId: string;
 	documentName: string;
 	pageNumber: number;
 	searchPhrase: string;
@@ -85,10 +85,12 @@ function createDefaultHighlights({
 }
 
 export function PdfViewer({
+	documentId,
 	documentName,
 	pageNumber,
 	searchPhrase,
 }: PdfViewerProps) {
+	const pdfUrl = getDocumentPdfUrl(documentId);
 	const [highlights, setHighlights] = useState<Array<IHighlight>>(
 		createDefaultHighlights({ documentName, pageNumber, searchPhrase }),
 	);

@@ -8,11 +8,18 @@ import {
 	Tip,
 } from "react-pdf-highlighter";
 import "react-pdf-highlighter/dist/style.css";
+import { getDocumentPdfUrl } from "#/lib/api";
 
-export const Route = createFileRoute("/preview")({ component: PreviewPage });
+export const Route = createFileRoute("/preview")({
+	validateSearch: (search: Record<string, unknown>) => ({
+		documentId:
+			typeof search.documentId === "string" ? search.documentId.trim() : "",
+	}),
+	component: PreviewPage,
+});
 
 function PreviewPage() {
-	const pdfUrl = "/example.pdf";
+	const { documentId } = Route.useSearch();
 	const [highlights, setHighlights] = useState<Array<IHighlight>>([
 		{
 			id: "1",
@@ -77,6 +84,12 @@ function PreviewPage() {
 	return (
 		<main className="page-wrap px-4 pb-8 pt-14">
 			<h1>Preview</h1>
+			{!documentId ? (
+				<div className="mt-3 text-sm text-[var(--sea-ink-soft)]">
+					Add a document id in the URL, for example:
+					<code className="ml-1">/preview?documentId=YOUR_DOCUMENT_ID</code>
+				</div>
+			) : null}
 			<div
 				style={{
 					height: "100vh",
@@ -84,28 +97,43 @@ function PreviewPage() {
 					position: "relative",
 				}}
 			>
-				<PdfLoader url={pdfUrl} beforeLoad={<div>Loading PDF...</div>}>
-					{(pdfDocument) => (
-						<PdfHighlighter
-							pdfDocument={pdfDocument}
-							enableAreaSelection={(event) => event.altKey}
-							onScrollChange={() => {}}
-							ref={() => {}}
-							scrollRef={() => {}}
-							highlights={highlights}
-							highlightTransform={highlightTransform}
-							onSelectionFinished={(position, content, hideTipAndSelection) => (
-								<Tip
-									onOpen={() => {}}
-									onConfirm={(comment) => {
-										addHighlight({ content, position, comment } as IHighlight);
-										hideTipAndSelection();
-									}}
-								/>
-							)}
-						/>
-					)}
-				</PdfLoader>
+				{documentId ? (
+					<PdfLoader
+						url={getDocumentPdfUrl(documentId)}
+						beforeLoad={<div>Loading PDF...</div>}
+					>
+						{(pdfDocument) => (
+							<PdfHighlighter
+								pdfDocument={pdfDocument}
+								enableAreaSelection={(event) => event.altKey}
+								onScrollChange={() => {}}
+								ref={() => {}}
+								scrollRef={() => {}}
+								highlights={highlights}
+								highlightTransform={highlightTransform}
+								onSelectionFinished={(
+									position,
+									content,
+									hideTipAndSelection,
+								) => (
+									<Tip
+										onOpen={() => {}}
+										onConfirm={(comment) => {
+											addHighlight({
+												content,
+												position,
+												comment,
+											} as IHighlight);
+											hideTipAndSelection();
+										}}
+									/>
+								)}
+							/>
+						)}
+					</PdfLoader>
+				) : (
+					<div className="p-4">No document selected.</div>
+				)}
 			</div>
 		</main>
 	);

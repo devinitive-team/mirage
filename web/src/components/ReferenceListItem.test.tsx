@@ -10,6 +10,7 @@ import {
 
 const baseReference: ReferenceListItemData = {
 	id: "1",
+	documentId: "doc-1",
 	documentName: "Quarterly_Update.pdf",
 	pageNumber: 12,
 	areaLabel: "Page 12 - area x 11%, y 22%, w 33%, h 44%",

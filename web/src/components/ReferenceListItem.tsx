@@ -5,6 +5,7 @@ export const REFERENCE_LIST_ITEM_HEIGHT = 192;
 
 export type ReferenceListItemData = {
 	id: string;
+	documentId: string;
 	documentName: string;
 	pageNumber: number;
 	areaLabel?: string;
