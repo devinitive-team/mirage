@@ -82,6 +82,9 @@ func (s *Indexer) Build(ctx context.Context, docID string, pages []domain.Page) 
 	root.StartPage = 0
 	root.EndPage = len(pages) - 1
 
+	s.verifyTree(&root, pages)
+	clampPageRanges(&root, len(pages))
+
 	counter := 0
 	assignNodeIDs(&root, &counter)
 
@@ -104,12 +107,12 @@ func (s *Indexer) detectTOC(ctx context.Context, pages []domain.Page) (tocResult
 	n := min(5, len(pages))
 	var sb strings.Builder
 	for _, p := range pages[:n] {
-		fmt.Fprintf(&sb, "--- Page %d ---\n%s\n", p.Index, p.Markdown)
+		fmt.Fprintf(&sb, "<page_%d>\n%s\n</page_%d>\n\n", p.Index, p.Markdown, p.Index)
 	}
 
 	messages := []port.ChatMessage{
-		{Role: "system", Content: "You are a document analysis assistant. Analyze the following pages and determine if they contain a table of contents."},
-		{Role: "user", Content: fmt.Sprintf("Analyze these pages and determine if there is a table of contents. If found, extract the section structure with page ranges.\n\n%s", sb.String())},
+		{Role: "system", Content: "You are a document analysis assistant. Analyze the following pages and determine if they contain a table of contents. Each page is wrapped in <page_N> tags where N is the physical page number. You MUST use these tag numbers for start_page and end_page values — ignore any printed page numbers in the content itself."},
+		{Role: "user", Content: fmt.Sprintf("Analyze these pages and determine if there is a table of contents. If found, extract the section structure with page ranges. Use the <page_N> tag numbers for start_page/end_page.\n\n%s", sb.String())},
 	}
 
 	schema := `{
@@ -140,15 +143,15 @@ func (s *Indexer) inferStructure(ctx context.Context, pages []domain.Page) (infe
 	var sb strings.Builder
 	for _, p := range pages {
 		preview := p.Markdown
-		if len(preview) > 200 {
-			preview = preview[:200]
+		if len(preview) > 1500 {
+			preview = preview[:1500]
 		}
-		fmt.Fprintf(&sb, "Page %d: %s\n", p.Index, preview)
+		fmt.Fprintf(&sb, "<page_%d>\n%s\n</page_%d>\n\n", p.Index, preview, p.Index)
 	}
 
 	messages := []port.ChatMessage{
-		{Role: "system", Content: "You are a document analysis assistant. Group the following pages into logical sections and chapters."},
-		{Role: "user", Content: fmt.Sprintf("Group these pages into logical sections. Each section should have a title, start_page, end_page, and optional subsections.\n\n%s", sb.String())},
+		{Role: "system", Content: "You are a document analysis assistant. Group the following pages into logical sections and chapters. Each page is wrapped in <page_N> tags where N is the physical page number. You MUST use these tag numbers for start_page and end_page values — ignore any printed page numbers in the content itself."},
+		{Role: "user", Content: fmt.Sprintf("Group these pages into logical sections. Each section should have a title, start_page, end_page, and optional subsections. Use the <page_N> tag numbers for start_page/end_page.\n\n%s", sb.String())},
 	}
 
 	schema := `{
@@ -259,4 +262,66 @@ func (s *Indexer) summarizeParent(ctx context.Context, node *domain.TreeNode) er
 
 	node.Summary = summary
 	return nil
+}
+
+// verifyTree walks the tree and fixes leaf node page assignments by searching
+// for the node title in nearby pages. This catches LLM page-numbering errors
+// without any additional LLM calls.
+func (s *Indexer) verifyTree(node *domain.TreeNode, pages []domain.Page) {
+	for i := range node.Children {
+		s.verifyTree(&node.Children[i], pages)
+	}
+
+	if len(node.Children) > 0 || node.Title == "" {
+		return
+	}
+
+	// Check if the title appears on the assigned start page.
+	titleLower := strings.ToLower(node.Title)
+	for _, p := range pages {
+		if p.Index == node.StartPage {
+			if strings.Contains(strings.ToLower(p.Markdown), titleLower) {
+				return // found on assigned page, nothing to fix
+			}
+			break
+		}
+	}
+
+	// Search nearby pages for the title.
+	searchStart := node.StartPage - 5
+	if searchStart < 0 {
+		searchStart = 0
+	}
+	searchEnd := node.StartPage + 5
+	if searchEnd >= len(pages) {
+		searchEnd = len(pages) - 1
+	}
+
+	for _, p := range pages {
+		if p.Index < searchStart || p.Index > searchEnd {
+			continue
+		}
+		if strings.Contains(strings.ToLower(p.Markdown), titleLower) {
+			offset := p.Index - node.StartPage
+			node.StartPage += offset
+			node.EndPage += offset
+			return
+		}
+	}
+}
+
+// clampPageRanges ensures all page ranges in the tree are within valid bounds.
+func clampPageRanges(node *domain.TreeNode, pageCount int) {
+	if node.StartPage < 0 {
+		node.StartPage = 0
+	}
+	if node.EndPage >= pageCount {
+		node.EndPage = pageCount - 1
+	}
+	if node.StartPage > node.EndPage {
+		node.StartPage = node.EndPage
+	}
+	for i := range node.Children {
+		clampPageRanges(&node.Children[i], pageCount)
+	}
 }
