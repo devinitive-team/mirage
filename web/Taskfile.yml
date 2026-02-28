@@ -21,7 +21,17 @@ tasks:
     cmds:
       - npm run test
 
+  format:
+    desc: Run formatter
+    cmds:
+      - npm run format
+
   lint:
     desc: Run biome linter
     cmds:
       - npm run lint
+
+  check:
+    desc: Run check
+    cmds:
+      - npm run check

@@ -1,7 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useRef, useState, useCallback, useId } from "react";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { FileText, Upload, X } from "lucide-react";
+import { useCallback, useId, useRef, useState } from "react";
 
 import { Input } from "#/components/ui/input";
 
@@ -159,9 +159,11 @@ function Dashboard() {
 						onClick={() => fileInputRef.current?.click()}
 						className="w-full flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-all hover:scale-[1.02] active:scale-[0.98]"
 						style={{
-							background: "linear-gradient(135deg, var(--lagoon), var(--lagoon-deep))",
+							background:
+								"linear-gradient(135deg, var(--lagoon), var(--lagoon-deep))",
 							color: "white",
-							boxShadow: "0 4px 14px rgba(79, 184, 178, 0.35), 0 2px 6px rgba(23, 58, 64, 0.12)",
+							boxShadow:
+								"0 4px 14px rgba(79, 184, 178, 0.35), 0 2px 6px rgba(23, 58, 64, 0.12)",
 						}}
 					>
 						<Upload className="w-4 h-4" />
@@ -205,7 +207,6 @@ function Dashboard() {
 					</div>
 				</div>
 			</div>
-
 		</div>
 	);
 }

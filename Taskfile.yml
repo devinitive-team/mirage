@@ -27,6 +27,12 @@ tasks:
       - task: srv:test
       - task: web:test
 
+  format:
+    desc: Format all projects
+    cmds:
+      # - task: srv:format
+      - task: web:format
+
   lint:
     desc: Lint all projects
     cmds:
