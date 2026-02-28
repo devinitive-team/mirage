@@ -61,16 +61,16 @@ const { ctaHref } = Astro.props;
             fetchpriority="high"
             decoding="async"
           />
-          <BorderBeam
-            client:load
-            size={210}
-            duration={7.5}
-            borderWidth={2}
-            colorFrom="#fff"
-            colorTo="#000"
-            className="opacity-60"
-          />
         </div>
+        <BorderBeam
+          client:load
+          size={210}
+          duration={7.5}
+          borderWidth={2}
+          colorFrom="#fff"
+          colorTo="#000"
+          className="opacity-60"
+        />
       </div>
     </div>
   </div>
