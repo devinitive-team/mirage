@@ -4,7 +4,7 @@ This file is the top-level codemap for the project. Update it as modules are add
 
 ## Problem Scope
 
-Mirage is a document search system. Users upload PDFs, the system extracts text via OCR, builds a hierarchical index, and answers natural-language questions with page-level citations. Current milestone: MVP with ingestion, indexing, and retrieval via Mistral.
+Mirage is a document search system. Users upload PDFs, the system extracts text via OCR, builds a hierarchical index, and answers natural-language questions with deterministic evidence grounded to document sections and page ranges. Current milestone: MVP with ingestion, indexing, retrieval, and query-to-PDF highlight support via Mistral.
 
 ## Codemap
 

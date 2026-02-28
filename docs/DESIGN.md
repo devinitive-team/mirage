@@ -15,7 +15,7 @@ Three tiers: React frontend → Go REST API → Mistral (OCR + LLM) + filesystem
 
 Upload flow: PDF uploaded → async OCR extracts text → LLM builds hierarchical tree index → document becomes queryable.
 
-Query flow: question submitted → LLM reasons over tree index, drilling into relevant branches → page content loaded → answer generated with citations.
+Query flow: question submitted → LLM reasons over tree index, drilling into relevant branches → page content loaded → answer generated with deterministic evidence entries (`node`, `page range`, `snippet`) for highlight rendering.
 
 ## Design Targets
 

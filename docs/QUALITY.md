@@ -7,8 +7,6 @@ Run this full baseline for every code change:
 - `task lint` passes.
 - `task test` passes.
 
-Current caveat: `task test` invokes `web:test` (`vitest run`), which exits with code 1 when there are no frontend test files. For backend-only validation in the current repository state, run `cd srv && go test ./...`.
-
 For any UI or behavior change, also run interactive validation by driving the app in a browser:
 
 1. Start the app: `task run` (server on `:2137`, frontend on `:3000`).
@@ -25,7 +23,7 @@ For any UI or behavior change, also run interactive validation by driving the ap
    - For file upload flows, use:
      `agent-browser upload @ref /path/to/test.pdf`
      then wait for processing and assert the document appears in the list.
-   - For search/query flows, fill the search input and submit, then assert result text is present:
+  - For query flows, fill the query input and submit, then assert result text is present:
      `agent-browser wait --text "expected result"`
    - Capture a final screenshot for visual confirmation:
      `agent-browser screenshot`
