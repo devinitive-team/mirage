@@ -8,6 +8,7 @@ import ProofSection from "@/components/landing/proof-section.astro";
 import ProofStripSection from "@/components/landing/proof-strip-section.astro";
 import SiteHeader from "@/components/landing/site-header.astro";
 import WorkflowSection from "@/components/landing/workflow-section.astro";
+import SiteFooter from "@/components/landing/site-footer.astro";
 import { tryForFreeUrl } from "@/config/site";
 import { buildTryForFreeUrl } from "@/lib/cta";
 
@@ -50,6 +51,8 @@ const ctaHref = buildTryForFreeUrl(tryForFreeUrl, Astro.url);
       <FaqSection />
       <FinalCtaSection ctaHref={ctaHref} />
     </main>
+
+    <SiteFooter />
 
     <script is:inline define:vars={{ attributionParams }}>
       (() => {

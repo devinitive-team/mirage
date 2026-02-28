@@ -1,0 +1,23 @@
+---
+const currentYear = new Date().getFullYear();
+---
+
+<footer class="border-t border-black/10 py-8">
+  <div
+    class="mx-auto flex max-w-7xl flex-col gap-4 px-4 sm:px-6 lg:px-8 md:flex-row md:items-center md:justify-between"
+  >
+    <a
+      href="/"
+      class="inline-flex items-center gap-2 font-display text-base font-bold text-slate-900"
+    >
+      <svg viewBox="0 0 32 32" aria-hidden="true" class="h-5 w-5 shrink-0">
+        <path d="M5 24.5L9.1 8h3.8L8.8 24.5H5Z" fill="currentColor"></path>
+        <path d="M12.2 24.5L16 11.5h3.7L16 24.5h-3.8Z" fill="currentColor"></path>
+        <path d="M19.6 24.5L23.7 8H27l-4 16.5h-3.4Z" fill="currentColor"></path>
+      </svg>
+      <span>Mirage</span>
+    </a>
+
+    <p class="text-sm text-slate-600">© {currentYear} Mirage. All rights reserved.</p>
+  </div>
+</footer>
