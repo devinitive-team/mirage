@@ -7,3 +7,5 @@ require (
 	github.com/go-chi/chi/v5 v5.2.5
 	github.com/oklog/ulid/v2 v2.1.1
 )
+
+require github.com/urfave/cli/v3 v3.6.2

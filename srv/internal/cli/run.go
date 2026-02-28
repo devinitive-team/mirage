@@ -1,6 +1,7 @@
 package cli
 
 import (
+	"context"
 	"log"
 	"log/slog"
 	"net/http"
@@ -14,7 +15,19 @@ import (
 	"github.com/devinitive-team/mirage/internal/config"
 	"github.com/devinitive-team/mirage/internal/service"
 	"github.com/devinitive-team/mirage/internal/worker"
+	"github.com/urfave/cli/v3"
 )
+
+func runCmd() *cli.Command {
+	return &cli.Command{
+		Name:  "run",
+		Usage: "Start the HTTP server",
+		Action: func(_ context.Context, _ *cli.Command) error {
+			runServer()
+			return nil
+		},
+	}
+}
 
 func runServer() {
 	cfg, err := config.Load()

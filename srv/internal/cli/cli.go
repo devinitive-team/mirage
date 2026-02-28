@@ -1,37 +1,17 @@
 package cli
 
 import (
-	"fmt"
-	"os"
+	"github.com/urfave/cli/v3"
 )
 
-// Run dispatches the CLI subcommand given in args.
-func Run(args []string) {
-	if len(args) == 0 {
-		printHelp()
-		os.Exit(1)
+// NewApp returns the root CLI command with all subcommands.
+func NewApp() *cli.Command {
+	return &cli.Command{
+		Name:  "mirage",
+		Usage: "AI-powered document processing server",
+		Commands: []*cli.Command{
+			runCmd(),
+			openAPICmd(),
+		},
 	}
-
-	switch args[0] {
-	case "run":
-		runServer()
-	case "openapi":
-		runOpenAPI()
-	case "help", "-h", "--help":
-		printHelp()
-	default:
-		fmt.Fprintf(os.Stderr, "unknown command: %s\n\n", args[0])
-		printHelp()
-		os.Exit(1)
-	}
-}
-
-func printHelp() {
-	fmt.Print(`Usage: mirage <command>
-
-Commands:
-  run       Start the HTTP server
-  openapi   Print the OpenAPI spec to stdout
-  help      Show this help message
-`)
 }
