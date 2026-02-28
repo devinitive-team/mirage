@@ -36,7 +36,7 @@ type sufficiencyCheck struct {
 }
 
 type answerResponse struct {
-	Answer string `json:"answer"`
+	Answer json.RawMessage `json:"answer"`
 }
 
 func (s *Retrieval) Answer(ctx context.Context, query domain.Query) (domain.QueryResult, error) {
@@ -68,7 +68,14 @@ func (s *Retrieval) Answer(ctx context.Context, query domain.Query) (domain.Quer
 
 		selection, err := s.selectBranches(ctx, query.Question, explorationQueue, &collectedContent, iteration)
 		if err != nil {
-			return domain.QueryResult{}, fmt.Errorf("select branches iteration %d: %w", iteration, err)
+			selection = branchSelection{
+				SelectedNodes: selectAllCandidateNodeIDs(explorationQueue),
+				Reasoning:     "fallback: select all nodes due to select branch error",
+			}
+		}
+		selection.SelectedNodes = normalizeSelectedNodeIDs(explorationQueue, selection.SelectedNodes)
+		if len(selection.SelectedNodes) == 0 {
+			selection.SelectedNodes = selectAllCandidateNodeIDs(explorationQueue)
 		}
 
 		selectedMap := make(map[string]bool)
@@ -115,7 +122,10 @@ func (s *Retrieval) Answer(ctx context.Context, query domain.Query) (domain.Quer
 
 		sufficient, err := s.checkSufficiency(ctx, query.Question, &collectedContent)
 		if err != nil {
-			return domain.QueryResult{}, fmt.Errorf("sufficiency check iteration %d: %w", iteration, err)
+			sufficient = sufficiencyCheck{
+				Sufficient: len(nextQueue) == 0,
+				Reasoning:  "fallback: sufficiency unavailable",
+			}
 		}
 		if sufficient.Sufficient {
 			break
@@ -125,8 +135,8 @@ func (s *Retrieval) Answer(ctx context.Context, query domain.Query) (domain.Quer
 	}
 
 	answer, err := s.generateAnswer(ctx, query, &collectedContent)
-	if err != nil {
-		return domain.QueryResult{}, err
+	if err != nil || strings.TrimSpace(answer) == "" {
+		answer = fallbackAnswerText(query.Question, &collectedContent, evidence)
 	}
 
 	return domain.QueryResult{
@@ -195,14 +205,9 @@ func (s *Retrieval) selectBranches(ctx context.Context, question string, candida
 
 	schema := `{"selected_nodes": ["string"], "reasoning": "string"}`
 
-	raw, err := s.llm.CompleteJSON(ctx, messages, schema)
-	if err != nil {
-		return branchSelection{}, fmt.Errorf("llm complete json: %w", err)
-	}
-
 	var result branchSelection
-	if err := json.Unmarshal([]byte(raw), &result); err != nil {
-		return branchSelection{}, fmt.Errorf("unmarshal branch selection: %w", err)
+	if err := s.completeAndDecodeJSON(ctx, messages, schema, &result); err != nil {
+		return branchSelection{}, fmt.Errorf("decode branch selection: %w", err)
 	}
 
 	return result, nil
@@ -216,14 +221,9 @@ func (s *Retrieval) checkSufficiency(ctx context.Context, question string, colle
 
 	schema := `{"sufficient": true, "reasoning": "string"}`
 
-	raw, err := s.llm.CompleteJSON(ctx, messages, schema)
-	if err != nil {
-		return sufficiencyCheck{}, fmt.Errorf("llm complete json: %w", err)
-	}
-
 	var result sufficiencyCheck
-	if err := json.Unmarshal([]byte(raw), &result); err != nil {
-		return sufficiencyCheck{}, fmt.Errorf("unmarshal sufficiency check: %w", err)
+	if err := s.completeAndDecodeJSON(ctx, messages, schema, &result); err != nil {
+		return sufficiencyCheck{}, fmt.Errorf("decode sufficiency check: %w", err)
 	}
 
 	return result, nil
@@ -252,15 +252,181 @@ func (s *Retrieval) generateAnswer(ctx context.Context, query domain.Query, coll
 
 	schema := `{"answer": "string"}`
 
+	var resp answerResponse
+	if err := s.completeAndDecodeJSON(ctx, messages, schema, &resp); err != nil {
+		return "", fmt.Errorf("decode answer: %w", err)
+	}
+
+	answer, err := parseAnswerText(resp.Answer)
+	if err != nil {
+		return "", fmt.Errorf("parse answer text: %w", err)
+	}
+
+	return answer, nil
+}
+
+func (s *Retrieval) completeAndDecodeJSON(ctx context.Context, messages []port.ChatMessage, schema string, out any) error {
 	raw, err := s.llm.CompleteJSON(ctx, messages, schema)
 	if err != nil {
-		return "", fmt.Errorf("llm generate answer: %w", err)
+		return fmt.Errorf("llm complete json: %w", err)
+	}
+	if err := unmarshalLLMJSON(raw, out); err != nil {
+		return fmt.Errorf("unmarshal llm json: %w", err)
+	}
+	return nil
+}
+
+func parseAnswerText(raw json.RawMessage) (string, error) {
+	if len(raw) == 0 {
+		return "", fmt.Errorf("answer field missing")
 	}
 
-	var resp answerResponse
-	if err := json.Unmarshal([]byte(raw), &resp); err != nil {
-		return "", fmt.Errorf("unmarshal answer: %w", err)
+	var plain string
+	if err := json.Unmarshal(raw, &plain); err == nil {
+		return plain, nil
 	}
 
-	return resp.Answer, nil
+	var wrapped struct {
+		Text    string `json:"text"`
+		Content string `json:"content"`
+		Answer  string `json:"answer"`
+	}
+	if err := json.Unmarshal(raw, &wrapped); err == nil {
+		switch {
+		case wrapped.Text != "":
+			return wrapped.Text, nil
+		case wrapped.Content != "":
+			return wrapped.Content, nil
+		case wrapped.Answer != "":
+			return wrapped.Answer, nil
+		}
+	}
+
+	return "", fmt.Errorf("unsupported answer format")
+}
+
+func unmarshalLLMJSON(raw string, out any) error {
+	candidates := []string{strings.TrimSpace(raw)}
+
+	extracted := extractJSONPayload(raw)
+	if extracted != "" && extracted != candidates[0] {
+		candidates = append(candidates, extracted)
+	}
+
+	for _, candidate := range candidates {
+		if err := json.Unmarshal([]byte(candidate), out); err == nil {
+			return nil
+		}
+
+		normalized := normalizeJSON(candidate)
+		if normalized != candidate {
+			if err := json.Unmarshal([]byte(normalized), out); err == nil {
+				return nil
+			}
+		}
+	}
+
+	return fmt.Errorf("invalid json payload")
+}
+
+func extractJSONPayload(raw string) string {
+	trimmed := strings.TrimSpace(raw)
+	if trimmed == "" {
+		return ""
+	}
+
+	if start := strings.Index(trimmed, "```json"); start >= 0 {
+		block := trimmed[start+len("```json"):]
+		if end := strings.Index(block, "```"); end >= 0 {
+			return strings.TrimSpace(block[:end])
+		}
+	}
+
+	if start := strings.Index(trimmed, "```"); start >= 0 {
+		block := trimmed[start+len("```"):]
+		if end := strings.Index(block, "```"); end >= 0 {
+			block = strings.TrimSpace(block[:end])
+			block = strings.TrimPrefix(block, "json")
+			block = strings.TrimSpace(block)
+			if block != "" {
+				return block
+			}
+		}
+	}
+
+	if start, end := strings.Index(trimmed, "{"), strings.LastIndex(trimmed, "}"); start >= 0 && end > start {
+		return strings.TrimSpace(trimmed[start : end+1])
+	}
+	if start, end := strings.Index(trimmed, "["), strings.LastIndex(trimmed, "]"); start >= 0 && end > start {
+		return strings.TrimSpace(trimmed[start : end+1])
+	}
+
+	return trimmed
+}
+
+func normalizeJSON(raw string) string {
+	cleaned := strings.TrimSpace(raw)
+	if cleaned == "" {
+		return ""
+	}
+
+	cleaned = strings.NewReplacer("None", "null", "\r", " ", "\n", " ").Replace(cleaned)
+	cleaned = strings.Join(strings.Fields(cleaned), " ")
+	cleaned = strings.ReplaceAll(cleaned, ",}", "}")
+	cleaned = strings.ReplaceAll(cleaned, ",]", "]")
+
+	return cleaned
+}
+
+func selectAllCandidateNodeIDs(candidates []candidateNode) []string {
+	selected := make([]string, 0, len(candidates))
+	for _, cand := range candidates {
+		selected = append(selected, cand.NodeID)
+	}
+	return selected
+}
+
+func normalizeSelectedNodeIDs(candidates []candidateNode, selected []string) []string {
+	allowed := make(map[string]struct{}, len(candidates))
+	for _, cand := range candidates {
+		allowed[cand.NodeID] = struct{}{}
+	}
+
+	filtered := make([]string, 0, len(selected))
+	seen := make(map[string]struct{}, len(selected))
+	for _, nodeID := range selected {
+		if _, ok := allowed[nodeID]; !ok {
+			continue
+		}
+		if _, dup := seen[nodeID]; dup {
+			continue
+		}
+		seen[nodeID] = struct{}{}
+		filtered = append(filtered, nodeID)
+	}
+	return filtered
+}
+
+func fallbackAnswerText(question string, collected *strings.Builder, evidence []domain.Evidence) string {
+	const maxLen = 800
+
+	clip := func(text string) string {
+		text = strings.TrimSpace(text)
+		if len(text) <= maxLen {
+			return text
+		}
+		return text[:maxLen] + "..."
+	}
+
+	for _, item := range evidence {
+		if snippet := clip(item.Snippet); snippet != "" {
+			return fmt.Sprintf("I could not synthesize a complete answer for %q, but this retrieved content is relevant:\n\n%s", question, snippet)
+		}
+	}
+
+	if snippet := clip(collected.String()); snippet != "" {
+		return fmt.Sprintf("I could not synthesize a complete answer for %q, but this retrieved content is relevant:\n\n%s", question, snippet)
+	}
+
+	return fmt.Sprintf("I could not synthesize a complete answer for %q, and no relevant source content was retrieved.", question)
 }
