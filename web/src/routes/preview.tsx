@@ -1,5 +1,5 @@
 import { createFileRoute } from "@tanstack/react-router";
-import { useState } from "react";
+import { type ComponentProps, useRef, useState } from "react";
 import {
 	Highlight,
 	type IHighlight,
@@ -20,6 +20,7 @@ export const Route = createFileRoute("/preview")({
 
 function PreviewPage() {
 	const { documentId } = Route.useSearch();
+	const nextHighlightIdRef = useRef(2);
 	const [highlights, setHighlights] = useState<Array<IHighlight>>([
 		{
 			id: "1",
@@ -51,21 +52,28 @@ function PreviewPage() {
 		},
 	]);
 
-	const addHighlight = (highlight: IHighlight) => {
-		setHighlights((prev) => [highlight, ...prev]);
+	const addHighlight = (highlight: Omit<IHighlight, "id">) => {
+		setHighlights((prev) => [
+			{ ...highlight, id: String(nextHighlightIdRef.current++) },
+			...prev,
+		]);
 	};
 
-	const highlightTransform = (
-		highlight: any,
-		_index: number,
-		setTip: (
-			highlight: any,
-			callback: (highlight: any) => React.JSX.Element,
-		) => void,
-		_hideTipAndSelection: () => void,
-		_viewportToScaled: (rect: any) => any,
-		_screenshot: (position: any) => string,
-		isScrolledTo: boolean,
+	type HighlightTransform = NonNullable<
+		ComponentProps<typeof PdfHighlighter<IHighlight>>["highlightTransform"]
+	>;
+	type OnSelectionFinished = NonNullable<
+		ComponentProps<typeof PdfHighlighter<IHighlight>>["onSelectionFinished"]
+	>;
+
+	const highlightTransform: HighlightTransform = (
+		highlight,
+		_index,
+		setTip,
+		_hideTipAndSelection,
+		_viewportToScaled,
+		_screenshot,
+		isScrolledTo,
 	) => {
 		return (
 			<Highlight
@@ -80,6 +88,20 @@ function PreviewPage() {
 			/>
 		);
 	};
+
+	const onSelectionFinished: OnSelectionFinished = (
+		position,
+		content,
+		hideTipAndSelection,
+	) => (
+		<Tip
+			onOpen={() => {}}
+			onConfirm={(comment) => {
+				addHighlight({ content, position, comment });
+				hideTipAndSelection();
+			}}
+		/>
+	);
 
 	return (
 		<main className="page-wrap px-4 pb-8 pt-14">
@@ -111,23 +133,7 @@ function PreviewPage() {
 								scrollRef={() => {}}
 								highlights={highlights}
 								highlightTransform={highlightTransform}
-								onSelectionFinished={(
-									position,
-									content,
-									hideTipAndSelection,
-								) => (
-									<Tip
-										onOpen={() => {}}
-										onConfirm={(comment) => {
-											addHighlight({
-												content,
-												position,
-												comment,
-											} as IHighlight);
-											hideTipAndSelection();
-										}}
-									/>
-								)}
+								onSelectionFinished={onSelectionFinished}
 							/>
 						)}
 					</PdfLoader>
