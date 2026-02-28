@@ -7,9 +7,9 @@ tasks:
       - go mod download
 
   build:
-    desc: Build all packages
+    desc: Build the server binary
     cmds:
-      - go build ./...
+      - go build -o dist/mirage ./cmd/mirage
 
   run:
     desc: Run the server
