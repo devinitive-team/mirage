@@ -1,6 +1,6 @@
-type RandomSource = () => number;
+import { loadPdfJs } from "#/lib/pdfjs";
 
-let pdfJsPromise: Promise<typeof import("pdfjs-dist")> | null = null;
+type RandomSource = () => number;
 
 export type RandomReferenceArea = {
 	pageNumber: number;
@@ -35,20 +35,6 @@ export function isPdfFile(file: File): boolean {
 		file.type.toLowerCase() === "application/pdf" ||
 		file.name.toLowerCase().endsWith(".pdf")
 	);
-}
-
-async function loadPdfJs(): Promise<typeof import("pdfjs-dist")> {
-	if (!pdfJsPromise) {
-		pdfJsPromise = Promise.all([
-			import("pdfjs-dist"),
-			import("pdfjs-dist/build/pdf.worker.min.mjs?url"),
-		]).then(([pdfjs, workerModule]) => {
-			pdfjs.GlobalWorkerOptions.workerSrc = workerModule.default;
-			return pdfjs;
-		});
-	}
-
-	return pdfJsPromise;
 }
 
 function toPercentLabel(ratio: number): number {

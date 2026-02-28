@@ -13,7 +13,8 @@ React 19, TanStack (Router, Query, Form, Table), Vite, Tailwind CSS, Biome (lint
   Status labels are user-facing: `Uploaded` (backend `pending`), `Processing`, `Ready`, `Failed`.
 - Upload and delete actions show non-blocking toast notifications for success and error outcomes.
 - Query input: text field for natural-language questions, scoped to selected ready documents (or all ready documents when none are selected).
-- Results: fixed-height virtualized evidence cards generated from query responses; each card shows document name, section title, page range, and snippet text, and opens a full PDF preview dialog with page-range highlights on click.
+- Results: fixed-height virtualized evidence cards generated from query responses; each card shows document name, section title, page range, and snippet text, and opens a PDF preview dialog on click.
+- Preview dialog modes: `Evidence pages` (render only selected pages) and `Whole document` (render entire PDF), both with in-page text highlighting when snippet matching succeeds and page overlay fallback when it does not.
 
 ## Render Contract
 
