@@ -30,6 +30,7 @@ import {
 	evidenceListToReferences,
 	type NodeTitleLookupByDocument,
 } from "#/lib/evidence";
+import { isPdfFile } from "#/lib/referencePreviews";
 
 export const Route = createFileRoute("/")({ component: Dashboard });
 
@@ -189,6 +190,12 @@ function Dashboard() {
 			if (!files) return;
 			await Promise.all(
 				Array.from(files).map(async (file) => {
+					if (!isPdfFile(file)) {
+						toast.error(
+							`"${file.name}" is not a PDF file. Please upload a .pdf document.`,
+						);
+						return;
+					}
 					try {
 						const uploadedDocument = await upload.mutateAsync(file);
 						toast.success(`Uploaded "${uploadedDocument.name}"`);

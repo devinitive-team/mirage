@@ -30,7 +30,7 @@ function randomIntInclusive(
 	return min + Math.floor(random() * (max - min + 1));
 }
 
-function isPdfFile(file: File): boolean {
+export function isPdfFile(file: File): boolean {
 	return (
 		file.type.toLowerCase() === "application/pdf" ||
 		file.name.toLowerCase().endsWith(".pdf")
