@@ -1,23 +1,23 @@
 ---
-import '../styles/global.css';
+import "../styles/global.css";
 
-import SemanticSearchHero from '@/components/landing/semantic-search-hero.astro';
-import { InteractiveGridPattern } from '@/components/ui/interactive-grid-pattern';
-import { tryForFreeUrl } from '@/config/site';
-import { buildTryForFreeUrl } from '@/lib/cta';
+import SemanticSearchHero from "@/components/landing/semantic-search-hero.astro";
+import { InteractiveGridPattern } from "@/components/ui/interactive-grid-pattern";
+import { tryForFreeUrl } from "@/config/site";
+import { buildTryForFreeUrl } from "@/lib/cta";
 
-const pageTitle = 'Mirage | Ask Documents Questions and Get Cited Answers';
+const pageTitle = "Mirage | Ask Documents Questions and Get Cited Answers";
 const pageDescription =
-  'Upload documents, ask in plain language, and get semantic answers backed by page-level citations your team can verify fast.';
+  "Upload documents, ask in plain language, and get semantic answers backed by page-level citations your team can verify fast.";
 
 const attributionParams = [
-  'utm_source',
-  'utm_medium',
-  'utm_campaign',
-  'utm_term',
-  'utm_content',
-  'gclid',
-  'ref',
+  "utm_source",
+  "utm_medium",
+  "utm_campaign",
+  "utm_term",
+  "utm_content",
+  "gclid",
+  "ref",
 ];
 
 const ctaHref = buildTryForFreeUrl(tryForFreeUrl, Astro.url);
@@ -39,9 +39,9 @@ const ctaHref = buildTryForFreeUrl(tryForFreeUrl, Astro.url);
       <div class="page-wrap topbar__inner">
         <a href="/" class="wordmark" aria-label="Mirage home">
           <svg viewBox="0 0 32 32" aria-hidden="true" class="wordmark__mark">
-            <path d="M5 24.5L9.1 8h3.8L8.8 24.5H5Z" fill="currentColor" />
-            <path d="M12.2 24.5L16 11.5h3.7L16 24.5h-3.8Z" fill="currentColor" />
-            <path d="M19.6 24.5L23.7 8H27l-4 16.5h-3.4Z" fill="currentColor" />
+            <path d="M5 24.5L9.1 8h3.8L8.8 24.5H5Z" fill="currentColor"></path>
+            <path d="M12.2 24.5L16 11.5h3.7L16 24.5h-3.8Z" fill="currentColor"></path>
+            <path d="M19.6 24.5L23.7 8H27l-4 16.5h-3.4Z" fill="currentColor"></path>
           </svg>
           <span>Mirage</span>
         </a>
@@ -67,8 +67,8 @@ const ctaHref = buildTryForFreeUrl(tryForFreeUrl, Astro.url);
           <p class="eyebrow">Ask any document. Verify every answer.</p>
           <h1>Find what matters across thousands of pages, with citations.</h1>
           <p class="hero__lede">
-            Mirage turns raw PDFs into semantic context so your team can ask in plain language and get
-            answers tied to exact source pages.
+            Mirage turns raw PDFs into semantic context so your team can ask in plain language and
+            get answers tied to exact source pages.
           </p>
           <div class="hero__actions">
             <a
@@ -109,83 +109,36 @@ const ctaHref = buildTryForFreeUrl(tryForFreeUrl, Astro.url);
 
       <section class="section" id="how-it-works" aria-labelledby="flow-title">
         <p class="eyebrow">Workflow</p>
-        <h2 id="flow-title" class="section-title">Three steps from upload to a defensible answer</h2>
+        <h2 id="flow-title" class="section-title">
+          Three steps from upload to a defensible answer
+        </h2>
         <p class="section-intro">
-          Start with real files, ask a real question, and trace each answer back to the source before
-          anyone acts on it.
+          Start with real files, ask a real question, and trace each answer back to the source
+          before anyone acts on it.
         </p>
         <div class="step-grid">
           <article class="step-card">
             <p class="step-card__index">01</p>
             <h3>Ingest documents</h3>
-            <svg
-              class="step-card__wire"
-              viewBox="0 0 220 96"
-              aria-hidden="true"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <polygon points="30,18 82,18 96,26 44,26" class="wire-fill wire-stroke" />
-              <polygon points="44,26 96,26 96,64 44,64" class="wire-fill wire-stroke" />
-              <polygon points="30,18 44,26 44,64 30,56" class="wire-fill wire-stroke" />
-
-              <polygon points="22,24 74,24 88,32 36,32" class="wire-fill wire-stroke" />
-              <polygon points="36,32 88,32 88,70 36,70" class="wire-fill wire-stroke" />
-              <polygon points="22,24 36,32 36,70 22,62" class="wire-fill wire-stroke" />
-
-              <line x1="104" y1="42" x2="154" y2="42" class="wire-stroke" />
-              <polyline points="148,38 154,42 148,46" class="wire-fill wire-stroke" />
-            </svg>
             <p>
-              Drop in PDFs and let background processing extract document structure while your team keeps
-              moving.
+              Drop in PDFs and let background processing extract document structure while your team
+              keeps moving.
             </p>
           </article>
           <article class="step-card">
             <p class="step-card__index">02</p>
             <h3>Build semantic index</h3>
-            <svg
-              class="step-card__wire"
-              viewBox="0 0 220 96"
-              aria-hidden="true"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <polygon points="46,22 106,22 120,30 60,30" class="wire-fill wire-stroke" />
-              <polygon points="60,30 120,30 120,68 60,68" class="wire-fill wire-stroke" />
-              <polygon points="106,22 120,30 120,68 106,60" class="wire-fill wire-stroke" />
-
-              <circle cx="74" cy="50" r="3.5" class="wire-node" />
-              <circle cx="90" cy="42" r="3.5" class="wire-node" />
-              <circle cx="106" cy="52" r="3.5" class="wire-node wire-node--accent" />
-              <line x1="74" y1="50" x2="90" y2="42" class="wire-stroke" />
-              <line x1="90" y1="42" x2="106" y2="52" class="wire-stroke" />
-              <line x1="74" y1="50" x2="106" y2="52" class="wire-stroke" />
-            </svg>
             <p>
-              Mirage organizes content by meaning, so questions are matched to relevant sections instead
-              of loose keyword hits.
+              Mirage organizes content by meaning, so questions are matched to relevant sections
+              instead of loose keyword hits.
             </p>
           </article>
           <article class="step-card">
             <p class="step-card__index">03</p>
             <h3>Return cited answers</h3>
-            <svg
-              class="step-card__wire"
-              viewBox="0 0 220 96"
-              aria-hidden="true"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <polygon points="44,24 132,24 146,32 58,32" class="wire-fill wire-stroke" />
-              <polygon points="58,32 146,32 146,70 58,70" class="wire-fill wire-stroke" />
-              <polygon points="132,24 146,32 146,70 132,62" class="wire-fill wire-stroke" />
-
-              <line x1="72" y1="44" x2="126" y2="44" class="wire-stroke" />
-              <line x1="72" y1="52" x2="120" y2="52" class="wire-stroke" />
-              <polygon points="74,58 98,58 104,62 80,62" class="wire-chip wire-stroke" />
-              <polygon points="80,62 104,62 104,72 80,72" class="wire-chip wire-stroke" />
-              <text x="92" y="69" text-anchor="middle" class="wire-text">p.12</text>
-            </svg>
             <p>
-              Every answer includes page-linked evidence so reviewers can validate context in seconds.
+              Every answer includes page-linked evidence so reviewers can validate context in
+              seconds.
             </p>
           </article>
         </div>
@@ -193,19 +146,30 @@ const ctaHref = buildTryForFreeUrl(tryForFreeUrl, Astro.url);
 
       <section class="section" id="proof" aria-labelledby="proof-title">
         <p class="eyebrow">Why Mirage</p>
-        <h2 id="proof-title" class="section-title">Built for teams that cannot afford “probably right”</h2>
+        <h2 id="proof-title" class="section-title">
+          Built for teams that cannot afford “probably right”
+        </h2>
         <div class="feature-grid">
           <article class="feature-card">
             <h3>Evidence first</h3>
-            <p>Each claim points back to specific pages, so audits and peer review take minutes, not hours.</p>
+            <p>
+              Each claim points back to specific pages, so audits and peer review take minutes, not
+              hours.
+            </p>
           </article>
           <article class="feature-card">
             <h3>Higher answer precision</h3>
-            <p>Semantic retrieval follows document meaning and structure to reduce noisy, irrelevant output.</p>
+            <p>
+              Semantic retrieval follows document meaning and structure to reduce noisy, irrelevant
+              output.
+            </p>
           </article>
           <article class="feature-card">
             <h3>Faster team adoption</h3>
-            <p>Ask natural-language questions without building custom tagging systems or brittle rules.</p>
+            <p>
+              Ask natural-language questions without building custom tagging systems or brittle
+              rules.
+            </p>
           </article>
           <article class="feature-card">
             <h3>Scales with your corpus</h3>
@@ -221,24 +185,24 @@ const ctaHref = buildTryForFreeUrl(tryForFreeUrl, Astro.url);
           <article class="faq-card">
             <h3>How long does setup take?</h3>
             <p>
-              Most teams start by uploading existing files and asking live questions the same day. No
-              manual schema design is required up front.
+              Most teams start by uploading existing files and asking live questions the same day.
+              No manual schema design is required up front.
             </p>
           </article>
 
           <article class="faq-card">
             <h3>How do we trust the answers?</h3>
             <p>
-              Mirage returns source-linked evidence cards with each response, so reviewers can inspect
-              original context before sharing or acting.
+              Mirage returns source-linked evidence cards with each response, so reviewers can
+              inspect original context before sharing or acting.
             </p>
           </article>
 
           <article class="faq-card">
             <h3>Can we pilot before a broader rollout?</h3>
             <p>
-              Yes. Start with one high-friction workflow, confirm citation quality, then expand to adjacent
-              document-heavy use cases.
+              Yes. Start with one high-friction workflow, confirm citation quality, then expand to
+              adjacent document-heavy use cases.
             </p>
           </article>
         </div>
@@ -259,8 +223,8 @@ const ctaHref = buildTryForFreeUrl(tryForFreeUrl, Astro.url);
           <p class="eyebrow">Ready to stop re-reading documents for every decision?</p>
           <h2>Give your team one place to ask, verify, and move faster.</h2>
           <p>
-            Keep your current document workflows and add Mirage as the semantic layer that returns cited,
-            review-ready answers.
+            Keep your current document workflows and add Mirage as the semantic layer that returns
+            cited, review-ready answers.
           </p>
           <a
             href={ctaHref}
@@ -283,7 +247,7 @@ const ctaHref = buildTryForFreeUrl(tryForFreeUrl, Astro.url);
         if (!hasAttribution) return;
 
         document.querySelectorAll('a[data-cta="try-for-free"]').forEach((anchor) => {
-          const href = anchor.getAttribute('href');
+          const href = anchor.getAttribute("href");
           if (!href) return;
 
           try {
@@ -297,7 +261,7 @@ const ctaHref = buildTryForFreeUrl(tryForFreeUrl, Astro.url);
               values.forEach((value) => destination.searchParams.append(key, value));
             });
 
-            anchor.setAttribute('href', destination.toString());
+            anchor.setAttribute("href", destination.toString());
           } catch {
             // Keep original href when URL parsing fails.
           }
