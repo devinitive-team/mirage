@@ -29,7 +29,7 @@ func (s *Ingest) Process(ctx context.Context, docID string) error {
 		return fmt.Errorf("get document %s: %w", docID, err)
 	}
 
-	if err := s.updateStatus(ctx, &doc, domain.DocumentStatusOCR, ""); err != nil {
+	if err := s.updateStatus(ctx, &doc, domain.DocumentStatusProcessing, ""); err != nil {
 		return err
 	}
 
@@ -52,10 +52,6 @@ func (s *Ingest) Process(ctx context.Context, docID string) error {
 	}
 
 	doc.PageCount = len(pages)
-	if err := s.updateStatus(ctx, &doc, domain.DocumentStatusIndexing, ""); err != nil {
-		return err
-	}
-
 	tree, err := s.tree.Build(ctx, docID, pages)
 	if err != nil {
 		s.failDocument(ctx, &doc, err)
@@ -63,7 +59,7 @@ func (s *Ingest) Process(ctx context.Context, docID string) error {
 	}
 
 	doc.Description = tree.Root.Summary
-	if err := s.updateStatus(ctx, &doc, domain.DocumentStatusReady, ""); err != nil {
+	if err := s.updateStatus(ctx, &doc, domain.DocumentStatusComplete, ""); err != nil {
 		return err
 	}
 

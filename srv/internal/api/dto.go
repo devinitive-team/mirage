@@ -7,7 +7,8 @@ import (
 )
 
 type UploadDocumentInput struct {
-	RawBody []byte `contentType:"multipart/form-data" required:"true"`
+	ContentType string `header:"Content-Type" required:"true"`
+	RawBody     []byte `contentType:"multipart/form-data" required:"true"`
 }
 
 type DocumentOutput struct {
@@ -15,14 +16,14 @@ type DocumentOutput struct {
 }
 
 type DocumentBody struct {
-	ID          string               `json:"id"`
-	Name        string               `json:"name"`
+	ID          string                `json:"id"`
+	Name        string                `json:"name"`
 	Status      domain.DocumentStatus `json:"status"`
-	PageCount   int                  `json:"page_count"`
-	Description string               `json:"description,omitempty"`
-	Error       string               `json:"error,omitempty"`
-	CreatedAt   time.Time            `json:"created_at"`
-	UpdatedAt   time.Time            `json:"updated_at"`
+	PageCount   int                   `json:"page_count"`
+	Description string                `json:"description,omitempty"`
+	Error       string                `json:"error,omitempty"`
+	CreatedAt   time.Time             `json:"created_at"`
+	UpdatedAt   time.Time             `json:"updated_at"`
 }
 
 type ListDocumentsInput struct {

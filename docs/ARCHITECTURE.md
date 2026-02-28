@@ -32,7 +32,7 @@ Monorepo with two projects:
 - Dependency direction: `cmd → config, api, worker, adapter, service`; `api → service, domain`; `service → port, domain`; `adapter → port, domain`; `domain → nothing`.
 - All filesystem writes use write-to-temp-then-rename for crash safety.
 - Document processing is asynchronous — upload returns 202, worker processes in background.
-- Document status transitions: pending → ocr → indexing → ready (or failed at any step).
+- Document status transitions: pending → processing → complete (or failed at any step).
 
 ## Cross-Cutting Concerns
 

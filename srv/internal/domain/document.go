@@ -5,11 +5,10 @@ import "time"
 type DocumentStatus string
 
 const (
-	DocumentStatusPending  DocumentStatus = "pending"
-	DocumentStatusOCR      DocumentStatus = "ocr"
-	DocumentStatusIndexing DocumentStatus = "indexing"
-	DocumentStatusReady    DocumentStatus = "ready"
-	DocumentStatusFailed   DocumentStatus = "failed"
+	DocumentStatusPending    DocumentStatus = "pending"
+	DocumentStatusProcessing DocumentStatus = "processing"
+	DocumentStatusComplete   DocumentStatus = "complete"
+	DocumentStatusFailed     DocumentStatus = "failed"
 )
 
 type Document struct {

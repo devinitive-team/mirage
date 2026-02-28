@@ -57,16 +57,16 @@ func (h *DocumentHandler) RegisterRoutes(api huma.API) {
 	}, h.Get)
 
 	huma.Register(api, huma.Operation{
-		OperationID: "delete-document",
-		Method:      "DELETE",
-		Path:        "/api/v1/documents/{document-id}",
-		Summary:     "Delete document",
+		OperationID:   "delete-document",
+		Method:        "DELETE",
+		Path:          "/api/v1/documents/{document-id}",
+		Summary:       "Delete document",
 		DefaultStatus: 204,
 	}, h.Delete)
 }
 
 func (h *DocumentHandler) Upload(ctx context.Context, input *UploadDocumentInput) (*DocumentOutput, error) {
-	contentType, _ := ctx.Value(contentTypeKey).(string)
+	contentType := input.ContentType
 	if contentType == "" {
 		return nil, huma.Error400BadRequest("missing content type")
 	}

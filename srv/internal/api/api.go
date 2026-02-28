@@ -1,7 +1,6 @@
 package api
 
 import (
-	"context"
 	"net/http"
 
 	"github.com/danielgtaylor/huma/v2"
@@ -12,10 +11,6 @@ import (
 	"github.com/devinitive-team/mirage/internal/service"
 	"github.com/devinitive-team/mirage/internal/worker"
 )
-
-type contextKey string
-
-const contentTypeKey contextKey = "content-type"
 
 // API holds the configured router and Huma API instance.
 type API struct {
@@ -31,7 +26,6 @@ func New(storage port.Storage, ingest *service.Ingest, retrieval *service.Retrie
 	r.Use(Recovery)
 	r.Use(RequestID)
 	r.Use(Logging)
-	r.Use(captureContentType)
 
 	r.Get("/health", func(w http.ResponseWriter, r *http.Request) {
 		w.WriteHeader(http.StatusOK)
@@ -57,11 +51,4 @@ func (a *API) Handler() http.Handler {
 // OpenAPI returns the generated OpenAPI specification.
 func (a *API) OpenAPI() *huma.OpenAPI {
 	return a.humaAPI.OpenAPI()
-}
-
-func captureContentType(next http.Handler) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		ctx := context.WithValue(r.Context(), contentTypeKey, r.Header.Get("Content-Type"))
-		next.ServeHTTP(w, r.WithContext(ctx))
-	})
 }
