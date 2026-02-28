@@ -17,12 +17,14 @@ tasks:
     cmds:
       - task: srv:install
       - task: web:install
+      - task: marketing:install
 
   build:
     desc: Build all projects
     cmds:
       - task: srv:build
       - task: web:build
+      - task: marketing:build
 
   test:
     desc: Run all tests
@@ -53,7 +55,8 @@ tasks:
       - task: web:codegen
 
   run:
-    desc: Run both server and frontend in dev mode
+    desc: Run both server, frontend and marketing site in dev mode
     deps:
       - srv:run
       - web:dev
+      - marketing:dev
