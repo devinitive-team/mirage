@@ -10,7 +10,8 @@ type Config struct {
 	ListenAddr             string
 	MistralAPIKey          string
 	MistralBaseURL         string
-	MistralModel           string
+	MistralLLMModel        string
+	MistralOCRModel        string
 	DataDir                string
 	WorkerCount            int
 	MaxPagesPerNode        int
@@ -23,7 +24,8 @@ func Load() (Config, error) {
 		ListenAddr:             envOr("LISTEN_ADDR", ":2137"),
 		MistralAPIKey:          os.Getenv("MISTRAL_API_KEY"),
 		MistralBaseURL:         envOr("MISTRAL_BASE_URL", "https://api.mistral.ai"),
-		MistralModel:           envOr("MISTRAL_MODEL", "mistral-large-latest"),
+		MistralLLMModel:        envOr("MISTRAL_LLM_MODEL", "mistral-large-latest"),
+		MistralOCRModel:        envOr("MISTRAL_OCR_MODEL", "mistral-ocr-latest"),
 		DataDir:                envOr("DATA_DIR", "./data"),
 		WorkerCount:            envInt("WORKER_COUNT", 2),
 		MaxPagesPerNode:        envInt("MAX_PAGES_PER_NODE", 10),

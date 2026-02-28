@@ -13,10 +13,11 @@ import (
 
 type OCR struct {
 	client *Client
+	model  string
 }
 
-func NewOCR(client *Client) *OCR {
-	return &OCR{client: client}
+func NewOCR(client *Client, model string) *OCR {
+	return &OCR{client: client, model: model}
 }
 
 func (o *OCR) ExtractPages(ctx context.Context, fileName string, pdf io.Reader) ([]domain.Page, error) {
@@ -28,7 +29,7 @@ func (o *OCR) ExtractPages(ctx context.Context, fileName string, pdf io.Reader) 
 	encoded := base64.StdEncoding.EncodeToString(raw)
 
 	req := ocrRequest{
-		Model: "mistral-ocr-latest",
+		Model: o.model,
 		Document: ocrDocument{
 			Type:        "document_url",
 			DocumentURL: "data:application/pdf;base64," + encoded,

@@ -25,8 +25,8 @@ func main() {
 	storage := fs.New(cfg.DataDir)
 
 	client := mistral.NewClient(cfg.MistralAPIKey, cfg.MistralBaseURL)
-	ocr := mistral.NewOCR(client)
-	llm := mistral.NewLLM(client, cfg.MistralModel)
+	ocr := mistral.NewOCR(client, cfg.MistralOCRModel)
+	llm := mistral.NewLLM(client, cfg.MistralLLMModel)
 
 	indexer := service.NewIndexer(llm, storage, cfg.MaxPagesPerNode, cfg.MaxTokensPerNode)
 	ingest := service.NewIngest(storage, ocr, indexer)
