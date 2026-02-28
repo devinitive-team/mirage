@@ -7,10 +7,11 @@ export type ReferenceListItemData = {
 	id: string;
 	documentId: string;
 	documentName: string;
-	pageNumber: number;
-	areaLabel?: string;
-	excerpt?: string;
-	searchPhrase?: string;
+	nodeId: string;
+	nodeTitle: string;
+	pageStart: number;
+	pageEnd: number;
+	snippet?: string;
 };
 
 type ReferenceListItemProps = {
@@ -22,11 +23,12 @@ export const ReferenceListItem = memo(function ReferenceListItem({
 	reference,
 	onPreview,
 }: ReferenceListItemProps) {
-	const areaLabel = reference.areaLabel ?? `Page ${reference.pageNumber}`;
-	const searchPhrase = reference.searchPhrase?.trim();
-	const description = searchPhrase
-		? `Highlighted phrase: "${searchPhrase}"`
-		: "Open preview to inspect this selected region.";
+	const areaLabel =
+		reference.pageStart === reference.pageEnd
+			? `Page ${reference.pageStart}`
+			: `Pages ${reference.pageStart}-${reference.pageEnd}`;
+	const description =
+		reference.snippet?.trim() || "Open preview to inspect evidence context.";
 
 	return (
 		<button
@@ -45,6 +47,10 @@ export const ReferenceListItem = memo(function ReferenceListItem({
 					{areaLabel}
 				</span>
 			</header>
+
+			<p className="text-xs font-medium text-[var(--sea-ink-soft)] truncate">
+				{reference.nodeTitle}
+			</p>
 
 			<div className="reference-list-item__excerpt min-h-0 flex-1 rounded-lg overflow-hidden px-2 py-1.5">
 				<p className="text-sm leading-6 text-[var(--sea-ink)] whitespace-pre-wrap break-words">

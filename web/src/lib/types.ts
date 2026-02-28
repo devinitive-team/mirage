@@ -18,8 +18,13 @@ export type Document = Omit<
 
 // ─── Query ────────────────────────────────────────────────────────────────────
 
-export type Citation = components["schemas"]["Citation"];
+export type Evidence = components["schemas"]["EvidenceBody"];
+export type QueryResult = Omit<
+	components["schemas"]["QueryResultBody"],
+	"$schema"
+>;
 
 export type QueryRequest = Omit<components["schemas"]["QueryBody"], "$schema">;
 
-export type QueryResult = Omit<components["schemas"]["QueryResult"], "$schema">;
+export type TreeNode = Omit<components["schemas"]["TreeNodeBody"], "$schema">;
+export type DocumentTree = Omit<components["schemas"]["TreeBody"], "$schema">;

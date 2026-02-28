@@ -57,6 +57,28 @@ func (h *DocumentHandler) RegisterRoutes(api huma.API) {
 	}, h.Get)
 
 	huma.Register(api, huma.Operation{
+		OperationID: "get-document-pdf",
+		Method:      "GET",
+		Path:        "/api/v1/documents/{document-id}/pdf",
+		Summary:     "Get document PDF",
+		Responses: map[string]*huma.Response{
+			"200": {
+				Description: "Document PDF binary",
+				Content: map[string]*huma.MediaType{
+					"application/pdf": {},
+				},
+			},
+		},
+	}, h.GetPDF)
+
+	huma.Register(api, huma.Operation{
+		OperationID: "get-document-tree",
+		Method:      "GET",
+		Path:        "/api/v1/documents/{document-id}/tree",
+		Summary:     "Get document tree",
+	}, h.GetTree)
+
+	huma.Register(api, huma.Operation{
 		OperationID:   "delete-document",
 		Method:        "DELETE",
 		Path:          "/api/v1/documents/{document-id}",
@@ -147,6 +169,41 @@ func (h *DocumentHandler) Get(ctx context.Context, input *GetDocumentInput) (*Do
 	}
 
 	return &DocumentOutput{Body: documentToBody(doc)}, nil
+}
+
+func (h *DocumentHandler) GetPDF(ctx context.Context, input *GetDocumentPDFInput) (*GetDocumentPDFOutput, error) {
+	pdf, err := h.storage.OpenPDF(ctx, input.DocumentID)
+	if err != nil {
+		if errors.Is(err, domain.ErrNotFound) {
+			return nil, huma.Error404NotFound("document not found")
+		}
+		return nil, fmt.Errorf("open pdf: %w", err)
+	}
+	defer pdf.Close()
+
+	raw, err := io.ReadAll(pdf)
+	if err != nil {
+		return nil, fmt.Errorf("read pdf: %w", err)
+	}
+
+	return &GetDocumentPDFOutput{
+		ContentType: "application/pdf",
+		Body:        raw,
+	}, nil
+}
+
+func (h *DocumentHandler) GetTree(ctx context.Context, input *GetDocumentTreeInput) (*GetDocumentTreeOutput, error) {
+	tree, err := h.storage.GetTree(ctx, input.DocumentID)
+	if err != nil {
+		if errors.Is(err, domain.ErrNotFound) {
+			return nil, huma.Error404NotFound("document not found")
+		}
+		return nil, fmt.Errorf("get tree: %w", err)
+	}
+
+	return &GetDocumentTreeOutput{
+		Body: treeToBody(tree),
+	}, nil
 }
 
 func (h *DocumentHandler) Delete(ctx context.Context, input *DeleteDocumentInput) (*struct{}, error) {

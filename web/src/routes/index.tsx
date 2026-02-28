@@ -24,11 +24,12 @@ import {
 	useDocuments,
 	useUploadDocument,
 } from "#/hooks/documents";
+import { getDocumentTree, queryDocuments } from "#/lib/api";
 import {
-	buildRandomReferenceArea,
-	buildRandomReferenceFromPdfFile,
-	formatAreaLabel,
-} from "#/lib/referencePreviews";
+	buildNodeTitleLookup,
+	evidenceListToReferences,
+	type NodeTitleLookupByDocument,
+} from "#/lib/evidence";
 
 export const Route = createFileRoute("/")({ component: Dashboard });
 
@@ -46,15 +47,6 @@ const FILE_ACTION_BUTTON_CLASS =
 
 const FILE_ACTION_DESTRUCTIVE_BUTTON_CLASS =
 	"rounded-lg border border-red-200 bg-red-50/70 px-2 py-1 text-xs font-medium text-red-700 hover:bg-red-100/70 disabled:cursor-not-allowed disabled:opacity-60";
-
-function buildReferenceID(
-	documentID: string,
-	randomPreview: NonNullable<
-		Awaited<ReturnType<typeof buildRandomReferenceFromPdfFile>>
-	>,
-) {
-	return `${documentID}:${randomPreview.pageNumber}:${Math.round(randomPreview.area.xRatio * 1000)}:${Math.round(randomPreview.area.yRatio * 1000)}`;
-}
 
 function Dashboard() {
 	const [searchQuery, setSearchQuery] = useState("");
@@ -77,6 +69,14 @@ function Dashboard() {
 	const remove = useDeleteDocument();
 	const removeMany = useDeleteDocuments();
 
+	const documentsById = useMemo(() => {
+		const map = new Map<string, (typeof documents)[number]>();
+		for (const document of documents) {
+			map.set(document.id, document);
+		}
+		return map;
+	}, [documents]);
+
 	const filteredDocuments = documents.filter((d) =>
 		d.name.toLowerCase().includes(searchQuery.toLowerCase()),
 	);
@@ -92,34 +92,60 @@ function Dashboard() {
 		filteredDocumentIds.length > 0 &&
 		selectedVisibleCount === filteredDocumentIds.length;
 	const isDeleting = remove.isPending || removeMany.isPending;
-	const references = useMemo(
-		() =>
-			filteredDocuments
-				.map((doc) => referenceByDocumentId[doc.id])
-				.filter((reference): reference is ReferenceListItemData =>
-					Boolean(reference),
-				),
-		[filteredDocuments, referenceByDocumentId],
+
+	const visibleDocumentIDs = useMemo(
+		() => new Set(filteredDocuments.map((doc) => doc.id)),
+		[filteredDocuments],
 	);
-	const hasReferenceData = Object.keys(referenceByDocumentId).length > 0;
-	const isBuildingReferences = referenceBuildCount > 0;
+	const visibleReferences = useMemo(
+		() =>
+			references.filter((reference) =>
+				visibleDocumentIDs.has(reference.documentId),
+			),
+		[references, visibleDocumentIDs],
+	);
+	const selectedCompleteDocumentIDs = useMemo(
+		() =>
+			selectedDocumentIds.filter(
+				(id) => documentsById.get(id)?.status === "complete",
+			),
+		[documentsById, selectedDocumentIds],
+	);
+	const allCompleteDocumentIDs = useMemo(
+		() =>
+			documents
+				.filter((document) => document.status === "complete")
+				.map((document) => document.id),
+		[documents],
+	);
+	const queryableDocumentIDs =
+		selectedCompleteDocumentIDs.length > 0
+			? selectedCompleteDocumentIDs
+			: allCompleteDocumentIDs;
 
 	useEffect(() => {
 		const availableIds = new Set(documents.map((doc) => doc.id));
 		setSelectedDocumentIds((current) =>
 			current.filter((id) => availableIds.has(id)),
 		);
-		setReferenceByDocumentId((current) => {
-			let didChange = false;
-			const next: Record<string, ReferenceListItemData> = {};
-			for (const [docID, reference] of Object.entries(current)) {
+		setReferences((current) =>
+			current.filter((reference) => availableIds.has(reference.documentId)),
+		);
+		setTreeTitlesByDocument((current) => {
+			let changed = false;
+			const next: NodeTitleLookupByDocument = {};
+			for (const [docID, titleLookup] of Object.entries(current)) {
 				if (!availableIds.has(docID)) {
-					didChange = true;
+					changed = true;
 					continue;
 				}
-				next[docID] = reference;
+				next[docID] = titleLookup;
 			}
-			return didChange ? next : current;
+			return changed ? next : current;
+		});
+		setSelectedReference((current) => {
+			if (!current) return current;
+			return availableIds.has(current.documentId) ? current : null;
 		});
 	}, [documents]);
 
@@ -172,7 +198,7 @@ function Dashboard() {
 	}, [documents, referenceByDocumentId]);
 
 	const rowVirtualizer = useVirtualizer({
-		count: references.length,
+		count: visibleReferences.length,
 		getScrollElement: () => parentRef.current,
 		estimateSize: () => REFERENCE_ROW_HEIGHT,
 		overscan: 8,
@@ -183,7 +209,6 @@ function Dashboard() {
 			if (!files) return;
 			await Promise.all(
 				Array.from(files).map(async (file) => {
-					setReferenceBuildCount((current) => current + 1);
 					try {
 						const uploadedDocument = await upload.mutateAsync(file);
 						toast.success(`Uploaded "${uploadedDocument.name}"`);
@@ -226,7 +251,7 @@ function Dashboard() {
 		(e: React.DragEvent) => {
 			e.preventDefault();
 			setIsDragging(false);
-			handleFiles(e.dataTransfer.files);
+			void handleFiles(e.dataTransfer.files);
 		},
 		[handleFiles],
 	);
@@ -315,6 +340,9 @@ function Dashboard() {
 		try {
 			await removeMany.mutateAsync(idsToDelete);
 			setSelectedDocumentIds([]);
+			setReferences([]);
+			setSelectedReference(null);
+			setQueryAnswer("");
 			const plural = idsToDelete.length === 1 ? "" : "s";
 			toast.success(`Deleted all ${idsToDelete.length} file${plural}`);
 		} catch {
@@ -329,7 +357,6 @@ function Dashboard() {
 			onDragOver={handleDragOver}
 			onDragLeave={handleDragLeave}
 		>
-			{/* Drag overlay */}
 			{isDragging && (
 				<div className="absolute inset-0 z-50 m-3 rounded-2xl border-2 border-dashed border-[var(--lagoon)] bg-[var(--lagoon)]/5 backdrop-blur-sm flex flex-col items-center justify-center gap-4 pointer-events-none">
 					<div className="rounded-full bg-[var(--lagoon)]/15 p-6">
@@ -348,10 +375,9 @@ function Dashboard() {
 				accept=".pdf,application/pdf"
 				multiple
 				className="sr-only"
-				onChange={(e) => handleFiles(e.target.files)}
+				onChange={(e) => void handleFiles(e.target.files)}
 			/>
 
-			{/* Left Panel: Uploaded Files */}
 			<aside className="w-72 shrink-0 flex flex-col island-shell rounded-2xl overflow-hidden">
 				<div className="p-4 border-b border-[var(--line)] shrink-0">
 					<p className="island-kicker mb-3">Uploaded Files</p>
@@ -487,28 +513,60 @@ function Dashboard() {
 				</div>
 			</aside>
 
-			{/* Main: References */}
 			<div className="flex-1 flex flex-col island-shell rounded-2xl overflow-hidden">
-				<div className="p-4 border-b border-[var(--line)] shrink-0">
-					<p className="island-kicker">References</p>
-					<p className="text-xs text-[var(--sea-ink-soft)] mt-1">
-						{references.length} random reference
-						{references.length === 1 ? "" : "s"}
-						{hasReferenceData ? " generated from uploaded PDFs" : ""}
-					</p>
+				<div className="p-4 border-b border-[var(--line)] shrink-0 space-y-3">
+					<div>
+						<p className="island-kicker">Query Evidence</p>
+						<p className="text-xs text-[var(--sea-ink-soft)] mt-1">
+							Scope: {queryScopeLabel}
+						</p>
+					</div>
+
+					<div className="flex items-center gap-2">
+						<Input
+							value={question}
+							onChange={(event) => setQuestion(event.target.value)}
+							placeholder="Ask a question across ready documents..."
+							onKeyDown={(event) => {
+								if (event.key === "Enter") {
+									event.preventDefault();
+									void handleRunQuery();
+								}
+							}}
+						/>
+						<button
+							type="button"
+							onClick={() => void handleRunQuery()}
+							disabled={isQuerying}
+							className="shrink-0 rounded-lg bg-primary dark:bg-white dark:text-primary px-3 py-2 text-sm font-semibold text-primary-foreground disabled:cursor-not-allowed disabled:opacity-60"
+						>
+							{isQuerying ? (
+								<Loader2 className="w-4 h-4 animate-spin" />
+							) : (
+								<SendHorizontal className="w-4 h-4" />
+							)}
+						</button>
+					</div>
 				</div>
 
 				<div ref={parentRef} className="flex-1 min-h-0 overflow-y-auto p-3">
-					{references.length === 0 ? (
+					{queryAnswer ? (
+						<section className="mb-3 rounded-xl border border-[var(--line)] bg-white/70 p-3">
+							<p className="text-xs uppercase tracking-wide text-[var(--sea-ink-soft)]">
+								Answer
+							</p>
+							<p className="mt-1 whitespace-pre-wrap text-sm text-[var(--sea-ink)]">
+								{queryAnswer}
+							</p>
+						</section>
+					) : null}
+
+					{visibleReferences.length === 0 ? (
 						<div className="h-full flex items-center justify-center px-8 text-center">
 							<p className="text-sm text-[var(--sea-ink-soft)]">
-								{isBuildingReferences
-									? "Generating random references from uploaded PDFs..."
-									: documents.length === 0
-										? "Upload PDF files to generate random references."
-										: hasReferenceData
-											? "No references match the current file filter."
-											: "No local PDF references yet. Upload a PDF in this session to preview random page areas."}
+								{isQuerying
+									? "Running query and collecting evidence..."
+									: "Run a query to populate evidence references."}
 							</p>
 						</div>
 					) : (
@@ -532,7 +590,7 @@ function Dashboard() {
 									className="p-1"
 								>
 									<ReferenceListItem
-										reference={references[virtualItem.index]}
+										reference={visibleReferences[virtualItem.index]}
 										onPreview={handlePreview}
 									/>
 								</div>

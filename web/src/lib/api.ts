@@ -1,6 +1,17 @@
-import type { Document, QueryRequest, QueryResult } from "#/lib/types";
+import type {
+	Document,
+	DocumentTree,
+	QueryRequest,
+	QueryResult,
+} from "#/lib/types";
 
-export type { Document, QueryRequest, QueryResult } from "#/lib/types";
+export type {
+	Document,
+	DocumentTree,
+	Evidence,
+	QueryRequest,
+	QueryResult,
+} from "#/lib/types";
 
 const API_BASE = "http://localhost:2137";
 const BASE = `${API_BASE}/api/v1`;
@@ -47,6 +58,13 @@ export function getDocumentPdfUrl(id: string): string {
 	return `${BASE}/documents/${id}/pdf`;
 }
 
+export async function getDocumentTree(id: string): Promise<DocumentTree> {
+	const res = await fetch(`${BASE}/documents/${id}/tree`);
+	if (!res.ok)
+		throw new Error(`Failed to get document tree: ${res.statusText}`);
+	return res.json();
+}
+
 // ─── Query ────────────────────────────────────────────────────────────────────
 
 export async function queryDocuments(body: QueryRequest): Promise<QueryResult> {
@@ -56,5 +74,9 @@ export async function queryDocuments(body: QueryRequest): Promise<QueryResult> {
 		body: JSON.stringify(body),
 	});
 	if (!res.ok) throw new Error(`Query failed: ${res.statusText}`);
-	return res.json();
+	const result = (await res.json()) as QueryResult;
+	return {
+		...result,
+		evidence: result.evidence ?? [],
+	};
 }

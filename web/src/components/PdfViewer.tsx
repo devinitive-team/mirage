@@ -1,4 +1,4 @@
-import { useState } from "react";
+import { type ComponentProps, useMemo } from "react";
 import {
 	Highlight,
 	type IHighlight,
@@ -7,121 +7,111 @@ import {
 	Tip,
 } from "react-pdf-highlighter";
 import "react-pdf-highlighter/dist/style.css";
+
 import { getDocumentPdfUrl } from "#/lib/api";
+
+const MAX_HIGHLIGHT_PAGES = 24;
+
+export type PdfHighlightRange = {
+	id: string;
+	pageStart: number;
+	pageEnd: number;
+	snippet?: string;
+	nodeTitle?: string;
+};
 
 type PdfViewerProps = {
 	documentId: string;
-	documentName: string;
-	pageNumber: number;
-	searchPhrase: string;
+	highlightRanges: Array<PdfHighlightRange>;
 	compact?: boolean;
 };
 
-function createDefaultHighlights({
-	pageNumber,
-	searchPhrase,
-	documentName,
-}: PdfViewerProps): Array<IHighlight> {
-	return [
-		{
-			id: "big-highlight-1",
-			position: {
-				pageNumber,
-				boundingRect: {
-					x1: 0,
-					y1: 200,
-					x2: 500,
-					y2: 500,
-					width: 200,
-					height: 200,
-				},
-				rects: [
-					{
+function normalizeRange(pageStart: number, pageEnd: number): [number, number] {
+	const start = Math.max(1, Math.floor(pageStart));
+	const end = Math.max(start, Math.floor(pageEnd));
+	return [start, end];
+}
+
+function buildHighlights(ranges: Array<PdfHighlightRange>): Array<IHighlight> {
+	const highlights: Array<IHighlight> = [];
+
+	for (const range of ranges) {
+		const [start, end] = normalizeRange(range.pageStart, range.pageEnd);
+		for (
+			let pageNumber = start;
+			pageNumber <= end && highlights.length < MAX_HIGHLIGHT_PAGES;
+			pageNumber += 1
+		) {
+			highlights.push({
+				id: `${range.id}:${pageNumber}`,
+				position: {
+					pageNumber,
+					boundingRect: {
 						x1: 0,
-						y1: 200,
-						x2: 500,
-						y2: 500,
-						width: 200,
-						height: 200,
+						y1: 0,
+						x2: 1,
+						y2: 1,
+						width: 1,
+						height: 1,
+						pageNumber,
 					},
-				],
-			},
-			content: {
-				text: `Highlighted area for ${searchPhrase}`,
-			},
-			comment: {
-				text: `Large preview highlight for ${documentName}`,
-				emoji: "",
-			},
-		},
-		{
-			id: "1",
-			position: {
-				pageNumber,
-				boundingRect: {
-					x1: 350.44,
-					y1: 769.12,
-					x2: 508.08,
-					y2: 788.16,
-					width: 157.64,
-					height: 19.04,
+					rects: [
+						{
+							x1: 0,
+							y1: 0,
+							x2: 1,
+							y2: 1,
+							width: 1,
+							height: 1,
+							pageNumber,
+						},
+					],
 				},
-				rects: [
-					{
-						x1: 350.44,
-						y1: 769.12,
-						x2: 508.08,
-						y2: 788.16,
-						width: 157.64,
-						height: 19.04,
-					},
-				],
-			},
-			content: {
-				text: searchPhrase,
-			},
-			comment: { text: `Preview for ${documentName}`, emoji: "" },
-		},
-	];
+				content: {
+					text: range.snippet?.trim() || `Evidence for page ${pageNumber}`,
+				},
+				comment: {
+					text: range.nodeTitle || `Evidence pages ${start}-${end}`,
+					emoji: "",
+				},
+			});
+		}
+	}
+
+	return highlights;
 }
 
 export function PdfViewer({
 	documentId,
-	documentName,
-	pageNumber,
-	searchPhrase,
+	highlightRanges,
 	compact = false,
 }: PdfViewerProps) {
 	const pdfUrl = getDocumentPdfUrl(documentId);
-	const [highlights, setHighlights] = useState<Array<IHighlight>>(
-		createDefaultHighlights({ documentName, pageNumber, searchPhrase }),
+	const highlights = useMemo(
+		() => buildHighlights(highlightRanges),
+		[highlightRanges],
 	);
 
-	const addHighlight = (highlight: IHighlight) => {
-		setHighlights((prev) => [highlight, ...prev]);
-	};
-
-	const highlightTransform = (
-		highlight: unknown,
-		_index: number,
-		setTip: (
-			highlight: unknown,
-			callback: (highlight: unknown) => React.JSX.Element,
-		) => void,
-		_hideTipAndSelection: () => void,
-		_viewportToScaled: (rect: unknown) => unknown,
-		_screenshot: (position: unknown) => string,
-		isScrolledTo: boolean,
+	const highlightTransform: ComponentProps<
+		typeof PdfHighlighter<IHighlight>
+	>["highlightTransform"] = (
+		highlight,
+		_index,
+		setTip,
+		_hideTip,
+		_viewportToScaled,
+		_screenshot,
+		isScrolledTo,
 	) => {
 		return (
 			<Highlight
-				position={(highlight as IHighlight).position}
+				position={highlight.position}
 				onClick={() => {
 					setTip(highlight, () => (
 						<Tip onOpen={() => {}} onConfirm={() => {}} />
 					));
 				}}
-				comment={(highlight as IHighlight).comment}
+				comment={highlight.comment}
 				isScrolledTo={isScrolledTo}
 			/>
 		);
@@ -135,23 +125,13 @@ export function PdfViewer({
 				{(pdfDocument) => (
 					<PdfHighlighter
 						pdfDocument={pdfDocument}
-						enableAreaSelection={(event) => !compact && event.altKey}
+						enableAreaSelection={() => false}
 						onScrollChange={() => {}}
 						ref={() => {}}
 						scrollRef={() => {}}
 						highlights={highlights}
 						highlightTransform={highlightTransform}
-						onSelectionFinished={(position, content, hideTipAndSelection) => (
-							<Tip
-								onOpen={() => {}}
-								onConfirm={(comment) => {
-									if (!compact) {
-										addHighlight({ content, position, comment } as IHighlight);
-									}
-									hideTipAndSelection();
-								}}
-							/>
-						)}
+						onSelectionFinished={() => null}
 					/>
 				)}
 			</PdfLoader>

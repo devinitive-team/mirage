@@ -13,7 +13,7 @@ Monorepo with two projects:
 ### `srv/` — Go backend
 
 - `srv/cmd/mirage` — Entry point, dependency wiring, server startup.
-- `srv/internal/domain` — Pure types: Document, Page, TreeNode, TreeIndex, Query, QueryResult, Citation.
+- `srv/internal/domain` — Pure types: Document, Page, TreeNode, TreeIndex, Query, QueryResult, Evidence.
 - `srv/internal/port` — Interfaces: OCRProvider, LLMProvider, Storage.
 - `srv/internal/adapter/fs` — Filesystem storage implementation (atomic JSON writes).
 - `srv/internal/adapter/mistral` — Mistral OCR and chat completions client.

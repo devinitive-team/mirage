@@ -12,8 +12,8 @@ React 19, TanStack (Router, Query, Form, Table), Vite, Tailwind CSS, Biome (lint
 - Document list: searchable uploaded-file list with row status, per-file delete, multi-select checkboxes, `Delete selected`, and `Delete all` actions.
   Status labels are user-facing: `Uploaded` (backend `pending`), `Processing`, `Ready`, `Failed`.
 - Upload and delete actions show non-blocking toast notifications for success and error outcomes.
-- Query input: text field for natural-language questions.
-- Results: fixed-height virtualized reference cards generated from uploaded PDFs in the current session; each card shows file name and sampled page-area metadata, and opens a full PDF preview dialog on click.
+- Query input: text field for natural-language questions, scoped to selected ready documents (or all ready documents when none are selected).
+- Results: fixed-height virtualized evidence cards generated from query responses; each card shows document name, section title, page range, and snippet text, and opens a full PDF preview dialog with page-range highlights on click.
 
 ## Render Contract
 

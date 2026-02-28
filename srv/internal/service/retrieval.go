@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"sort"
 	"strings"
 
 	"github.com/devinitive-team/mirage/internal/domain"
@@ -35,14 +36,7 @@ type sufficiencyCheck struct {
 }
 
 type answerResponse struct {
-	Answer    string           `json:"answer"`
-	Citations []answerCitation `json:"citations"`
-}
-
-type answerCitation struct {
-	DocumentID string `json:"document_id"`
-	PageNumber int    `json:"page_number"`
-	NodeID     string `json:"node_id"`
+	Answer string `json:"answer"`
 }
 
 func (s *Retrieval) Answer(ctx context.Context, query domain.Query) (domain.QueryResult, error) {
@@ -63,7 +57,8 @@ func (s *Retrieval) Answer(ctx context.Context, query domain.Query) (domain.Quer
 	}
 
 	var collectedContent strings.Builder
-	var visitedNodes []string
+	evidenceByKey := make(map[string]struct{})
+	evidence := make([]domain.Evidence, 0)
 	explorationQueue := s.initialCandidates(trees)
 
 	for iteration := range s.maxIterations {
@@ -86,7 +81,6 @@ func (s *Retrieval) Answer(ctx context.Context, query domain.Query) (domain.Quer
 			if !selectedMap[cand.NodeID] {
 				continue
 			}
-			visitedNodes = append(visitedNodes, cand.NodeID)
 
 			if len(cand.Children) == 0 {
 				pages, err := s.storage.GetPageRange(ctx, cand.DocumentID, cand.StartPage, cand.EndPage)
@@ -95,6 +89,24 @@ func (s *Retrieval) Answer(ctx context.Context, query domain.Query) (domain.Quer
 				}
 				for _, p := range pages {
 					fmt.Fprintf(&collectedContent, "[Doc:%s Page:%d Node:%s]\n%s\n\n", cand.DocumentID, p.Index, cand.NodeID, p.Markdown)
+				}
+
+				key := fmt.Sprintf("%s|%s|%d|%d", cand.DocumentID, cand.NodeID, cand.StartPage, cand.EndPage)
+				if _, exists := evidenceByKey[key]; !exists {
+					docName := ""
+					if doc, ok := docs[cand.DocumentID]; ok {
+						docName = doc.Name
+					}
+					evidence = append(evidence, domain.Evidence{
+						DocumentID:   cand.DocumentID,
+						DocumentName: docName,
+						NodeID:       cand.NodeID,
+						NodeTitle:    cand.Title,
+						PageStart:    cand.StartPage,
+						PageEnd:      cand.EndPage,
+						Snippet:      buildEvidenceSnippet(pages),
+					})
+					evidenceByKey[key] = struct{}{}
 				}
 			} else {
 				nextQueue = append(nextQueue, cand.Children...)
@@ -112,7 +124,15 @@ func (s *Retrieval) Answer(ctx context.Context, query domain.Query) (domain.Quer
 		explorationQueue = nextQueue
 	}
 
-	return s.generateAnswer(ctx, query, docs, &collectedContent)
+	answer, err := s.generateAnswer(ctx, query, &collectedContent)
+	if err != nil {
+		return domain.QueryResult{}, err
+	}
+
+	return domain.QueryResult{
+		Answer:   answer,
+		Evidence: evidence,
+	}, nil
 }
 
 type candidateNode struct {
@@ -127,7 +147,14 @@ type candidateNode struct {
 
 func (s *Retrieval) initialCandidates(trees map[string]domain.TreeIndex) []candidateNode {
 	var candidates []candidateNode
-	for docID, tree := range trees {
+	docIDs := make([]string, 0, len(trees))
+	for docID := range trees {
+		docIDs = append(docIDs, docID)
+	}
+	sort.Strings(docIDs)
+
+	for _, docID := range docIDs {
+		tree := trees[docID]
 		for _, child := range tree.Root.Children {
 			candidates = append(candidates, treeNodeToCandidate(docID, child))
 		}
@@ -202,40 +229,38 @@ func (s *Retrieval) checkSufficiency(ctx context.Context, question string, colle
 	return result, nil
 }
 
-func (s *Retrieval) generateAnswer(ctx context.Context, query domain.Query, docs map[string]domain.Document, collected *strings.Builder) (domain.QueryResult, error) {
+func buildEvidenceSnippet(pages []domain.Page) string {
+	var sb strings.Builder
+	for _, page := range pages {
+		text := strings.TrimSpace(page.Markdown)
+		if text == "" {
+			continue
+		}
+		if sb.Len() > 0 {
+			sb.WriteString("\n\n")
+		}
+		sb.WriteString(text)
+	}
+	return sb.String()
+}
+
+func (s *Retrieval) generateAnswer(ctx context.Context, query domain.Query, collected *strings.Builder) (string, error) {
 	messages := []port.ChatMessage{
-		{Role: "system", Content: "You are a research assistant. Answer the question based on the provided content. Include specific page citations."},
-		{Role: "user", Content: fmt.Sprintf("Question: %s\n\nSource content:\n%s\n\nProvide a comprehensive answer with citations referencing specific document IDs and page numbers.", query.Question, collected.String())},
+		{Role: "system", Content: "You are a research assistant. Answer the question based on the provided content."},
+		{Role: "user", Content: fmt.Sprintf("Question: %s\n\nSource content:\n%s\n\nProvide a comprehensive answer.", query.Question, collected.String())},
 	}
 
-	schema := `{"answer": "string", "citations": [{"document_id": "string", "page_number": 0, "node_id": "string"}]}`
+	schema := `{"answer": "string"}`
 
 	raw, err := s.llm.CompleteJSON(ctx, messages, schema)
 	if err != nil {
-		return domain.QueryResult{}, fmt.Errorf("llm generate answer: %w", err)
+		return "", fmt.Errorf("llm generate answer: %w", err)
 	}
 
 	var resp answerResponse
 	if err := json.Unmarshal([]byte(raw), &resp); err != nil {
-		return domain.QueryResult{}, fmt.Errorf("unmarshal answer: %w", err)
+		return "", fmt.Errorf("unmarshal answer: %w", err)
 	}
 
-	result := domain.QueryResult{
-		Answer:    resp.Answer,
-		Citations: make([]domain.Citation, 0, len(resp.Citations)),
-	}
-	for _, c := range resp.Citations {
-		docName := ""
-		if doc, ok := docs[c.DocumentID]; ok {
-			docName = doc.Name
-		}
-		result.Citations = append(result.Citations, domain.Citation{
-			DocumentID:   c.DocumentID,
-			DocumentName: docName,
-			PageNumber:   c.PageNumber,
-			NodeID:       c.NodeID,
-		})
-	}
-
-	return result, nil
+	return resp.Answer, nil
 }

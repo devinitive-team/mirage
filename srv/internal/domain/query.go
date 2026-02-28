@@ -5,16 +5,19 @@ type Query struct {
 	DocumentIDs []string `json:"document_ids"`
 }
 
-type Citation struct {
+type Evidence struct {
 	DocumentID   string `json:"document_id"`
 	DocumentName string `json:"document_name"`
-	PageNumber   int    `json:"page_number"`
 	NodeID       string `json:"node_id"`
+	NodeTitle    string `json:"node_title"`
+	PageStart    int    `json:"page_start"`
+	PageEnd      int    `json:"page_end"`
+	Snippet      string `json:"snippet"`
 }
 
 type QueryResult struct {
-	Answer    string     `json:"answer"`
-	Citations []Citation `json:"citations"`
+	Answer   string     `json:"answer"`
+	Evidence []Evidence `json:"evidence"`
 }
 
 type ReasoningStep struct {

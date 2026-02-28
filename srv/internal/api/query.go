@@ -38,5 +38,5 @@ func (h *QueryHandler) Query(ctx context.Context, input *QueryInput) (*QueryOutp
 		return nil, fmt.Errorf("query: %w", err)
 	}
 
-	return &QueryOutput{Body: result}, nil
+	return &QueryOutput{Body: queryResultToBody(result)}, nil
 }

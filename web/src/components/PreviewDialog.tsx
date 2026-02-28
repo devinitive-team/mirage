@@ -24,10 +24,11 @@ export function PreviewDialog({
 	onOpenChange,
 	reference,
 }: PreviewDialogProps) {
-	const searchPhrase = reference?.searchPhrase?.trim() ?? "";
-	const phraseLabel = searchPhrase ? `"${searchPhrase}"` : "N/A";
-	const contextLabel =
-		reference?.areaLabel ?? `Page ${reference?.pageNumber ?? "-"}`;
+	const contextLabel = reference
+		? reference.pageStart === reference.pageEnd
+			? `${reference.nodeTitle} · Page ${reference.pageStart}`
+			: `${reference.nodeTitle} · Pages ${reference.pageStart}-${reference.pageEnd}`
+		: "-";
 
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
@@ -38,19 +39,23 @@ export function PreviewDialog({
 							<DialogTitle className="text-base">
 								{reference.documentName}
 							</DialogTitle>
-							<DialogDescription>
-								{contextLabel} · Highlighted phrase: {phraseLabel}
-							</DialogDescription>
+							<DialogDescription>{contextLabel}</DialogDescription>
 						</DialogHeader>
 					)}
 					<Suspense fallback={<div className="p-4">Loading PDF viewer...</div>}>
 						{reference ? (
 							<PdfViewer
-								key={`${reference.id}-${reference.pageNumber}-${searchPhrase}`}
+								key={`${reference.id}-${reference.pageStart}-${reference.pageEnd}`}
 								documentId={reference.documentId}
-								documentName={reference.documentName}
-								pageNumber={reference.pageNumber}
-								searchPhrase={searchPhrase || "Selected region"}
+								highlightRanges={[
+									{
+										id: reference.id,
+										pageStart: reference.pageStart,
+										pageEnd: reference.pageEnd,
+										snippet: reference.snippet,
+										nodeTitle: reference.nodeTitle,
+									},
+								]}
 							/>
 						) : (
 							<div className="p-4">No reference selected.</div>

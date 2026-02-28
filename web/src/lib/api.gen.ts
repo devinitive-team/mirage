@@ -61,13 +61,6 @@ export interface paths {
 export type webhooks = Record<string, never>;
 export interface components {
 	schemas: {
-		Citation: {
-			document_id: string;
-			document_name: string;
-			node_id: string;
-			/** Format: int64 */
-			page_number: number;
-		};
 		DocumentBody: {
 			/**
 			 * Format: uri
@@ -134,6 +127,17 @@ export interface components {
 			 */
 			type: string;
 		};
+		EvidenceBody: {
+			document_id: string;
+			document_name: string;
+			node_id: string;
+			node_title: string;
+			/** Format: int64 */
+			page_end: number;
+			/** Format: int64 */
+			page_start: number;
+			snippet: string;
+		};
 		QueryBody: {
 			/**
 			 * Format: uri
@@ -144,15 +148,35 @@ export interface components {
 			document_ids: string[] | null;
 			question: string;
 		};
-		QueryResult: {
+		QueryResultBody: {
 			/**
 			 * Format: uri
 			 * @description A URL to the JSON Schema for this object.
-			 * @example https://example.com/schemas/QueryResult.json
+			 * @example https://example.com/schemas/QueryResultBody.json
 			 */
 			readonly $schema?: string;
 			answer: string;
-			citations: components["schemas"]["Citation"][] | null;
+			evidence: components["schemas"]["EvidenceBody"][] | null;
+		};
+		TreeBody: {
+			/**
+			 * Format: uri
+			 * @description A URL to the JSON Schema for this object.
+			 * @example https://example.com/schemas/TreeBody.json
+			 */
+			readonly $schema?: string;
+			document_id: string;
+			root: components["schemas"]["TreeNodeBody"];
+		};
+		TreeNodeBody: {
+			children: components["schemas"]["TreeNodeBody"][] | null;
+			/** Format: int64 */
+			end_page: number;
+			node_id: string;
+			/** Format: int64 */
+			start_page: number;
+			summary: string;
+			title: string;
 		};
 	};
 	responses: never;
@@ -309,7 +333,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["QueryResult"];
+					"application/json": components["schemas"]["QueryResultBody"];
 				};
 			};
 			/** @description Error */
