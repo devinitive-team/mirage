@@ -361,12 +361,27 @@ button:not(:disabled) {
   }
 }
 
-@keyframes file-processing {
+@keyframes file-uploading {
   from {
     transform: translateX(0);
   }
   to {
-    transform: translateX(260%);
+    transform: translateX(310%);
+  }
+}
+
+@keyframes file-indexing {
+  0% {
+    transform: translateX(0);
+    opacity: 0.72;
+  }
+  55% {
+    transform: translateX(230%);
+    opacity: 1;
+  }
+  100% {
+    transform: translateX(420%);
+    opacity: 0.72;
   }
 }
 

@@ -52,9 +52,14 @@ const REFERENCE_ROW_HEIGHT = REFERENCE_LIST_ITEM_HEIGHT + 8;
 
 const STATUS_LABEL: Record<string, string> = {
 	pending: "Uploaded",
-	processing: "Processing",
+	processing: "Indexing",
 	complete: "Ready",
 	failed: "Failed",
+};
+
+type UploadingFileItem = {
+	id: string;
+	name: string;
 };
 
 function buildUploadedFilePreviewReference(
@@ -120,6 +125,10 @@ function EvidenceLoadingState({ compact = false }: { compact?: boolean }) {
 	);
 }
 
+function createUploadingFileId(file: File): string {
+	return `${file.name}-${file.size}-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+}
+
 function isInteractiveTarget(target: EventTarget | null): boolean {
 	if (!(target instanceof HTMLElement)) return false;
 	if (target.isContentEditable) return true;
@@ -130,6 +139,7 @@ function isInteractiveTarget(target: EventTarget | null): boolean {
 function Dashboard() {
 	const [searchQuery, setSearchQuery] = useState("");
 	const [isDragging, setIsDragging] = useState(false);
+	const [uploadingFiles, setUploadingFiles] = useState<UploadingFileItem[]>([]);
 	const [isPreviewOpen, setIsPreviewOpen] = useState(false);
 	const [selectedReference, setSelectedReference] =
 		useState<ReferenceListItemData | null>(null);
@@ -159,13 +169,21 @@ function Dashboard() {
 	const filteredDocuments = documents.filter((document) =>
 		document.name.toLowerCase().includes(searchQuery.toLowerCase()),
 	);
+	const filteredUploadingFiles = useMemo(
+		() =>
+			uploadingFiles.filter((file) =>
+				file.name.toLowerCase().includes(searchQuery.toLowerCase()),
+			),
+		[searchQuery, uploadingFiles],
+	);
 	const filteredDocumentIds = useMemo(
 		() => filteredDocuments.map((document) => document.id),
 		[filteredDocuments],
 	);
 	const selectedCount = selectedDocumentIds.length;
-	const allFilesSelected =
-		documents.length > 0 && selectedCount === documents.length;
+	const allFilesSelected = documents.length > 0 && selectedCount === documents.length;
+	const uploadingCount = uploadingFiles.length;
+	const totalFileCount = documents.length + uploadingCount;
 	const processingCount = documents.filter((document) =>
 		["pending", "processing"].includes(document.status),
 	).length;
@@ -204,7 +222,11 @@ function Dashboard() {
 		if (queryableDocumentIDs.length === 0) {
 			if (processingCount > 0) {
 				const plural = processingCount === 1 ? "" : "s";
-				return `${processingCount} file${plural} still processing`;
+				return `${processingCount} file${plural} still indexing`;
+			}
+			if (uploadingCount > 0) {
+				const plural = uploadingCount === 1 ? "" : "s";
+				return `${uploadingCount} file${plural} uploading`;
 			}
 			return "No ready files";
 		}
@@ -218,6 +240,7 @@ function Dashboard() {
 		processingCount,
 		queryableDocumentIDs.length,
 		selectedCompleteDocumentIDs.length,
+		uploadingCount,
 	]);
 
 	useEffect(() => {
@@ -264,11 +287,20 @@ function Dashboard() {
 						);
 						return;
 					}
+					const uploadingFileId = createUploadingFileId(file);
+					setUploadingFiles((current) => [
+						...current,
+						{ id: uploadingFileId, name: file.name },
+					]);
 					try {
 						const uploadedDocument = await upload.mutateAsync(file);
 						toast.success(`Uploaded "${uploadedDocument.name}"`);
 					} catch {
 						toast.error(`Failed to upload "${file.name}"`);
+					} finally {
+						setUploadingFiles((current) =>
+							current.filter((item) => item.id !== uploadingFileId),
+						);
 					}
 				}),
 			);
@@ -598,86 +630,134 @@ function Dashboard() {
 				</div>
 
 				<div className="flex-1 min-h-0 overflow-y-auto p-2 space-y-1">
-					{isLoading ? (
+					{isLoading && documents.length === 0 && uploadingCount === 0 ? (
 						<div className="flex items-center justify-center h-full py-8">
 							<Loader2 className="w-6 h-6 animate-spin text-[var(--sea-ink-soft)]" />
 						</div>
-					) : filteredDocuments.length === 0 ? (
+					) : filteredUploadingFiles.length === 0 &&
+						filteredDocuments.length === 0 ? (
 						<div className="flex flex-col items-center justify-center h-full gap-2 py-8">
 							<FileText className="w-8 h-8 text-[var(--sea-ink-soft)] opacity-30" />
 							<p className="text-sm text-[var(--sea-ink-soft)] text-center">
-								{documents.length === 0
+								{totalFileCount === 0
 									? "Drop files anywhere or use the upload button"
 									: "No files match your search"}
 							</p>
 						</div>
 					) : (
-						filteredDocuments.map((document) => {
-							const isProcessingStatus = ["pending", "processing"].includes(
-								document.status,
-							);
-							const statusTextClass =
-								document.status === "complete"
-									? "text-emerald-700 dark:text-emerald-300"
-									: document.status === "failed"
-										? "text-red-700 dark:text-red-300"
-										: "text-[var(--sea-ink-soft)]";
-							return (
+						<>
+							{filteredUploadingFiles.map((file) => (
 								<div
-									key={document.id}
-									className={`group flex items-center gap-2 rounded-lg border border-transparent px-3 py-2 text-sm transition-colors ${
-										selectedDocumentIds.includes(document.id)
-											? "bg-[var(--lagoon)]/10 hover:bg-[var(--lagoon)]/15"
-											: "hover:bg-[var(--sea-ink)]/5 hover:border-[var(--line)]"
-									}`}
+									key={file.id}
+									className="flex items-center gap-2 rounded-lg border border-sky-300/40 bg-sky-50/40 px-3 py-2 text-sm dark:border-sky-700/45 dark:bg-sky-950/20"
 								>
-									<input
-										type="checkbox"
-										checked={selectedDocumentIds.includes(document.id)}
-										onChange={() => toggleDocumentSelection(document.id)}
-										disabled={isDeleting}
-										aria-label={`Select ${document.name}`}
-										className="h-3.5 w-3.5 shrink-0 rounded border-[var(--line)] text-[var(--lagoon)] focus:ring-[var(--lagoon)]"
-									/>
-									<button
-										type="button"
-										onClick={() =>
-											handleUploadedFilePreview(document.id, document.name)
-										}
-										aria-label={`Preview ${document.name}`}
-										className="flex min-w-0 flex-1 cursor-pointer items-center gap-2 rounded-md px-1 py-1 text-left transition-colors hover:bg-[var(--lagoon)]/8 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lagoon)]"
-									>
-										<FileText className="w-4 h-4 shrink-0 text-[var(--lagoon-deep)]" />
+									<span className="flex h-3.5 w-3.5 shrink-0 items-center justify-center">
+										<Loader2 className="h-3 w-3 animate-spin text-sky-700 dark:text-sky-300" />
+									</span>
+									<div className="flex min-w-0 flex-1 items-center gap-2 rounded-md px-1 py-1">
+										<FileText className="h-4 w-4 shrink-0 text-sky-700 dark:text-sky-300" />
 										<div className="min-w-0 flex-1">
 											<span className="block truncate text-[var(--sea-ink)]">
-												{document.name}
+												{file.name}
 											</span>
-											{isProcessingStatus ? (
-												<span className="relative mt-1 block h-1.5 w-full overflow-hidden rounded-full bg-[var(--lagoon)]/12">
-													<span className="absolute inset-y-0 left-[-45%] w-2/5 rounded-full bg-[var(--lagoon)]/60 animate-[file-processing_1.05s_ease-in-out_infinite]" />
-												</span>
-											) : null}
+											<span className="relative mt-1 block h-1.5 w-full overflow-hidden rounded-full bg-sky-200/55 dark:bg-sky-900/35">
+												<span className="absolute inset-y-0 left-[-55%] w-1/2 rounded-full bg-sky-500/80 animate-[file-uploading_0.9s_linear_infinite]" />
+											</span>
 										</div>
-										{isProcessingStatus ? null : (
+										<span className="shrink-0 text-[11px] font-medium text-sky-700 dark:text-sky-300">
+											Uploading
+										</span>
+									</div>
+								</div>
+							))}
+							{filteredDocuments.map((document) => {
+								const isPendingStatus = document.status === "pending";
+								const isProcessingStatus =
+									isPendingStatus || document.status === "processing";
+								const statusTextClass =
+									document.status === "complete"
+										? "text-emerald-700 dark:text-emerald-300"
+										: document.status === "failed"
+											? "text-red-700 dark:text-red-300"
+											: isPendingStatus
+												? "text-amber-700 dark:text-amber-300"
+												: "text-[var(--sea-ink-soft)]";
+								const statusText = isProcessingStatus
+									? isPendingStatus
+										? "Queued"
+										: "Indexing"
+									: (STATUS_LABEL[document.status] ?? document.status);
+								const loadingTrackClass = isPendingStatus
+									? "bg-amber-300/35 dark:bg-amber-900/35"
+									: "bg-[var(--lagoon)]/12";
+								const loadingBarClass = isPendingStatus
+									? "bg-amber-500/80 animate-[file-indexing_1.45s_ease-in-out_infinite]"
+									: "bg-[var(--lagoon)]/70 animate-[file-indexing_1.05s_ease-in-out_infinite]";
+								const loadingBarWidthClass = isPendingStatus
+									? "w-1/4"
+									: "w-2/5";
+								return (
+									<div
+										key={document.id}
+										className={`group flex items-center gap-2 rounded-lg border border-transparent px-3 py-2 text-sm transition-colors ${
+											selectedDocumentIds.includes(document.id)
+												? "bg-[var(--lagoon)]/10 hover:bg-[var(--lagoon)]/15"
+												: "hover:bg-[var(--sea-ink)]/5 hover:border-[var(--line)]"
+										}`}
+									>
+										<input
+											type="checkbox"
+											checked={selectedDocumentIds.includes(document.id)}
+											onChange={() => toggleDocumentSelection(document.id)}
+											disabled={isDeleting}
+											aria-label={`Select ${document.name}`}
+											className="h-3.5 w-3.5 shrink-0 rounded border-[var(--line)] text-[var(--lagoon)] focus:ring-[var(--lagoon)]"
+										/>
+										<button
+											type="button"
+											onClick={() =>
+												handleUploadedFilePreview(document.id, document.name)
+											}
+											aria-label={`Preview ${document.name}`}
+											className="flex min-w-0 flex-1 cursor-pointer items-center gap-2 rounded-md px-1 py-1 text-left transition-colors hover:bg-[var(--lagoon)]/8 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lagoon)]"
+										>
+											<FileText className="w-4 h-4 shrink-0 text-[var(--lagoon-deep)]" />
+											<div className="min-w-0 flex-1">
+												<span className="block truncate text-[var(--sea-ink)]">
+													{document.name}
+												</span>
+												{isProcessingStatus ? (
+													<span
+														className={`relative mt-1 block h-1.5 w-full overflow-hidden rounded-full ${loadingTrackClass}`}
+													>
+													<span
+															className={`absolute inset-y-0 left-[-45%] rounded-full ${loadingBarClass} ${loadingBarWidthClass}`}
+														/>
+													</span>
+												) : null}
+											</div>
 											<span
 												className={`shrink-0 text-[11px] font-medium ${statusTextClass}`}
 											>
-												{STATUS_LABEL[document.status] ?? document.status}
+												{statusText}
 											</span>
-										)}
-									</button>
-								</div>
-							);
-						})
+										</button>
+									</div>
+								);
+							})}
+						</>
 					)}
 				</div>
 
 				<div className="p-3 border-t border-[var(--line)] shrink-0 space-y-2">
-					{documents.length > 0 && (
+					{totalFileCount > 0 && (
 						<p className="text-xs text-center text-[var(--sea-ink-soft)]">
-							{documents.length} file{documents.length !== 1 ? "s" : ""} total
+							{totalFileCount} file{totalFileCount !== 1 ? "s" : ""} total
 							{selectedCount > 0 ? ` • ${selectedCount} selected` : ""}
-							{processingCount > 0 ? ` • ${processingCount} processing` : ""}
+							{uploadingCount > 0 ? ` • ${uploadingCount} uploading` : ""}
+							{processingCount > 0
+								? ` • ${processingCount} indexing`
+								: ""}
 						</p>
 					)}
 					<button
