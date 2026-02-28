@@ -33,7 +33,7 @@ export const ReferenceListItem = memo(function ReferenceListItem({
 	return (
 		<button
 			type="button"
-			className="reference-list-item h-full w-full rounded-xl p-3 flex flex-col gap-2 text-left cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lagoon)]"
+			className="reference-list-item h-full w-full rounded-xl p-3 flex flex-col gap-2 text-left cursor-pointer transition-all hover:-translate-y-0.5 hover:border-[var(--lagoon-deep)]/40 hover:shadow-lg active:translate-y-0 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lagoon)]"
 			onClick={() => onPreview(reference)}
 		>
 			<header className="flex items-start justify-between gap-3">

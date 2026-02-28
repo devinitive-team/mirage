@@ -429,7 +429,7 @@ function Dashboard() {
 							<button
 								type="button"
 								onClick={() => setSearchQuery("")}
-								className="absolute right-2 top-1/2 -translate-y-1/2 text-[var(--sea-ink-soft)] hover:text-[var(--sea-ink)]"
+								className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1 text-[var(--sea-ink-soft)] transition-colors hover:bg-[var(--sea-ink)]/8 hover:text-[var(--sea-ink)]"
 							>
 								<X className="w-3.5 h-3.5" />
 							</button>
@@ -513,7 +513,7 @@ function Dashboard() {
 										handleUploadedFilePreview(document.id, document.name)
 									}
 									aria-label={`Preview ${document.name}`}
-									className="flex min-w-0 flex-1 cursor-pointer items-center gap-2 rounded-md text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lagoon)]"
+									className="flex min-w-0 flex-1 cursor-pointer items-center gap-2 rounded-md px-1 py-1 text-left transition-colors hover:bg-[var(--lagoon)]/8 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lagoon)]"
 								>
 									<FileText className="w-4 h-4 shrink-0 text-[var(--lagoon-deep)]" />
 									<span className="truncate flex-1 text-[var(--sea-ink)]">
@@ -529,7 +529,7 @@ function Dashboard() {
 										void handleDeleteSingle(document.id, document.name)
 									}
 									disabled={isDeleting}
-									className="shrink-0 opacity-0 group-hover:opacity-100 text-[var(--sea-ink-soft)] hover:text-[var(--sea-ink)] transition-opacity"
+									className="shrink-0 rounded-md p-1 opacity-60 text-[var(--sea-ink-soft)] transition hover:bg-[var(--sea-ink)]/8 hover:text-[var(--sea-ink)] group-hover:opacity-100"
 								>
 									<X className="w-3.5 h-3.5" />
 								</button>

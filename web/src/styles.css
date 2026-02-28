@@ -339,6 +339,10 @@ a {
     transform 180ms ease;
 }
 
+button:not(:disabled) {
+  cursor: pointer;
+}
+
 .island-kicker {
   letter-spacing: 0.16em;
   text-transform: uppercase;
