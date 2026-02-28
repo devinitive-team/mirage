@@ -15,7 +15,12 @@ tasks:
     desc: Run the server
     dotenv: ['.env']
     cmds:
-      - go run ./cmd/mirage
+      - go run ./cmd/mirage run
+
+  openapi:
+    desc: Generate OpenAPI spec
+    cmds:
+      - go run ./cmd/mirage openapi > openapi.json
 
   test:
     desc: Run all tests

@@ -17,7 +17,15 @@ type contextKey string
 
 const contentTypeKey contextKey = "content-type"
 
-func NewRouter(storage port.Storage, ingest *service.Ingest, retrieval *service.Retrieval, pool *worker.Pool) http.Handler {
+// API holds the configured router and Huma API instance.
+type API struct {
+	router  chi.Router
+	humaAPI huma.API
+}
+
+// New creates a new API with all routes registered. Dependencies may be nil
+// when the API is used only for schema introspection (e.g. OpenAPI generation).
+func New(storage port.Storage, ingest *service.Ingest, retrieval *service.Retrieval, pool *worker.Pool) *API {
 	r := chi.NewMux()
 
 	r.Use(Recovery)
@@ -30,15 +38,25 @@ func NewRouter(storage port.Storage, ingest *service.Ingest, retrieval *service.
 		w.Write([]byte(`{"status":"ok"}`))
 	})
 
-	api := humachi.New(r, huma.DefaultConfig("Mirage", "1.0.0"))
+	humaAPI := humachi.New(r, huma.DefaultConfig("Mirage", "1.0.0"))
 
 	docs := NewDocumentHandler(storage, ingest, pool)
-	docs.RegisterRoutes(api)
+	docs.RegisterRoutes(humaAPI)
 
 	query := NewQueryHandler(retrieval)
-	query.RegisterRoutes(api)
+	query.RegisterRoutes(humaAPI)
 
-	return r
+	return &API{router: r, humaAPI: humaAPI}
+}
+
+// Handler returns the http.Handler for use with an HTTP server.
+func (a *API) Handler() http.Handler {
+	return a.router
+}
+
+// OpenAPI returns the generated OpenAPI specification.
+func (a *API) OpenAPI() *huma.OpenAPI {
+	return a.humaAPI.OpenAPI()
 }
 
 func captureContentType(next http.Handler) http.Handler {
