@@ -33,14 +33,14 @@ export function FileUpload({
 		<div className={cn("space-y-4", className)}>
 			<div
 				className={cn(
-					"relative flex flex-col items-center justify-center rounded-xl border-2 border-dashed p-8 transition-colors",
+					"relative flex flex-col items-center justify-center rounded-xl border-2 border-dashed p-16 transition-colors",
 					"border-[var(--sea-ink-soft)]/30 hover:border-[var(--sea-ink-soft)]",
 					files.length > 0 && "border-solid border-[var(--sea-ink-soft)]",
 				)}
 			>
 				<label
 					htmlFor={inputId}
-					className="flex flex-col items-center gap-3 text-center cursor-pointer w-full h-full absolute inset-0 p-8"
+					className="flex flex-col items-center justify-center gap-3 text-center cursor-pointer w-full h-full absolute inset-0 p-16"
 				>
 					<div className="rounded-full bg-[var(--sea-ink)]/10 p-3">
 						<svg
