@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useState } from "react";
 import {
+	Highlight,
 	type IHighlight,
 	PdfHighlighter,
 	PdfLoader,
@@ -47,12 +48,30 @@ function PreviewPage() {
 		setHighlights((prev) => [highlight, ...prev]);
 	};
 
-	const highlightTransform = (highlight: IHighlight, _index: number) => {
-		return {
-			component: <></>,
-			position: highlight.position,
-			content: highlight.content,
-		};
+	const highlightTransform = (
+		highlight: any,
+		_index: number,
+		setTip: (
+			highlight: any,
+			callback: (highlight: any) => React.JSX.Element,
+		) => void,
+		_hideTipAndSelection: () => void,
+		_viewportToScaled: (rect: any) => any,
+		_screenshot: (position: any) => string,
+		isScrolledTo: boolean,
+	) => {
+		return (
+			<Highlight
+				position={highlight.position}
+				onClick={() => {
+					setTip(highlight, () => (
+						<Tip onOpen={() => {}} onConfirm={() => {}} />
+					));
+				}}
+				comment={highlight.comment}
+				isScrolledTo={isScrolledTo}
+			/>
+		);
 	};
 
 	return (
