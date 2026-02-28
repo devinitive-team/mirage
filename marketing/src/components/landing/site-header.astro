@@ -1,0 +1,43 @@
+---
+interface Props {
+  ctaHref: string;
+}
+
+const { ctaHref } = Astro.props;
+---
+
+<header class="sticky top-0 z-40 border-b border-black/10 bg-white/80 backdrop-blur">
+  <div class="mx-auto flex h-20 max-w-7xl items-center justify-between gap-4 px-4 sm:px-6 lg:px-8">
+    <a
+      href="/"
+      class="inline-flex items-center gap-2 font-display text-xl font-extrabold tracking-tight"
+      aria-label="Mirage home"
+    >
+      <svg viewBox="0 0 32 32" aria-hidden="true" class="h-6 w-6 shrink-0">
+        <path d="M5 24.5L9.1 8h3.8L8.8 24.5H5Z" fill="currentColor"></path>
+        <path d="M12.2 24.5L16 11.5h3.7L16 24.5h-3.8Z" fill="currentColor"></path>
+        <path d="M19.6 24.5L23.7 8H27l-4 16.5h-3.4Z" fill="currentColor"></path>
+      </svg>
+      <span>Mirage</span>
+    </a>
+
+    <nav class="hidden items-center gap-6 md:inline-flex" aria-label="Primary">
+      <a href="#how-it-works" class="text-sm text-slate-600 transition-colors duration-150 hover:text-slate-900"
+        >How it works</a
+      >
+      <a href="#proof" class="text-sm text-slate-600 transition-colors duration-150 hover:text-slate-900"
+        >Proof</a
+      >
+      <a href="#faq" class="text-sm text-slate-600 transition-colors duration-150 hover:text-slate-900">FAQ</a>
+    </nav>
+
+    <a
+      href={ctaHref}
+      class="inline-flex h-10 items-center justify-center border border-slate-900 bg-slate-900 px-4 font-display text-sm font-bold text-white transition duration-150 ease-out hover:-translate-y-0.5 hover:bg-slate-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-500"
+      data-cta="try-for-free"
+      data-cta-location="nav"
+    >
+      Try for free
+    </a>
+  </div>
+</header>
