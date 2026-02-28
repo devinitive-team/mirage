@@ -40,14 +40,14 @@ func (s *Storage) GetDocument(_ context.Context, id string) (domain.Document, er
 	return doc, nil
 }
 
-func (s *Storage) ListDocuments(_ context.Context, limit, offset int) ([]domain.Document, error) {
+func (s *Storage) ListDocuments(_ context.Context, limit, offset int) ([]domain.Document, int, error) {
 	docsDir := filepath.Join(s.base, "documents")
 	entries, err := os.ReadDir(docsDir)
 	if err != nil {
 		if errors.Is(err, os.ErrNotExist) {
-			return nil, nil
+			return nil, 0, nil
 		}
-		return nil, fmt.Errorf("read documents dir: %w", err)
+		return nil, 0, fmt.Errorf("read documents dir: %w", err)
 	}
 
 	var docs []domain.Document
@@ -60,7 +60,7 @@ func (s *Storage) ListDocuments(_ context.Context, limit, offset int) ([]domain.
 			if errors.Is(err, domain.ErrNotFound) {
 				continue
 			}
-			return nil, fmt.Errorf("read document %s: %w", e.Name(), err)
+			return nil, 0, fmt.Errorf("read document %s: %w", e.Name(), err)
 		}
 		docs = append(docs, doc)
 	}
@@ -69,14 +69,16 @@ func (s *Storage) ListDocuments(_ context.Context, limit, offset int) ([]domain.
 		return docs[i].CreatedAt.After(docs[j].CreatedAt)
 	})
 
+	total := len(docs)
+
 	if offset >= len(docs) {
-		return nil, nil
+		return nil, total, nil
 	}
 	docs = docs[offset:]
 	if limit > 0 && limit < len(docs) {
 		docs = docs[:limit]
 	}
-	return docs, nil
+	return docs, total, nil
 }
 
 func (s *Storage) DeleteDocument(_ context.Context, id string) error {

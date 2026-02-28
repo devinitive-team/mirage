@@ -27,12 +27,20 @@ type DocumentBody struct {
 }
 
 type ListDocumentsInput struct {
-	Limit  int `query:"limit" default:"20" minimum:"1" maximum:"100"`
-	Offset int `query:"offset" default:"0" minimum:"0"`
+	Page     int `query:"page" default:"1" minimum:"1"`
+	PageSize int `query:"page_size" default:"20" minimum:"1" maximum:"100"`
 }
 
 type ListDocumentsOutput struct {
-	Body []DocumentBody
+	Body ListDocumentsBody
+}
+
+type ListDocumentsBody struct {
+	Items    []DocumentBody `json:"items"`
+	Total    int            `json:"total"`
+	Page     int            `json:"page"`
+	PageSize int            `json:"page_size"`
+	Pages    int            `json:"pages"`
 }
 
 type GetDocumentInput struct {

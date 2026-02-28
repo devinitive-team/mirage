@@ -154,7 +154,8 @@ function Dashboard() {
 	const parentRef = useRef<HTMLDivElement>(null);
 	const inputId = useId();
 
-	const { data: documents = [], isLoading } = useDocuments();
+	const { data, isLoading } = useDocuments();
+	const documents = data?.items ?? [];
 	const upload = useUploadDocument();
 	const removeMany = useDeleteDocuments();
 

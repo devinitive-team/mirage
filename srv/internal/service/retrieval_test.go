@@ -41,8 +41,8 @@ type mockStorage struct {
 }
 
 func (m *mockStorage) SaveDocument(_ context.Context, _ domain.Document) error { return nil }
-func (m *mockStorage) ListDocuments(_ context.Context, _, _ int) ([]domain.Document, error) {
-	return nil, nil
+func (m *mockStorage) ListDocuments(_ context.Context, _, _ int) ([]domain.Document, int, error) {
+	return nil, 0, nil
 }
 func (m *mockStorage) DeleteDocument(_ context.Context, _ string) error { return nil }
 func (m *mockStorage) SavePDF(_ context.Context, _ string, _ io.Reader) error {

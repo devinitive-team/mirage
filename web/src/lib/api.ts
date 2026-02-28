@@ -1,5 +1,6 @@
 import type {
 	Document,
+	DocumentList,
 	DocumentTree,
 	QueryRequest,
 	QueryResult,
@@ -7,6 +8,7 @@ import type {
 
 export type {
 	Document,
+	DocumentList,
 	DocumentTree,
 	Evidence,
 	QueryRequest,
@@ -19,10 +21,12 @@ const BASE = `${API_BASE}/api/v1`;
 // ─── Documents ────────────────────────────────────────────────────────────────
 
 export async function listDocuments(
-	limit = 100,
-	offset = 0,
-): Promise<Document[]> {
-	const res = await fetch(`${BASE}/documents?limit=${limit}&offset=${offset}`);
+	page = 1,
+	pageSize = 100,
+): Promise<DocumentList> {
+	const res = await fetch(
+		`${BASE}/documents?page=${page}&page_size=${pageSize}`,
+	);
 	if (!res.ok) throw new Error(`Failed to list documents: ${res.statusText}`);
 	return res.json();
 }

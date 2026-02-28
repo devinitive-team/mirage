@@ -16,6 +16,14 @@ export type Document = Omit<
 	status: DocumentStatus;
 };
 
+export type DocumentList = {
+	items: Document[];
+	total: number;
+	page: number;
+	page_size: number;
+	pages: number;
+};
+
 // ─── Query ────────────────────────────────────────────────────────────────────
 
 export type Evidence = components["schemas"]["EvidenceBody"];

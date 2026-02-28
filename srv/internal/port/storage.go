@@ -10,7 +10,7 @@ import (
 type Storage interface {
 	SaveDocument(ctx context.Context, doc domain.Document) error
 	GetDocument(ctx context.Context, id string) (domain.Document, error)
-	ListDocuments(ctx context.Context, limit, offset int) ([]domain.Document, error)
+	ListDocuments(ctx context.Context, limit, offset int) ([]domain.Document, int, error)
 	DeleteDocument(ctx context.Context, id string) error
 
 	SavePDF(ctx context.Context, docID string, r io.Reader) error

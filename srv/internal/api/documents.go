@@ -146,7 +146,9 @@ func (h *DocumentHandler) Upload(ctx context.Context, input *UploadDocumentInput
 }
 
 func (h *DocumentHandler) List(ctx context.Context, input *ListDocumentsInput) (*ListDocumentsOutput, error) {
-	docs, err := h.storage.ListDocuments(ctx, input.Limit, input.Offset)
+	offset := (input.Page - 1) * input.PageSize
+
+	docs, total, err := h.storage.ListDocuments(ctx, input.PageSize, offset)
 	if err != nil {
 		return nil, fmt.Errorf("list documents: %w", err)
 	}
@@ -156,7 +158,18 @@ func (h *DocumentHandler) List(ctx context.Context, input *ListDocumentsInput) (
 		bodies[i] = documentToBody(doc)
 	}
 
-	return &ListDocumentsOutput{Body: bodies}, nil
+	pages := 0
+	if total > 0 {
+		pages = (total + input.PageSize - 1) / input.PageSize
+	}
+
+	return &ListDocumentsOutput{Body: ListDocumentsBody{
+		Items:    bodies,
+		Total:    total,
+		Page:     input.Page,
+		PageSize: input.PageSize,
+		Pages:    pages,
+	}}, nil
 }
 
 func (h *DocumentHandler) Get(ctx context.Context, input *GetDocumentInput) (*DocumentOutput, error) {

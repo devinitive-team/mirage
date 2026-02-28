@@ -5,7 +5,7 @@ import {
 	listDocuments,
 	uploadDocument,
 } from "#/lib/api";
-import type { Document } from "#/lib/types";
+import type { DocumentList } from "#/lib/types";
 
 export const documentsQueryKey = ["documents"] as const;
 
@@ -14,9 +14,9 @@ export function useDocuments() {
 		queryKey: documentsQueryKey,
 		queryFn: () => listDocuments(),
 		refetchInterval: (query) => {
-			const data = query.state.data as Document[] | undefined;
+			const data = query.state.data as DocumentList | undefined;
 			if (!data) return false;
-			const isProcessing = data.some((d) =>
+			const isProcessing = data.items.some((d) =>
 				["pending", "processing"].includes(d.status),
 			);
 			return isProcessing ? 2000 : false;
