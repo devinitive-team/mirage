@@ -14,6 +14,7 @@ type PdfViewerProps = {
 	documentName: string;
 	pageNumber: number;
 	searchPhrase: string;
+	compact?: boolean;
 };
 
 function createDefaultHighlights({
@@ -89,6 +90,7 @@ export function PdfViewer({
 	documentName,
 	pageNumber,
 	searchPhrase,
+	compact = false,
 }: PdfViewerProps) {
 	const pdfUrl = getDocumentPdfUrl(documentId);
 	const [highlights, setHighlights] = useState<Array<IHighlight>>(
@@ -126,27 +128,33 @@ export function PdfViewer({
 	};
 
 	return (
-		<PdfLoader url={pdfUrl} beforeLoad={<div>Loading PDF...</div>}>
-			{(pdfDocument) => (
-				<PdfHighlighter
-					pdfDocument={pdfDocument}
-					enableAreaSelection={(event) => event.altKey}
-					onScrollChange={() => {}}
-					ref={() => {}}
-					scrollRef={() => {}}
-					highlights={highlights}
-					highlightTransform={highlightTransform}
-					onSelectionFinished={(position, content, hideTipAndSelection) => (
-						<Tip
-							onOpen={() => {}}
-							onConfirm={(comment) => {
-								addHighlight({ content, position, comment } as IHighlight);
-								hideTipAndSelection();
-							}}
-						/>
-					)}
-				/>
-			)}
-		</PdfLoader>
+		<div
+			className={`h-full w-full ${compact ? "overflow-hidden rounded-md" : ""}`}
+		>
+			<PdfLoader url={pdfUrl} beforeLoad={<div>Loading PDF...</div>}>
+				{(pdfDocument) => (
+					<PdfHighlighter
+						pdfDocument={pdfDocument}
+						enableAreaSelection={(event) => !compact && event.altKey}
+						onScrollChange={() => {}}
+						ref={() => {}}
+						scrollRef={() => {}}
+						highlights={highlights}
+						highlightTransform={highlightTransform}
+						onSelectionFinished={(position, content, hideTipAndSelection) => (
+							<Tip
+								onOpen={() => {}}
+								onConfirm={(comment) => {
+									if (!compact) {
+										addHighlight({ content, position, comment } as IHighlight);
+									}
+									hideTipAndSelection();
+								}}
+							/>
+						)}
+					/>
+				)}
+			</PdfLoader>
+		</div>
 	);
 }

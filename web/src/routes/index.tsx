@@ -18,6 +18,11 @@ import {
 import { PreviewDialog } from "#/components/PreviewDialog";
 import { Input } from "#/components/ui/input";
 import {
+	type ToastTone,
+	ToastStack,
+	type ToastItem,
+} from "#/components/ui/toast";
+import {
 	useDeleteDocument,
 	useDeleteDocuments,
 	useDocuments,
@@ -30,10 +35,9 @@ export const Route = createFileRoute("/")({ component: Dashboard });
 const REFERENCE_ROW_HEIGHT = REFERENCE_LIST_ITEM_HEIGHT + 8;
 
 const STATUS_LABEL: Record<string, string> = {
-	pending: "Pending",
-	ocr: "OCR",
-	indexing: "Indexing",
-	ready: "Ready",
+	pending: "Uploaded",
+	processing: "Processing",
+	complete: "Ready",
 	failed: "Failed",
 };
 
@@ -54,8 +58,11 @@ function Dashboard() {
 		Record<string, ReferenceListItemData>
 	>({});
 	const [referenceBuildCount, setReferenceBuildCount] = useState(0);
+	const [toasts, setToasts] = useState<ToastItem[]>([]);
 	const fileInputRef = useRef<HTMLInputElement>(null);
 	const parentRef = useRef<HTMLDivElement>(null);
+	const toastTimeoutsRef = useRef<Record<number, number>>({});
+	const nextToastIDRef = useRef(1);
 	const inputId = useId();
 
 	const { data: documents = [], isLoading } = useDocuments();
@@ -109,6 +116,33 @@ function Dashboard() {
 		});
 	}, [documents]);
 
+	useEffect(
+		() => () => {
+			for (const timeout of Object.values(toastTimeoutsRef.current)) {
+				window.clearTimeout(timeout);
+			}
+		},
+		[],
+	);
+
+	const dismissToast = useCallback((id: number) => {
+		const timeout = toastTimeoutsRef.current[id];
+		if (timeout) {
+			window.clearTimeout(timeout);
+			delete toastTimeoutsRef.current[id];
+		}
+		setToasts((current) => current.filter((toast) => toast.id !== id));
+	}, []);
+
+	const pushToast = useCallback((message: string, tone: ToastTone = "info") => {
+		const id = nextToastIDRef.current++;
+		setToasts((current) => [...current, { id, message, tone }]);
+		toastTimeoutsRef.current[id] = window.setTimeout(() => {
+			delete toastTimeoutsRef.current[id];
+			setToasts((current) => current.filter((toast) => toast.id !== id));
+		}, 3500);
+	}, []);
+
 	const rowVirtualizer = useVirtualizer({
 		count: references.length,
 		getScrollElement: () => parentRef.current,
@@ -124,6 +158,7 @@ function Dashboard() {
 					setReferenceBuildCount((current) => current + 1);
 					try {
 						const uploadedDocument = await upload.mutateAsync(file);
+						pushToast(`Uploaded "${uploadedDocument.name}"`, "success");
 						let randomPreview: Awaited<
 							ReturnType<typeof buildRandomReferenceFromPdfFile>
 						> = null;
@@ -143,16 +178,17 @@ function Dashboard() {
 								documentName: uploadedDocument.name,
 								pageNumber: randomPreview.pageNumber,
 								areaLabel: randomPreview.areaLabel,
-								previewImageUrl: randomPreview.imageDataUrl,
 							},
 						}));
+					} catch {
+						pushToast(`Failed to upload "${file.name}"`, "error");
 					} finally {
 						setReferenceBuildCount((current) => Math.max(0, current - 1));
 					}
 				}),
 			);
 		},
-		[upload],
+		[pushToast, upload],
 	);
 
 	const handleDrop = useCallback(
@@ -215,37 +251,45 @@ function Dashboard() {
 	}, []);
 
 	const handleDeleteSingle = useCallback(
-		(id: string) => {
+		async (id: string, name: string) => {
 			setSelectedDocumentIds((current) =>
 				current.filter((selectedId) => selectedId !== id),
 			);
-			remove.mutate(id);
+			try {
+				await remove.mutateAsync(id);
+				pushToast(`Deleted "${name}"`, "success");
+			} catch {
+				pushToast(`Failed to delete "${name}"`, "error");
+			}
 		},
-		[remove],
+		[pushToast, remove],
 	);
 
 	const handleDeleteSelected = useCallback(async () => {
 		if (selectedCount === 0) return;
-		const plural = selectedCount === 1 ? "" : "s";
-		const confirmed = window.confirm(
-			`Delete ${selectedCount} selected file${plural}? This cannot be undone.`,
-		);
-		if (!confirmed) return;
 		const idsToDelete = [...selectedDocumentIds];
-		await removeMany.mutateAsync(idsToDelete);
-		setSelectedDocumentIds([]);
-	}, [removeMany, selectedCount, selectedDocumentIds]);
+		try {
+			await removeMany.mutateAsync(idsToDelete);
+			setSelectedDocumentIds([]);
+			const plural = idsToDelete.length === 1 ? "" : "s";
+			pushToast(`Deleted ${idsToDelete.length} file${plural}`, "success");
+		} catch {
+			pushToast("Failed to delete selected files", "error");
+		}
+	}, [pushToast, removeMany, selectedCount, selectedDocumentIds]);
 
 	const handleDeleteAll = useCallback(async () => {
 		if (documents.length === 0) return;
-		const plural = documents.length === 1 ? "" : "s";
-		const confirmed = window.confirm(
-			`Delete all ${documents.length} uploaded file${plural}? This cannot be undone.`,
-		);
-		if (!confirmed) return;
-		await removeMany.mutateAsync(documents.map((doc) => doc.id));
-		setSelectedDocumentIds([]);
-	}, [documents, removeMany]);
+		const idsToDelete = documents.map((doc) => doc.id);
+		try {
+			await removeMany.mutateAsync(idsToDelete);
+			setSelectedDocumentIds([]);
+			const plural = idsToDelete.length === 1 ? "" : "s";
+			pushToast(`Deleted all ${idsToDelete.length} file${plural}`, "success");
+		} catch {
+			pushToast("Failed to delete all files", "error");
+		}
+	}, [documents, pushToast, removeMany]);
 	return (
 		<section
 			className="flex h-full gap-3 p-3 relative"
@@ -378,7 +422,7 @@ function Dashboard() {
 								</span>
 								<button
 									type="button"
-									onClick={() => handleDeleteSingle(doc.id)}
+									onClick={() => void handleDeleteSingle(doc.id, doc.name)}
 									disabled={isDeleting}
 									className="shrink-0 opacity-0 group-hover:opacity-100 text-[var(--sea-ink-soft)] hover:text-[var(--sea-ink)] transition-opacity"
 								>
@@ -417,7 +461,7 @@ function Dashboard() {
 				<div className="p-4 border-b border-[var(--line)] shrink-0">
 					<p className="island-kicker">References</p>
 					<p className="text-xs text-[var(--sea-ink-soft)] mt-1">
-						{references.length} random snippet
+						{references.length} random reference
 						{references.length === 1 ? "" : "s"}
 						{hasReferenceData ? " generated from uploaded PDFs" : ""}
 					</p>
@@ -428,12 +472,12 @@ function Dashboard() {
 						<div className="h-full flex items-center justify-center px-8 text-center">
 							<p className="text-sm text-[var(--sea-ink-soft)]">
 								{isBuildingReferences
-									? "Generating random snippets from uploaded PDFs..."
+									? "Generating random references from uploaded PDFs..."
 									: documents.length === 0
-										? "Upload PDF files to generate random reference snippets."
+										? "Upload PDF files to generate random references."
 										: hasReferenceData
-											? "No reference snippets match the current file filter."
-											: "No local PDF snippets yet. Upload a PDF in this session to preview random page areas."}
+											? "No references match the current file filter."
+											: "No local PDF references yet. Upload a PDF in this session to preview random page areas."}
 							</p>
 						</div>
 					) : (
@@ -472,6 +516,7 @@ function Dashboard() {
 				onOpenChange={handlePreviewOpenChange}
 				reference={selectedReference}
 			/>
+			<ToastStack toasts={toasts} onDismiss={dismissToast} />
 		</section>
 	);
 }

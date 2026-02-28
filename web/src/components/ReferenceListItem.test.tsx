@@ -20,8 +20,8 @@ const baseReference: ReferenceListItemData = {
 };
 
 describe("ReferenceListItem", () => {
-	it("renders document metadata and highlights matched search phrase", () => {
-		const { container } = render(
+	it("renders metadata and phrase summary", () => {
+		render(
 			<ReferenceListItem reference={baseReference} onPreview={() => {}} />,
 		);
 
@@ -29,56 +29,29 @@ describe("ReferenceListItem", () => {
 		expect(
 			screen.getByText("Page 12 - area x 11%, y 22%, w 33%, h 44%"),
 		).toBeTruthy();
-		expect(container.querySelector("button.reference-list-item")).toBeTruthy();
-		expect(container.querySelector(".reference-list-item__page")).toBeTruthy();
 		expect(
-			container.querySelector(".reference-list-item__excerpt"),
+			screen.getByText('Highlighted phrase: "response latency"'),
 		).toBeTruthy();
+	});
 
-		const highlighted = Array.from(container.querySelectorAll("mark")).map(
-			(mark) => mark.textContent,
+	it("falls back to a generic preview message when no search phrase is provided", () => {
+		render(
+			<ReferenceListItem
+				reference={{
+					...baseReference,
+					id: "2",
+					searchPhrase: undefined,
+				}}
+				onPreview={() => {}}
+			/>,
 		);
-		expect(highlighted).toEqual(["response latency", "response latency"]);
+
 		expect(
-			container.querySelectorAll("mark.reference-list-item__mark").length,
-		).toBe(2);
+			screen.getByText("Open preview to inspect this selected region."),
+		).toBeTruthy();
 	});
 
-	it("renders a PDF image preview when provided", () => {
-		const imageReference: ReferenceListItemData = {
-			...baseReference,
-			id: "2",
-			excerpt: undefined,
-			searchPhrase: undefined,
-			previewImageUrl:
-				"data:image/png;base64,iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAusB9jQ+7fQAAAAASUVORK5CYII=",
-		};
-
-		const { container } = render(
-			<ReferenceListItem reference={imageReference} onPreview={() => {}} />,
-		);
-		const previewImage = container.querySelector(
-			"img.reference-list-item__preview",
-		);
-
-		expect(previewImage).toBeTruthy();
-		expect(previewImage?.getAttribute("src")).toContain(
-			"data:image/png;base64",
-		);
-	});
-
-	it("keeps excerpt region scrollable for long content", () => {
-		const longReference = {
-			...baseReference,
-			excerpt: `${baseReference.excerpt} `.repeat(24),
-		};
-
-		const { container } = render(
-			<ReferenceListItem reference={longReference} onPreview={() => {}} />,
-		);
-		const scrollRegion = container.querySelector(".overflow-y-auto");
-
-		expect(scrollRegion).toBeTruthy();
+	it("keeps stable row height contract", () => {
 		expect(REFERENCE_LIST_ITEM_HEIGHT).toBe(192);
 	});
 

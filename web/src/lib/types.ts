@@ -7,12 +7,7 @@ import type { components } from "#/lib/api.gen";
 // ─── Documents ────────────────────────────────────────────────────────────────
 
 /** The Go backend declares these as string constants; OpenAPI loses the enum. */
-export type DocumentStatus =
-	| "pending"
-	| "ocr"
-	| "indexing"
-	| "ready"
-	| "failed";
+export type DocumentStatus = "pending" | "processing" | "complete" | "failed";
 
 export type Document = Omit<
 	components["schemas"]["DocumentBody"],

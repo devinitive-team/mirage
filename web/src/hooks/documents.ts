@@ -17,7 +17,7 @@ export function useDocuments() {
 			const data = query.state.data as Document[] | undefined;
 			if (!data) return false;
 			const isProcessing = data.some((d) =>
-				["pending", "ocr", "indexing"].includes(d.status),
+				["pending", "processing"].includes(d.status),
 			);
 			return isProcessing ? 2000 : false;
 		},

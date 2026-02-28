@@ -1,5 +1,3 @@
-import type { PDFDocumentProxy } from "pdfjs-dist";
-
 type RandomSource = () => number;
 
 let pdfJsPromise: Promise<typeof import("pdfjs-dist")> | null = null;
@@ -16,7 +14,6 @@ export type RandomReferencePreview = {
 	pageNumber: number;
 	area: RandomReferenceArea;
 	areaLabel: string;
-	imageDataUrl: string;
 };
 
 function randomFloat(min: number, max: number, random: RandomSource): number {
@@ -40,20 +37,6 @@ function isPdfFile(file: File): boolean {
 	);
 }
 
-function buildShuffledPageNumbers(
-	totalPages: number,
-	random: RandomSource,
-): number[] {
-	const pages = Array.from({ length: totalPages }, (_, index) => index + 1);
-	for (let i = pages.length - 1; i > 0; i -= 1) {
-		const swapIndex = randomIntInclusive(0, i, random);
-		const currentPage = pages[i];
-		pages[i] = pages[swapIndex];
-		pages[swapIndex] = currentPage;
-	}
-	return pages;
-}
-
 async function loadPdfJs(): Promise<typeof import("pdfjs-dist")> {
 	if (!pdfJsPromise) {
 		pdfJsPromise = Promise.all([
@@ -66,23 +49,6 @@ async function loadPdfJs(): Promise<typeof import("pdfjs-dist")> {
 	}
 
 	return pdfJsPromise;
-}
-
-async function renderPageToCanvas(
-	pdfDocument: PDFDocumentProxy,
-	pageNumber: number,
-): Promise<HTMLCanvasElement | null> {
-	const page = await pdfDocument.getPage(pageNumber);
-	const viewport = page.getViewport({ scale: 1.35 });
-	const canvas = document.createElement("canvas");
-	canvas.width = Math.max(1, Math.floor(viewport.width));
-	canvas.height = Math.max(1, Math.floor(viewport.height));
-
-	const context = canvas.getContext("2d", { alpha: false });
-	if (!context) return null;
-
-	await page.render({ canvasContext: context, viewport }).promise;
-	return canvas;
 }
 
 function toPercentLabel(ratio: number): number {
@@ -119,38 +85,6 @@ export function buildRandomReferenceArea(
 	};
 }
 
-function cropAreaToDataUrl(
-	pageCanvas: HTMLCanvasElement,
-	area: RandomReferenceArea,
-): string {
-	const x = Math.floor(area.xRatio * pageCanvas.width);
-	const y = Math.floor(area.yRatio * pageCanvas.height);
-	const width = Math.max(1, Math.floor(area.widthRatio * pageCanvas.width));
-	const height = Math.max(1, Math.floor(area.heightRatio * pageCanvas.height));
-	const boundedWidth = Math.max(1, Math.min(width, pageCanvas.width - x));
-	const boundedHeight = Math.max(1, Math.min(height, pageCanvas.height - y));
-
-	const croppedCanvas = document.createElement("canvas");
-	croppedCanvas.width = boundedWidth;
-	croppedCanvas.height = boundedHeight;
-	const croppedContext = croppedCanvas.getContext("2d", { alpha: false });
-	if (!croppedContext) return "";
-
-	croppedContext.drawImage(
-		pageCanvas,
-		x,
-		y,
-		boundedWidth,
-		boundedHeight,
-		0,
-		0,
-		boundedWidth,
-		boundedHeight,
-	);
-
-	return croppedCanvas.toDataURL("image/jpeg", 0.86);
-}
-
 export async function buildRandomReferenceFromPdfFile(
 	file: File,
 	random: RandomSource = Math.random,
@@ -165,25 +99,15 @@ export async function buildRandomReferenceFromPdfFile(
 
 	try {
 		const pdfDocument = await loadingTask.promise;
-		const pageNumbers = buildShuffledPageNumbers(pdfDocument.numPages, random);
+		if (pdfDocument.numPages < 1) return null;
 
-		for (const pageNumber of pageNumbers) {
-			const pageCanvas = await renderPageToCanvas(pdfDocument, pageNumber);
-			if (!pageCanvas) continue;
-
-			const area = buildRandomReferenceArea(pageNumber, random);
-			const imageDataUrl = cropAreaToDataUrl(pageCanvas, area);
-			if (!imageDataUrl) continue;
-
-			return {
-				pageNumber,
-				area,
-				areaLabel: formatAreaLabel(area),
-				imageDataUrl,
-			};
-		}
-
-		return null;
+		const pageNumber = randomIntInclusive(1, pdfDocument.numPages, random);
+		const area = buildRandomReferenceArea(pageNumber, random);
+		return {
+			pageNumber,
+			area,
+			areaLabel: formatAreaLabel(area),
+		};
 	} finally {
 		await loadingTask.destroy();
 	}
