@@ -23,6 +23,37 @@ function createDefaultHighlights({
 }: PdfViewerProps): Array<IHighlight> {
 	return [
 		{
+			id: "big-highlight-1",
+			position: {
+				pageNumber,
+				boundingRect: {
+					x1: 0,
+					y1: 200,
+					x2: 500,
+					y2: 500,
+					width: 200,
+					height: 200,
+				},
+				rects: [
+					{
+						x1: 0,
+						y1: 200,
+						x2: 500,
+						y2: 500,
+						width: 200,
+						height: 200,
+					},
+				],
+			},
+			content: {
+				text: `Highlighted area for ${searchPhrase}`,
+			},
+			comment: {
+				text: `Large preview highlight for ${documentName}`,
+				emoji: "",
+			},
+		},
+		{
 			id: "1",
 			position: {
 				pageNumber,
