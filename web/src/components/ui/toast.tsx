@@ -34,34 +34,36 @@ export function ToastStack({ toasts, onDismiss }: ToastStackProps) {
 
 	return (
 		<div
-			className="fixed right-4 top-20 z-[100] flex w-[min(24rem,calc(100vw-2rem))] flex-col gap-2"
+			className="pointer-events-none fixed inset-x-0 top-[max(0.75rem,env(safe-area-inset-top))] z-[120] px-3 sm:top-[max(1rem,env(safe-area-inset-top))]"
 			aria-live="polite"
 		>
-			{toasts.map((toast) => {
-				const Icon = TOAST_ICON_BY_TONE[toast.tone];
-				return (
-					<output
-						key={toast.id}
-						className={cn(
-							"flex items-start gap-2 rounded-xl border px-3 py-2.5 shadow-lg backdrop-blur-sm",
-							TOAST_STYLE_BY_TONE[toast.tone],
-						)}
-					>
-						<Icon className="mt-0.5 h-4 w-4 shrink-0" />
-						<p className="flex-1 text-sm font-medium leading-5">
-							{toast.message}
-						</p>
-						<button
-							type="button"
-							onClick={() => onDismiss(toast.id)}
-							className="shrink-0 rounded p-0.5 opacity-70 transition-opacity hover:opacity-100"
-							aria-label="Dismiss notification"
+			<div className="mx-auto flex w-full max-w-md flex-col gap-2">
+				{toasts.map((toast) => {
+					const Icon = TOAST_ICON_BY_TONE[toast.tone];
+					return (
+						<output
+							key={toast.id}
+							className={cn(
+								"pointer-events-auto flex items-start gap-2 rounded-xl border px-3 py-2.5 shadow-lg backdrop-blur-sm",
+								TOAST_STYLE_BY_TONE[toast.tone],
+							)}
 						>
-							<X className="h-3.5 w-3.5" />
-						</button>
-					</output>
-				);
-			})}
+							<Icon className="mt-0.5 h-4 w-4 shrink-0" />
+							<p className="flex-1 text-sm font-medium leading-5">
+								{toast.message}
+							</p>
+							<button
+								type="button"
+								onClick={() => onDismiss(toast.id)}
+								className="shrink-0 rounded p-0.5 opacity-70 transition-opacity hover:opacity-100"
+								aria-label="Dismiss notification"
+							>
+								<X className="h-3.5 w-3.5" />
+							</button>
+						</output>
+					);
+				})}
+			</div>
 		</div>
 	);
 }
