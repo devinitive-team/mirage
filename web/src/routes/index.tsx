@@ -43,6 +43,22 @@ const STATUS_LABEL: Record<string, string> = {
 	failed: "Failed",
 };
 
+const FILE_STATUS_CHIP_CLASS: Record<string, string> = {
+	pending:
+		"border-[var(--line)] bg-[var(--surface-strong)] text-[var(--sea-ink-soft)]",
+	processing:
+		"border-[var(--lagoon)]/25 bg-[var(--lagoon)]/8 text-[var(--sea-ink)]",
+	complete:
+		"border-emerald-300/70 bg-emerald-50/80 text-emerald-800 dark:border-emerald-600/55 dark:bg-emerald-950/45 dark:text-emerald-300",
+	failed:
+		"border-red-300/80 bg-red-50/80 text-red-800 dark:border-red-600/55 dark:bg-red-950/45 dark:text-red-300",
+};
+
+const FILE_PROCESSING_HELPER_LABEL: Record<string, string> = {
+	pending: "Queued for processing",
+	processing: "Extracting text and indexing",
+};
+
 const FILE_ACTION_BUTTON_CLASS =
 	"rounded-lg border border-[var(--line)] px-2 py-1 text-xs font-medium text-[var(--sea-ink)] hover:bg-[var(--sea-ink)]/5 disabled:cursor-not-allowed disabled:opacity-60";
 
@@ -150,6 +166,9 @@ function Dashboard() {
 		[filteredDocuments],
 	);
 	const selectedCount = selectedDocumentIds.length;
+	const processingCount = documents.filter((document) =>
+		["pending", "processing"].includes(document.status),
+	).length;
 	const selectedVisibleCount = filteredDocumentIds.filter((id) =>
 		selectedDocumentIds.includes(id),
 	).length;
@@ -188,7 +207,13 @@ function Dashboard() {
 			? selectedCompleteDocumentIDs
 			: allCompleteDocumentIDs;
 	const queryScopeLabel = useMemo(() => {
-		if (queryableDocumentIDs.length === 0) return "No ready files";
+		if (queryableDocumentIDs.length === 0) {
+			if (processingCount > 0) {
+				const plural = processingCount === 1 ? "" : "s";
+				return `${processingCount} file${plural} still processing`;
+			}
+			return "No ready files";
+		}
 		if (selectedCompleteDocumentIDs.length > 0) {
 			const plural = selectedCompleteDocumentIDs.length === 1 ? "" : "s";
 			return `${selectedCompleteDocumentIDs.length} selected ready file${plural}`;
@@ -196,6 +221,7 @@ function Dashboard() {
 		return `All ready files (${allCompleteDocumentIDs.length})`;
 	}, [
 		allCompleteDocumentIDs.length,
+		processingCount,
 		queryableDocumentIDs.length,
 		selectedCompleteDocumentIDs.length,
 	]);
@@ -545,51 +571,81 @@ function Dashboard() {
 							</p>
 						</div>
 					) : (
-						filteredDocuments.map((document) => (
-							<div
-								key={document.id}
-								className={`group flex items-center gap-2 rounded-lg border border-transparent px-3 py-2 text-sm transition-colors ${
-									selectedDocumentIds.includes(document.id)
-										? "bg-[var(--lagoon)]/10 hover:bg-[var(--lagoon)]/15"
-										: "hover:bg-[var(--sea-ink)]/5 hover:border-[var(--line)]"
-								}`}
-							>
-								<input
-									type="checkbox"
-									checked={selectedDocumentIds.includes(document.id)}
-									onChange={() => toggleDocumentSelection(document.id)}
-									disabled={isDeleting}
-									aria-label={`Select ${document.name}`}
-									className="h-3.5 w-3.5 shrink-0 rounded border-[var(--line)] text-[var(--lagoon)] focus:ring-[var(--lagoon)]"
-								/>
-								<button
-									type="button"
-									onClick={() =>
-										handleUploadedFilePreview(document.id, document.name)
-									}
-									aria-label={`Preview ${document.name}`}
-									className="flex min-w-0 flex-1 cursor-pointer items-center gap-2 rounded-md px-1 py-1 text-left transition-colors hover:bg-[var(--lagoon)]/8 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lagoon)]"
+						filteredDocuments.map((document) => {
+							const isProcessingStatus = ["pending", "processing"].includes(
+								document.status,
+							);
+							const statusChipClass =
+								FILE_STATUS_CHIP_CLASS[document.status] ??
+								"border-[var(--line)] bg-[var(--surface-strong)] text-[var(--sea-ink-soft)]";
+							const processingHelperLabel =
+								FILE_PROCESSING_HELPER_LABEL[document.status];
+							return (
+								<div
+									key={document.id}
+									className={`group flex items-center gap-2 rounded-lg border border-transparent px-3 py-2 text-sm transition-colors ${
+										selectedDocumentIds.includes(document.id)
+											? "bg-[var(--lagoon)]/10 hover:bg-[var(--lagoon)]/15"
+											: "hover:bg-[var(--sea-ink)]/5 hover:border-[var(--line)]"
+									}`}
 								>
-									<FileText className="w-4 h-4 shrink-0 text-[var(--lagoon-deep)]" />
-									<span className="truncate flex-1 text-[var(--sea-ink)]">
-										{document.name}
-									</span>
-									<span className="text-xs text-[var(--sea-ink-soft)] shrink-0">
-										{STATUS_LABEL[document.status] ?? document.status}
-									</span>
-								</button>
-								<button
-									type="button"
-									onClick={() =>
-										void handleDeleteSingle(document.id, document.name)
-									}
-									disabled={isDeleting}
-									className="shrink-0 rounded-md p-1 opacity-60 text-[var(--sea-ink-soft)] transition hover:bg-[var(--sea-ink)]/8 hover:text-[var(--sea-ink)] group-hover:opacity-100"
-								>
-									<X className="w-3.5 h-3.5" />
-								</button>
-							</div>
-						))
+									<input
+										type="checkbox"
+										checked={selectedDocumentIds.includes(document.id)}
+										onChange={() => toggleDocumentSelection(document.id)}
+										disabled={isDeleting}
+										aria-label={`Select ${document.name}`}
+										className="h-3.5 w-3.5 shrink-0 rounded border-[var(--line)] text-[var(--lagoon)] focus:ring-[var(--lagoon)]"
+									/>
+									<button
+										type="button"
+										onClick={() =>
+											handleUploadedFilePreview(document.id, document.name)
+										}
+										aria-label={`Preview ${document.name}`}
+										className="flex min-w-0 flex-1 cursor-pointer items-center gap-2 rounded-md px-1 py-1 text-left transition-colors hover:bg-[var(--lagoon)]/8 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lagoon)]"
+									>
+										<FileText className="w-4 h-4 shrink-0 text-[var(--lagoon-deep)]" />
+										<div className="min-w-0 flex-1">
+											<span className="block truncate text-[var(--sea-ink)]">
+												{document.name}
+											</span>
+											{isProcessingStatus && processingHelperLabel ? (
+												<span className="mt-0.5 flex items-center gap-1 text-[11px] text-[var(--sea-ink-soft)]">
+													<Loader2 className="h-3 w-3 animate-spin text-[var(--lagoon-deep)]" />
+													{processingHelperLabel}
+												</span>
+											) : null}
+										</div>
+										<div className="flex shrink-0 flex-col items-end">
+											<span
+												className={`inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium ${statusChipClass}`}
+											>
+												{isProcessingStatus ? (
+													<span className="h-1.5 w-1.5 rounded-full bg-current animate-pulse" />
+												) : null}
+												{STATUS_LABEL[document.status] ?? document.status}
+											</span>
+											{isProcessingStatus ? (
+												<span className="relative mt-1 block h-1.5 w-16 overflow-hidden rounded-full bg-[var(--lagoon)]/12">
+													<span className="absolute inset-y-0 left-[-45%] w-2/5 rounded-full bg-[var(--lagoon)]/60 animate-[file-processing_1.05s_ease-in-out_infinite]" />
+												</span>
+											) : null}
+										</div>
+									</button>
+									<button
+										type="button"
+										onClick={() =>
+											void handleDeleteSingle(document.id, document.name)
+										}
+										disabled={isDeleting}
+										className="shrink-0 rounded-md p-1 opacity-60 text-[var(--sea-ink-soft)] transition hover:bg-[var(--sea-ink)]/8 hover:text-[var(--sea-ink)] group-hover:opacity-100"
+									>
+										<X className="w-3.5 h-3.5" />
+									</button>
+								</div>
+							);
+						})
 					)}
 				</div>
 
@@ -598,6 +654,9 @@ function Dashboard() {
 						<p className="text-xs text-center text-[var(--sea-ink-soft)]">
 							{documents.length} file{documents.length !== 1 ? "s" : ""} total
 							{selectedCount > 0 ? ` • ${selectedCount} selected` : ""}
+							{processingCount > 0
+								? ` • ${processingCount} processing`
+								: ""}
 						</p>
 					)}
 					<button

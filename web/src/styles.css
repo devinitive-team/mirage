@@ -361,6 +361,15 @@ button:not(:disabled) {
   }
 }
 
+@keyframes file-processing {
+  from {
+    transform: translateX(0);
+  }
+  to {
+    transform: translateX(260%);
+  }
+}
+
 .site-footer {
   border-top: 1px solid var(--line);
   background: color-mix(in oklab, var(--header-bg) 84%, transparent 16%);
