@@ -24,6 +24,10 @@ export function PreviewDialog({
 	onOpenChange,
 	reference,
 }: PreviewDialogProps) {
+	const searchPhrase = reference?.searchPhrase?.trim() ?? "";
+	const phraseLabel = searchPhrase ? `"${searchPhrase}"` : "N/A";
+	const contextLabel = reference?.areaLabel ?? `Page ${reference?.pageNumber ?? "-"}`;
+
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
 			<DialogContent className="w-[70vw] max-w-[70vw] sm:max-w-[70vw] h-[85vh] max-h-[85vh] p-0">
@@ -34,18 +38,17 @@ export function PreviewDialog({
 								{reference.documentName}
 							</DialogTitle>
 							<DialogDescription>
-								Page {reference.pageNumber} · Highlighted phrase: "
-								{reference.searchPhrase}"
+								{contextLabel} · Highlighted phrase: {phraseLabel}
 							</DialogDescription>
 						</DialogHeader>
 					)}
 					<Suspense fallback={<div className="p-4">Loading PDF viewer...</div>}>
 						{reference ? (
 							<PdfViewer
-								key={`${reference.id}-${reference.pageNumber}-${reference.searchPhrase}`}
+								key={`${reference.id}-${reference.pageNumber}-${searchPhrase}`}
 								documentName={reference.documentName}
 								pageNumber={reference.pageNumber}
-								searchPhrase={reference.searchPhrase}
+								searchPhrase={searchPhrase || "Selected region"}
 							/>
 						) : (
 							<div className="p-4">No reference selected.</div>

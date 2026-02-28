@@ -1,5 +1,10 @@
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
-import { deleteDocument, listDocuments, uploadDocument } from "#/lib/api";
+import {
+	deleteDocument,
+	deleteDocuments,
+	listDocuments,
+	uploadDocument,
+} from "#/lib/api";
 import type { Document } from "#/lib/types";
 
 export const documentsQueryKey = ["documents"] as const;
@@ -32,6 +37,15 @@ export function useDeleteDocument() {
 	const queryClient = useQueryClient();
 	return useMutation({
 		mutationFn: deleteDocument,
+		onSuccess: () =>
+			queryClient.invalidateQueries({ queryKey: documentsQueryKey }),
+	});
+}
+
+export function useDeleteDocuments() {
+	const queryClient = useQueryClient();
+	return useMutation({
+		mutationFn: deleteDocuments,
 		onSuccess: () =>
 			queryClient.invalidateQueries({ queryKey: documentsQueryKey }),
 	});

@@ -37,6 +37,11 @@ export async function deleteDocument(id: string): Promise<void> {
 	if (!res.ok) throw new Error(`Failed to delete: ${res.statusText}`);
 }
 
+export async function deleteDocuments(ids: string[]): Promise<void> {
+	if (ids.length === 0) return;
+	await Promise.all(ids.map((id) => deleteDocument(id)));
+}
+
 // ─── Query ────────────────────────────────────────────────────────────────────
 
 export async function queryDocuments(body: QueryRequest): Promise<QueryResult> {

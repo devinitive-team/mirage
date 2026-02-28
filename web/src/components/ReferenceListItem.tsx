@@ -4,11 +4,13 @@ import { memo, useMemo } from "react";
 export const REFERENCE_LIST_ITEM_HEIGHT = 192;
 
 export type ReferenceListItemData = {
-	id: number;
+	id: string;
 	documentName: string;
 	pageNumber: number;
-	excerpt: string;
-	searchPhrase: string;
+	areaLabel?: string;
+	previewImageUrl?: string;
+	excerpt?: string;
+	searchPhrase?: string;
 };
 
 type HighlightPart = {
@@ -46,10 +48,13 @@ export const ReferenceListItem = memo(function ReferenceListItem({
 	reference,
 	onPreview,
 }: ReferenceListItemProps) {
+	const excerpt = reference.excerpt ?? "";
+	const searchPhrase = reference.searchPhrase ?? "";
 	const highlightedParts = useMemo(
-		() => splitBySearchPhrase(reference.excerpt, reference.searchPhrase),
-		[reference.excerpt, reference.searchPhrase],
+		() => splitBySearchPhrase(excerpt, searchPhrase),
+		[excerpt, searchPhrase],
 	);
+	const areaLabel = reference.areaLabel ?? `Page ${reference.pageNumber}`;
 
 	return (
 		<button
@@ -65,25 +70,40 @@ export const ReferenceListItem = memo(function ReferenceListItem({
 					</p>
 				</div>
 				<span className="reference-list-item__page shrink-0 rounded-full px-2 py-0.5 text-xs font-semibold">
-					Page {reference.pageNumber}
+					{areaLabel}
 				</span>
 			</header>
 
-			<div className="reference-list-item__excerpt min-h-0 flex-1 overflow-y-auto rounded-lg px-2 py-1.5">
-				<p className="text-sm leading-6 text-[var(--sea-ink)] whitespace-pre-wrap break-words">
-					{highlightedParts.map((part, index) =>
-						part.isMatch ? (
-							<mark
-								key={`${part.text}-${index}`}
-								className="reference-list-item__mark rounded-sm px-0.5"
-							>
-								{part.text}
-							</mark>
-						) : (
-							<span key={`${part.text}-${index}`}>{part.text}</span>
-						),
-					)}
-				</p>
+			<div
+				className={`reference-list-item__excerpt min-h-0 flex-1 rounded-lg ${
+					reference.previewImageUrl
+						? "overflow-hidden p-1.5"
+						: "overflow-y-auto px-2 py-1.5"
+				}`}
+			>
+				{reference.previewImageUrl ? (
+					<img
+						alt={`${reference.documentName} preview`}
+						className="reference-list-item__preview"
+						loading="lazy"
+						src={reference.previewImageUrl}
+					/>
+				) : (
+					<p className="text-sm leading-6 text-[var(--sea-ink)] whitespace-pre-wrap break-words">
+						{highlightedParts.map((part, index) =>
+							part.isMatch ? (
+								<mark
+									key={`${part.text}-${index}`}
+									className="reference-list-item__mark rounded-sm px-0.5"
+								>
+									{part.text}
+								</mark>
+							) : (
+								<span key={`${part.text}-${index}`}>{part.text}</span>
+							),
+						)}
+					</p>
+				)}
 			</div>
 		</button>
 	);

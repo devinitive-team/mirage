@@ -9,9 +9,9 @@ React 19, TanStack (Router, Query, Form, Table), Vite, Tailwind CSS, Biome (lint
 ## Controls
 
 - Document upload: file picker for PDFs.
-- Document list: table with name, status, and actions.
+- Document list: searchable uploaded-file list with row status, per-file delete, multi-select checkboxes, `Delete selected`, and `Delete all` actions.
 - Query input: text field for natural-language questions.
-- Results: fixed-height virtualized reference cards with file name, page number, and scrollable excerpt text that highlights matched phrases.
+- Results: fixed-height virtualized reference cards generated from uploaded PDFs in the current session; each card shows file name, sampled page-area metadata, and a random visual crop from the source PDF page.
 
 ## Render Contract
 
