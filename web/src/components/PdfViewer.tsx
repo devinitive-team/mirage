@@ -10,21 +10,23 @@ import "react-pdf-highlighter/dist/style.css";
 
 const pdfUrl = "/example.pdf";
 
-const defaultHighlights: Array<IHighlight> = [
-	{
-		id: "1",
-		position: {
-			pageNumber: 1,
-			boundingRect: {
-				x1: 350.44,
-				y1: 769.12,
-				x2: 508.08,
-				y2: 788.16,
-				width: 157.64,
-				height: 19.04,
-			},
-			rects: [
-				{
+type PdfViewerProps = {
+	documentName: string;
+	pageNumber: number;
+	searchPhrase: string;
+};
+
+function createDefaultHighlights({
+	pageNumber,
+	searchPhrase,
+	documentName,
+}: PdfViewerProps): Array<IHighlight> {
+	return [
+		{
+			id: "1",
+			position: {
+				pageNumber,
+				boundingRect: {
 					x1: 350.44,
 					y1: 769.12,
 					x2: 508.08,
@@ -32,18 +34,33 @@ const defaultHighlights: Array<IHighlight> = [
 					width: 157.64,
 					height: 19.04,
 				},
-			],
+				rects: [
+					{
+						x1: 350.44,
+						y1: 769.12,
+						x2: 508.08,
+						y2: 788.16,
+						width: 157.64,
+						height: 19.04,
+					},
+				],
+			},
+			content: {
+				text: searchPhrase,
+			},
+			comment: { text: `Preview for ${documentName}`, emoji: "" },
 		},
-		content: {
-			text: "three long minutes",
-		},
-		comment: { text: "Highlighted text", emoji: "" },
-	},
-];
+	];
+}
 
-export function PdfViewer() {
-	const [highlights, setHighlights] =
-		useState<Array<IHighlight>>(defaultHighlights);
+export function PdfViewer({
+	documentName,
+	pageNumber,
+	searchPhrase,
+}: PdfViewerProps) {
+	const [highlights, setHighlights] = useState<Array<IHighlight>>(
+		createDefaultHighlights({ documentName, pageNumber, searchPhrase }),
+	);
 
 	const addHighlight = (highlight: IHighlight) => {
 		setHighlights((prev) => [highlight, ...prev]);

@@ -8,6 +8,7 @@ import {
 	type ReferenceListItemData,
 	ReferenceListItem,
 } from "#/components/ReferenceListItem";
+import { PreviewDialog } from "#/components/PreviewDialog";
 import { Input } from "#/components/ui/input";
 import {
 	useDeleteDocument,
@@ -68,6 +69,9 @@ const STATUS_LABEL: Record<string, string> = {
 function Dashboard() {
 	const [searchQuery, setSearchQuery] = useState("");
 	const [isDragging, setIsDragging] = useState(false);
+	const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+	const [selectedReference, setSelectedReference] =
+		useState<ReferenceListItemData | null>(null);
 	const fileInputRef = useRef<HTMLInputElement>(null);
 	const parentRef = useRef<HTMLDivElement>(null);
 	const inputId = useId();
@@ -112,6 +116,18 @@ function Dashboard() {
 	const handleDragLeave = useCallback((e: React.DragEvent) => {
 		if (e.currentTarget.contains(e.relatedTarget as Node)) return;
 		setIsDragging(false);
+	}, []);
+
+	const handlePreview = useCallback((reference: ReferenceListItemData) => {
+		setSelectedReference(reference);
+		setIsPreviewOpen(true);
+	}, []);
+
+	const handlePreviewOpenChange = useCallback((open: boolean) => {
+		setIsPreviewOpen(open);
+		if (!open) {
+			setSelectedReference(null);
+		}
 	}, []);
 
 	return (
@@ -266,12 +282,19 @@ function Dashboard() {
 							>
 								<ReferenceListItem
 									reference={DUMMY_RESULTS[virtualItem.index]}
+									onPreview={handlePreview}
 								/>
 							</div>
 						))}
 					</div>
 				</div>
 			</div>
+
+			<PreviewDialog
+				open={isPreviewOpen}
+				onOpenChange={handlePreviewOpenChange}
+				reference={selectedReference}
+			/>
 		</section>
 	);
 }

@@ -18,6 +18,7 @@ type HighlightPart = {
 
 type ReferenceListItemProps = {
 	reference: ReferenceListItemData;
+	onPreview: (reference: ReferenceListItemData) => void;
 };
 
 function escapeRegExp(text: string): string {
@@ -43,6 +44,7 @@ function splitBySearchPhrase(
 
 export const ReferenceListItem = memo(function ReferenceListItem({
 	reference,
+	onPreview,
 }: ReferenceListItemProps) {
 	const highlightedParts = useMemo(
 		() => splitBySearchPhrase(reference.excerpt, reference.searchPhrase),
@@ -50,7 +52,11 @@ export const ReferenceListItem = memo(function ReferenceListItem({
 	);
 
 	return (
-		<article className="reference-list-item h-full rounded-xl p-3 flex flex-col gap-2">
+		<button
+			type="button"
+			className="reference-list-item h-full w-full rounded-xl p-3 flex flex-col gap-2 text-left cursor-pointer focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lagoon)]"
+			onClick={() => onPreview(reference)}
+		>
 			<header className="flex items-start justify-between gap-3">
 				<div className="min-w-0 flex items-center gap-2">
 					<FileText className="reference-list-item__icon w-4 h-4 shrink-0" />
@@ -79,6 +85,6 @@ export const ReferenceListItem = memo(function ReferenceListItem({
 					)}
 				</p>
 			</div>
-		</article>
+		</button>
 	);
 });

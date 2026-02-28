@@ -1,25 +1,55 @@
-import { lazy, Suspense, useState } from "react";
+import { lazy, Suspense } from "react";
 
-import { Dialog, DialogContent, DialogTrigger } from "@/components/ui/dialog";
+import type { ReferenceListItemData } from "#/components/ReferenceListItem";
+import {
+	Dialog,
+	DialogContent,
+	DialogDescription,
+	DialogHeader,
+	DialogTitle,
+} from "@/components/ui/dialog";
 
 const PdfViewer = lazy(() =>
 	import("./PdfViewer").then((mod) => ({ default: mod.PdfViewer })),
 );
 
-export function PreviewDialog() {
-	const [isOpen, setIsOpen] = useState(false);
+type PreviewDialogProps = {
+	open: boolean;
+	onOpenChange: (open: boolean) => void;
+	reference: ReferenceListItemData | null;
+};
 
+export function PreviewDialog({
+	open,
+	onOpenChange,
+	reference,
+}: PreviewDialogProps) {
 	return (
-		<Dialog open={isOpen} onOpenChange={setIsOpen}>
-			<DialogTrigger asChild>
-				<button type="button" className="nav-link">
-					Preview
-				</button>
-			</DialogTrigger>
-			<DialogContent className="max-w-[90vw] w-[900px] h-[85vh] max-h-[85vh] p-0">
+		<Dialog open={open} onOpenChange={onOpenChange}>
+			<DialogContent className="max-w-[90vw] h-[85vh] max-h-[85vh] p-0">
 				<div className="relative h-full w-full">
+					{reference && (
+						<DialogHeader className="px-6 pt-6 pb-3 border-b border-[var(--line)]">
+							<DialogTitle className="text-base">
+								{reference.documentName}
+							</DialogTitle>
+							<DialogDescription>
+								Page {reference.pageNumber} · Highlighted phrase: "
+								{reference.searchPhrase}"
+							</DialogDescription>
+						</DialogHeader>
+					)}
 					<Suspense fallback={<div className="p-4">Loading PDF viewer...</div>}>
-						<PdfViewer />
+						{reference ? (
+							<PdfViewer
+								key={`${reference.id}-${reference.pageNumber}-${reference.searchPhrase}`}
+								documentName={reference.documentName}
+								pageNumber={reference.pageNumber}
+								searchPhrase={reference.searchPhrase}
+							/>
+						) : (
+							<div className="p-4">No reference selected.</div>
+						)}
 					</Suspense>
 				</div>
 			</DialogContent>
