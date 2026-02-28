@@ -28,7 +28,11 @@ import {
 	useDocuments,
 	useUploadDocument,
 } from "#/hooks/documents";
-import { buildRandomReferenceFromPdfFile } from "#/lib/referencePreviews";
+import {
+	buildRandomReferenceArea,
+	buildRandomReferenceFromPdfFile,
+	formatAreaLabel,
+} from "#/lib/referencePreviews";
 
 export const Route = createFileRoute("/")({ component: Dashboard });
 
@@ -47,6 +51,15 @@ const FILE_ACTION_BUTTON_CLASS =
 const FILE_ACTION_DESTRUCTIVE_BUTTON_CLASS =
 	"rounded-lg border border-red-200 bg-red-50/70 px-2 py-1 text-xs font-medium text-red-700 hover:bg-red-100/70 disabled:cursor-not-allowed disabled:opacity-60";
 
+function buildReferenceID(
+	documentID: string,
+	randomPreview: NonNullable<
+		Awaited<ReturnType<typeof buildRandomReferenceFromPdfFile>>
+	>,
+) {
+	return `${documentID}:${randomPreview.pageNumber}:${Math.round(randomPreview.area.xRatio * 1000)}:${Math.round(randomPreview.area.yRatio * 1000)}`;
+}
+
 function Dashboard() {
 	const [searchQuery, setSearchQuery] = useState("");
 	const [isDragging, setIsDragging] = useState(false);
@@ -63,6 +76,7 @@ function Dashboard() {
 	const parentRef = useRef<HTMLDivElement>(null);
 	const toastTimeoutsRef = useRef<Record<number, number>>({});
 	const nextToastIDRef = useRef(1);
+	const referenceRefreshInFlightRef = useRef<Set<string>>(new Set());
 	const inputId = useId();
 
 	const { data: documents = [], isLoading } = useDocuments();
@@ -115,6 +129,54 @@ function Dashboard() {
 			return didChange ? next : current;
 		});
 	}, [documents]);
+
+	useEffect(() => {
+		let isCancelled = false;
+		const docsNeedingReference = documents.filter(
+			(doc) =>
+				doc.status === "complete" &&
+				!referenceByDocumentId[doc.id] &&
+				!referenceRefreshInFlightRef.current.has(doc.id),
+		);
+
+		for (const doc of docsNeedingReference) {
+			referenceRefreshInFlightRef.current.add(doc.id);
+			setReferenceBuildCount((current) => current + 1);
+			void (async () => {
+				try {
+					const pageCount = Math.max(1, doc.page_count);
+					const pageNumber = 1 + Math.floor(Math.random() * pageCount);
+					const area = buildRandomReferenceArea(pageNumber);
+					const randomPreview = {
+						pageNumber,
+						area,
+						areaLabel: formatAreaLabel(area),
+					};
+					if (isCancelled) return;
+					const referenceID = buildReferenceID(doc.id, randomPreview);
+					setReferenceByDocumentId((current) => ({
+						...current,
+						[doc.id]: {
+							id: referenceID,
+							documentId: doc.id,
+							documentName: doc.name,
+							pageNumber: randomPreview.pageNumber,
+							areaLabel: randomPreview.areaLabel,
+						},
+					}));
+				} finally {
+					referenceRefreshInFlightRef.current.delete(doc.id);
+					if (!isCancelled) {
+						setReferenceBuildCount((current) => Math.max(0, current - 1));
+					}
+				}
+			})();
+		}
+
+		return () => {
+			isCancelled = true;
+		};
+	}, [documents, referenceByDocumentId]);
 
 	useEffect(
 		() => () => {
@@ -169,7 +231,10 @@ function Dashboard() {
 						}
 						if (!randomPreview) return;
 
-						const referenceID = `${uploadedDocument.id}:${randomPreview.pageNumber}:${Math.round(randomPreview.area.xRatio * 1000)}:${Math.round(randomPreview.area.yRatio * 1000)}`;
+						const referenceID = buildReferenceID(
+							uploadedDocument.id,
+							randomPreview,
+						);
 						setReferenceByDocumentId((current) => ({
 							...current,
 							[uploadedDocument.id]: {
