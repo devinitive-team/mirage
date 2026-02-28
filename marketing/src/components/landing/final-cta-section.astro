@@ -10,9 +10,7 @@ const { ctaHref } = Astro.props;
 
 <section class="mt-16" aria-label="Final conversion section">
   <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-    <div
-      class="relative isolate min-h-96 overflow-hidden border-y-2 border-black/10 px-4 py-14 text-center sm:px-8 sm:py-16"
-    >
+    <div class="relative isolate min-h-96 overflow-hidden px-4 py-14 text-center sm:px-8 sm:py-16">
       <div class="pointer-events-none absolute inset-0" aria-hidden="true">
         <InteractiveGridPattern
           client:load
@@ -37,7 +35,7 @@ const { ctaHref } = Astro.props;
 
       <a
         href={ctaHref}
-        class="relative z-10 mt-8 inline-flex h-14 items-center justify-center border border-slate-900 bg-slate-900 px-8 font-display text-base font-extrabold text-white transition duration-150 ease-out hover:-translate-y-0.5 hover:bg-slate-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-500"
+        class="relative z-10 mt-8 inline-flex h-14 items-center justify-center border border-slate-900 bg-slate-900 px-8 font-display text-base font-extrabold text-white transition duration-150 ease-out hover:-translate-y-0.5 hover:bg-slate-800 focus-visible:outline focus-visible:outline-offset-2 focus-visible:outline-cyan-500"
         data-cta="try-for-free"
         data-cta-location="footer"
       >

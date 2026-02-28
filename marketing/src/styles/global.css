@@ -20,10 +20,6 @@
   --line-1: rgba(18, 20, 24, 0.24);
   --text-0: #13161c;
   --text-1: #3d4651;
-  --accent-cyan: #4ac5e7;
-  --accent-cyan-soft: rgba(74, 197, 231, 0.18);
-  --accent-amber: #f2a742;
-  --accent-amber-soft: rgba(242, 167, 66, 0.18);
 
   --radius-sm: 0;
   --radius-md: 0;
@@ -62,7 +58,7 @@
     -moz-osx-font-smoothing: grayscale;
     position: relative;
   }
-  
+
   a {
     color: inherit;
     text-decoration: none;
