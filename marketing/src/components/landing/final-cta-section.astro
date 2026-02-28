@@ -10,7 +10,9 @@ const { ctaHref } = Astro.props;
 
 <section class="mt-16" aria-label="Final conversion section">
   <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-    <div class="relative isolate min-h-80 overflow-hidden border-y border-black/10 px-4 py-10 text-center sm:px-8 sm:py-12">
+    <div
+      class="relative isolate min-h-96 overflow-hidden border-y-2 border-black/10 px-4 py-14 text-center sm:px-8 sm:py-16"
+    >
       <div class="pointer-events-none absolute inset-0" aria-hidden="true">
         <InteractiveGridPattern
           client:load
@@ -22,24 +24,20 @@ const { ctaHref } = Astro.props;
         />
       </div>
 
-      <p class="relative z-10 inline-flex items-center gap-2 font-mono text-xs uppercase tracking-widest text-slate-600">
-        <span aria-hidden="true" class="h-px w-2.5 bg-slate-400"></span>
-        Ready to stop re-reading documents for every decision?
-        <span aria-hidden="true" class="h-px w-2.5 bg-slate-400"></span>
-      </p>
-
-      <h2 class="relative z-10 mx-auto mt-4 max-w-3xl font-display text-3xl leading-tight tracking-tight sm:text-4xl">
-        Give your team one place to ask, verify, and move faster.
+      <h2
+        class="relative z-10 mx-auto mt-5 max-w-4xl font-display text-5xl font-extrabold leading-tight tracking-tight sm:text-6xl lg:text-7xl"
+      >
+        Ask once. Verify instantly. Move with confidence.
       </h2>
 
-      <p class="relative z-10 mx-auto mt-4 max-w-3xl leading-7 text-slate-600">
+      <p class="relative z-10 mx-auto mt-6 max-w-2xl text-lg leading-8 text-slate-700">
         Keep your current document workflows and add Mirage as the semantic layer that returns
         cited, review-ready answers.
       </p>
 
       <a
         href={ctaHref}
-        class="relative z-10 mt-6 inline-flex h-11 items-center justify-center border border-slate-900 bg-slate-900 px-5 font-display text-sm font-bold text-white transition duration-150 ease-out hover:-translate-y-0.5 hover:bg-slate-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-500"
+        class="relative z-10 mt-8 inline-flex h-14 items-center justify-center border border-slate-900 bg-slate-900 px-8 font-display text-base font-extrabold text-white transition duration-150 ease-out hover:-translate-y-0.5 hover:bg-slate-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-500"
         data-cta="try-for-free"
         data-cta-location="footer"
       >
