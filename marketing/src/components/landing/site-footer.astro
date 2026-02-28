@@ -2,9 +2,29 @@
 const currentYear = new Date().getFullYear();
 ---
 
-<footer class="border-t border-black/10 py-8">
+<footer class="relative overflow-hidden border-t border-black/10 py-12">
+  <svg
+    aria-hidden="true"
+    viewBox="0 0 1200 260"
+    class="pointer-events-none absolute inset-x-0 -bottom-8 h-42 w-full text-slate-400 opacity-12"
+  >
+    <text
+      x="50%"
+      y="78%"
+      text-anchor="middle"
+      font-size="220"
+      font-weight="800"
+      fill="none"
+      stroke="currentColor"
+      stroke-width="1.5"
+      letter-spacing="6"
+    >
+      Mirage
+    </text>
+  </svg>
+
   <div
-    class="mx-auto flex max-w-7xl flex-col gap-4 px-4 sm:px-6 lg:px-8 md:flex-row md:items-center md:justify-between"
+    class="relative z-10 mx-auto flex max-w-7xl flex-col gap-4 px-4 sm:px-6 lg:px-8 md:flex-row md:items-center md:justify-between"
   >
     <a
       href="/"
