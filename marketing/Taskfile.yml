@@ -1,0 +1,17 @@
+version: '3'
+
+tasks:
+  install:
+    desc: Install npm dependencies
+    cmds:
+      - npm install
+
+  build:
+    desc: Build for production
+    cmds:
+      - npm run build
+
+  dev:
+    desc: Start dev server
+    cmds:
+      - npm run dev
