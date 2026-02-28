@@ -20,7 +20,7 @@ type Config struct {
 
 func Load() (Config, error) {
 	c := Config{
-		ListenAddr:             envOr("LISTEN_ADDR", ":8080"),
+		ListenAddr:             envOr("LISTEN_ADDR", ":2137"),
 		MistralAPIKey:          os.Getenv("MISTRAL_API_KEY"),
 		MistralBaseURL:         envOr("MISTRAL_BASE_URL", "https://api.mistral.ai"),
 		MistralModel:           envOr("MISTRAL_MODEL", "mistral-large-latest"),
