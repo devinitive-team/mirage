@@ -5,7 +5,6 @@ import {
 } from '@tanstack/react-router'
 import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
 import { TanStackDevtools } from '@tanstack/react-devtools'
-import Footer from '../components/Footer'
 import Header from '../components/Header'
 
 import PostHogProvider from '../integrations/posthog/provider'
@@ -55,12 +54,13 @@ function RootDocument({ children }: { children: React.ReactNode }) {
         <script dangerouslySetInnerHTML={{ __html: THEME_INIT_SCRIPT }} />
         <HeadContent />
       </head>
-      <body className="font-sans antialiased [overflow-wrap:anywhere] selection:bg-[rgba(79,184,178,0.24)]">
+      <body className="font-sans antialiased [overflow-wrap:anywhere] selection:bg-[rgba(79,184,178,0.24)] h-dvh flex flex-col overflow-hidden">
         <PostHogProvider>
           <TanStackQueryProvider>
             <Header />
-            {children}
-            <Footer />
+            <main className="flex-1 min-h-0 overflow-hidden">
+              {children}
+            </main>
             <TanStackDevtools
               config={{
                 position: 'bottom-right',
