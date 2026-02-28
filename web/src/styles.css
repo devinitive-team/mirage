@@ -188,39 +188,9 @@ body {
   color: var(--sea-ink);
   font-family: var(--font-sans);
   background-color: var(--bg-base);
-  background:
-    radial-gradient(1100px 620px at -8% -10%, var(--hero-a), transparent 58%),
-    radial-gradient(1050px 620px at 112% -12%, var(--hero-b), transparent 62%),
-    radial-gradient(720px 380px at 50% 115%, rgba(17, 17, 17, 0.08), transparent 68%),
-    radial-gradient(1700px 860px at 50% -42%, color-mix(in oklab, var(--sand) 68%, white), var(--bg-base) 72%);
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
-}
-
-body::before {
-  content: '';
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: -1;
-  opacity: 0.28;
-  background:
-    radial-gradient(circle at 20% 15%, rgba(255, 255, 255, 0.8), transparent 34%),
-    radial-gradient(circle at 78% 26%, rgba(17, 17, 17, 0.14), transparent 42%),
-    radial-gradient(circle at 42% 82%, rgba(17, 17, 17, 0.1), transparent 36%);
-}
-
-body::after {
-  content: '';
-  position: fixed;
-  inset: 0;
-  pointer-events: none;
-  z-index: -1;
-  opacity: 0.14;
-  background-image: radial-gradient(rgba(255, 255, 255, 0.09) 0.9px, transparent 1px);
-  background-size: 28px 28px;
-  mask-image: radial-gradient(circle at 50% 30%, black, transparent 78%);
 }
 
 a {
@@ -270,10 +240,6 @@ pre code {
 .island-shell {
   border: 1px solid var(--line);
   background: color-mix(in oklab, var(--surface-strong) 84%, var(--surface) 16%);
-  box-shadow:
-    0 1px 0 var(--inset-glint) inset,
-    0 22px 44px rgba(17, 17, 17, 0.1),
-    0 6px 18px rgba(17, 17, 17, 0.08);
   backdrop-filter: blur(4px);
 }
 
