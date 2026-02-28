@@ -64,6 +64,54 @@ function buildUploadedFilePreviewReference(
 	};
 }
 
+function EvidenceLoadingState({ compact = false }: { compact?: boolean }) {
+	const animatedDots = (
+		<span className="ml-1 inline-flex items-center gap-1 align-middle">
+			<span className="h-1.5 w-1.5 rounded-full bg-[var(--sea-ink-soft)]/85 animate-bounce" />
+			<span className="h-1.5 w-1.5 rounded-full bg-[var(--sea-ink-soft)]/70 animate-bounce [animation-delay:120ms]" />
+			<span className="h-1.5 w-1.5 rounded-full bg-[var(--sea-ink-soft)]/55 animate-bounce [animation-delay:240ms]" />
+		</span>
+	);
+
+	if (compact) {
+		return (
+			<section className="mb-3 rounded-xl border border-[var(--line)] bg-[var(--surface-strong)]/90 p-3">
+				<div className="flex items-center gap-2 text-sm font-medium text-[var(--sea-ink)]">
+					<Loader2 className="h-4 w-4 animate-spin text-[var(--lagoon-deep)]" />
+					<span>
+						Collecting evidence from ready files
+						{animatedDots}
+					</span>
+				</div>
+			</section>
+		);
+	}
+
+	return (
+		<div className="mx-auto flex w-full max-w-xl flex-col gap-4 rounded-2xl border border-[var(--line)] bg-[var(--surface-strong)]/95 p-5 shadow-sm">
+			<div className="flex items-center gap-3">
+				<div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[var(--line)] bg-[var(--lagoon)]/10">
+					<Loader2 className="h-4 w-4 animate-spin text-[var(--lagoon-deep)]" />
+				</div>
+				<div className="min-w-0">
+					<p className="text-sm font-semibold text-[var(--sea-ink)]">
+						Waiting for evidence from the backend
+						{animatedDots}
+					</p>
+					<p className="text-xs text-[var(--sea-ink-soft)]">
+						Searching uploaded PDFs and preparing highlighted references.
+					</p>
+				</div>
+			</div>
+			<div className="space-y-2">
+				<div className="h-2 w-full rounded-full bg-[var(--lagoon)]/12 animate-pulse" />
+				<div className="h-2 w-5/6 rounded-full bg-[var(--lagoon)]/10 animate-pulse [animation-delay:120ms]" />
+				<div className="h-2 w-2/3 rounded-full bg-[var(--lagoon)]/8 animate-pulse [animation-delay:240ms]" />
+			</div>
+		</div>
+	);
+}
+
 function Dashboard() {
 	const [searchQuery, setSearchQuery] = useState("");
 	const [isDragging, setIsDragging] = useState(false);
@@ -605,6 +653,10 @@ function Dashboard() {
 				</div>
 
 				<div ref={parentRef} className="flex-1 min-h-0 overflow-y-auto p-3">
+					{isQuerying && visibleReferences.length > 0 ? (
+						<EvidenceLoadingState compact />
+					) : null}
+
 					{queryAnswer ? (
 						<section className="mb-3 rounded-xl border border-[var(--line)] bg-white/70 p-3">
 							<p className="text-xs uppercase tracking-wide text-[var(--sea-ink-soft)]">
@@ -618,11 +670,13 @@ function Dashboard() {
 
 					{visibleReferences.length === 0 ? (
 						<div className="h-full flex items-center justify-center px-8 text-center">
-							<p className="text-sm text-[var(--sea-ink-soft)]">
-								{isQuerying
-									? "Running query and collecting evidence..."
-									: "Run a query to populate evidence references."}
-							</p>
+							{isQuerying ? (
+								<EvidenceLoadingState />
+							) : (
+								<p className="text-sm text-[var(--sea-ink-soft)]">
+									Run a query to populate evidence references.
+								</p>
+							)}
 						</div>
 					) : (
 						<div

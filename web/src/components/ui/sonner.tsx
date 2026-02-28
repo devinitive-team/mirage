@@ -2,7 +2,6 @@ import {
 	CircleCheckIcon,
 	InfoIcon,
 	Loader2Icon,
-	OctagonXIcon,
 	TriangleAlertIcon,
 } from "lucide-react";
 import type { CSSProperties } from "react";
