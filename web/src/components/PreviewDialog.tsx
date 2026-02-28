@@ -17,7 +17,7 @@ export function PreviewDialog() {
 				</button>
 			</DialogTrigger>
 			<DialogContent className="max-w-[90vw] w-[900px] h-[85vh] max-h-[85vh] p-0">
-				<div className="h-full w-full">
+				<div className="relative h-full w-full">
 					<Suspense fallback={<div className="p-4">Loading PDF viewer...</div>}>
 						<PdfViewer />
 					</Suspense>
