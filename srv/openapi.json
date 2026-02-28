@@ -1,31 +1,6 @@
 {
   "components": {
     "schemas": {
-      "Citation": {
-        "additionalProperties": false,
-        "properties": {
-          "document_id": {
-            "type": "string"
-          },
-          "document_name": {
-            "type": "string"
-          },
-          "node_id": {
-            "type": "string"
-          },
-          "page_number": {
-            "format": "int64",
-            "type": "integer"
-          }
-        },
-        "required": [
-          "document_id",
-          "document_name",
-          "page_number",
-          "node_id"
-        ],
-        "type": "object"
-      },
       "DocumentBody": {
         "additionalProperties": false,
         "properties": {
@@ -157,6 +132,40 @@
         },
         "type": "object"
       },
+      "EvidenceBody": {
+        "additionalProperties": false,
+        "properties": {
+          "document_id": {
+            "type": "string"
+          },
+          "document_name": {
+            "type": "string"
+          },
+          "node_id": {
+            "type": "string"
+          },
+          "node_title": {
+            "type": "string"
+          },
+          "page_end": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "page_start": {
+            "format": "int64",
+            "type": "integer"
+          }
+        },
+        "required": [
+          "document_id",
+          "document_name",
+          "node_id",
+          "node_title",
+          "page_start",
+          "page_end"
+        ],
+        "type": "object"
+      },
       "QueryBody": {
         "additionalProperties": false,
         "properties": {
@@ -190,13 +199,13 @@
         ],
         "type": "object"
       },
-      "QueryResult": {
+      "QueryResultBody": {
         "additionalProperties": false,
         "properties": {
           "$schema": {
             "description": "A URL to the JSON Schema for this object.",
             "examples": [
-              "https://example.com/schemas/QueryResult.json"
+              "https://example.com/schemas/QueryResultBody.json"
             ],
             "format": "uri",
             "readOnly": true,
@@ -205,9 +214,9 @@
           "answer": {
             "type": "string"
           },
-          "citations": {
+          "evidence": {
             "items": {
-              "$ref": "#/components/schemas/Citation"
+              "$ref": "#/components/schemas/EvidenceBody"
             },
             "type": [
               "array",
@@ -217,7 +226,72 @@
         },
         "required": [
           "answer",
-          "citations"
+          "evidence"
+        ],
+        "type": "object"
+      },
+      "TreeBody": {
+        "additionalProperties": false,
+        "properties": {
+          "$schema": {
+            "description": "A URL to the JSON Schema for this object.",
+            "examples": [
+              "https://example.com/schemas/TreeBody.json"
+            ],
+            "format": "uri",
+            "readOnly": true,
+            "type": "string"
+          },
+          "document_id": {
+            "type": "string"
+          },
+          "root": {
+            "$ref": "#/components/schemas/TreeNodeBody"
+          }
+        },
+        "required": [
+          "document_id",
+          "root"
+        ],
+        "type": "object"
+      },
+      "TreeNodeBody": {
+        "additionalProperties": false,
+        "properties": {
+          "children": {
+            "items": {
+              "$ref": "#/components/schemas/TreeNodeBody"
+            },
+            "type": [
+              "array",
+              "null"
+            ]
+          },
+          "end_page": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "node_id": {
+            "type": "string"
+          },
+          "start_page": {
+            "format": "int64",
+            "type": "integer"
+          },
+          "summary": {
+            "type": "string"
+          },
+          "title": {
+            "type": "string"
+          }
+        },
+        "required": [
+          "node_id",
+          "title",
+          "start_page",
+          "end_page",
+          "summary",
+          "children"
         ],
         "type": "object"
       }
@@ -289,6 +363,16 @@
       },
       "post": {
         "operationId": "upload-document",
+        "parameters": [
+          {
+            "in": "header",
+            "name": "Content-Type",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
         "requestBody": {
           "content": {},
           "required": true
@@ -385,6 +469,85 @@
         "summary": "Get document"
       }
     },
+    "/api/v1/documents/{document-id}/pdf": {
+      "get": {
+        "operationId": "get-document-pdf",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "document-id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/pdf": {}
+            },
+            "description": "Document PDF binary",
+            "headers": {
+              "Content-Type": {
+                "schema": {
+                  "type": "string"
+                }
+              }
+            }
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Get document PDF"
+      }
+    },
+    "/api/v1/documents/{document-id}/tree": {
+      "get": {
+        "operationId": "get-document-tree",
+        "parameters": [
+          {
+            "in": "path",
+            "name": "document-id",
+            "required": true,
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TreeBody"
+                }
+              }
+            },
+            "description": "OK"
+          },
+          "default": {
+            "content": {
+              "application/problem+json": {
+                "schema": {
+                  "$ref": "#/components/schemas/ErrorModel"
+                }
+              }
+            },
+            "description": "Error"
+          }
+        },
+        "summary": "Get document tree"
+      }
+    },
     "/api/v1/query": {
       "post": {
         "operationId": "query-documents",
@@ -403,7 +566,7 @@
             "content": {
               "application/json": {
                 "schema": {
-                  "$ref": "#/components/schemas/QueryResult"
+                  "$ref": "#/components/schemas/QueryResultBody"
                 }
               }
             },

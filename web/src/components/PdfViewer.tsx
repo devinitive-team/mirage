@@ -35,7 +35,6 @@ export type PdfHighlightRange = {
 	id: string;
 	pageStart: number;
 	pageEnd: number;
-	snippet?: string;
 	nodeTitle?: string;
 };
 
@@ -168,6 +167,13 @@ export function findSnippetItemIndexes(
 	}
 
 	return Array.from(itemIndexes).sort((left, right) => left - right);
+}
+
+function getRangeSnippet(range: PdfHighlightRange): string | null {
+	const candidate = range as PdfHighlightRange & { snippet?: unknown };
+	if (typeof candidate.snippet !== "string") return null;
+	const snippet = candidate.snippet.trim();
+	return snippet.length > 0 ? snippet : null;
 }
 
 function rangeIncludesPage(
@@ -377,7 +383,7 @@ function PdfPage({
 				let hasFallbackOverlay = false;
 
 				for (const range of rangesForPage) {
-					const snippet = range.snippet?.trim();
+					const snippet = getRangeSnippet(range);
 					if (!snippet) {
 						hasFallbackOverlay = true;
 						continue;

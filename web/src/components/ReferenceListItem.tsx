@@ -11,7 +11,6 @@ export type ReferenceListItemData = {
 	nodeTitle: string;
 	pageStart: number;
 	pageEnd: number;
-	snippet?: string;
 };
 
 type ReferenceListItemProps = {
@@ -27,8 +26,7 @@ export const ReferenceListItem = memo(function ReferenceListItem({
 		reference.pageStart === reference.pageEnd
 			? `Page ${reference.pageStart}`
 			: `Pages ${reference.pageStart}-${reference.pageEnd}`;
-	const description =
-		reference.snippet?.trim() || "Open preview to inspect evidence context.";
+	const description = "Open preview to inspect evidence context.";
 
 	return (
 		<button

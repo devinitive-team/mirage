@@ -16,12 +16,10 @@ const baseReference: ReferenceListItemData = {
 	nodeTitle: "Financial Results",
 	pageStart: 12,
 	pageEnd: 13,
-	snippet:
-		"Revenue increased 14% year-over-year after margin improvements in the core segment.",
 };
 
 describe("ReferenceListItem", () => {
-	it("renders metadata and evidence summary", () => {
+	it("renders metadata and preview guidance", () => {
 		render(
 			<ReferenceListItem reference={baseReference} onPreview={() => {}} />,
 		);
@@ -29,25 +27,6 @@ describe("ReferenceListItem", () => {
 		expect(screen.getByText("Quarterly_Update.pdf")).toBeTruthy();
 		expect(screen.getByText("Pages 12-13")).toBeTruthy();
 		expect(screen.getByText("Financial Results")).toBeTruthy();
-		expect(
-			screen.getByText(
-				"Revenue increased 14% year-over-year after margin improvements in the core segment.",
-			),
-		).toBeTruthy();
-	});
-
-	it("falls back to a generic preview message when no snippet is provided", () => {
-		render(
-			<ReferenceListItem
-				reference={{
-					...baseReference,
-					id: "2",
-					snippet: undefined,
-				}}
-				onPreview={() => {}}
-			/>,
-		);
-
 		expect(
 			screen.getByText("Open preview to inspect evidence context."),
 		).toBeTruthy();

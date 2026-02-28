@@ -20,8 +20,8 @@ type ocrPage struct {
 }
 
 type chatRequest struct {
-	Model          string         `json:"model"`
-	Messages       []chatMessage  `json:"messages"`
+	Model          string          `json:"model"`
+	Messages       []chatMessage   `json:"messages"`
 	ResponseFormat *responseFormat `json:"response_format,omitempty"`
 }
 
@@ -31,7 +31,15 @@ type chatMessage struct {
 }
 
 type responseFormat struct {
-	Type string `json:"type"`
+	Type       string      `json:"type"`
+	JSONSchema *jsonSchema `json:"json_schema,omitempty"`
+}
+
+type jsonSchema struct {
+	Name        string         `json:"name"`
+	Description string         `json:"description,omitempty"`
+	Schema      map[string]any `json:"schema"`
+	Strict      bool           `json:"strict"`
 }
 
 type chatResponse struct {

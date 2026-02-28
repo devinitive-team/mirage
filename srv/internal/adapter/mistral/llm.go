@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"io"
 	"net/http"
+	"strings"
 
 	"github.com/devinitive-team/mirage/internal/port"
 )
@@ -23,9 +24,20 @@ func (l *LLM) Complete(ctx context.Context, messages []port.ChatMessage) (string
 	return l.complete(ctx, messages, nil)
 }
 
-func (l *LLM) CompleteJSON(ctx context.Context, messages []port.ChatMessage, schemaHint string) (string, error) {
-	messages = injectSchemaHint(messages, schemaHint)
-	return l.complete(ctx, messages, &responseFormat{Type: "json_object"})
+func (l *LLM) CompleteJSON(ctx context.Context, messages []port.ChatMessage, schemaJSON string) (string, error) {
+	schemaDefinition, err := parseJSONSchema(schemaJSON)
+	if err != nil {
+		return "", fmt.Errorf("parse json schema: %w", err)
+	}
+
+	return l.complete(ctx, messages, &responseFormat{
+		Type: "json_schema",
+		JSONSchema: &jsonSchema{
+			Name:   "response",
+			Schema: schemaDefinition,
+			Strict: true,
+		},
+	})
 }
 
 func (l *LLM) complete(ctx context.Context, messages []port.ChatMessage, format *responseFormat) (string, error) {
@@ -63,16 +75,16 @@ func (l *LLM) complete(ctx context.Context, messages []port.ChatMessage, format 
 	return chatResp.Choices[0].Message.Content, nil
 }
 
-func injectSchemaHint(messages []port.ChatMessage, hint string) []port.ChatMessage {
-	out := make([]port.ChatMessage, len(messages))
-	copy(out, messages)
-
-	for i, m := range out {
-		if m.Role == "system" {
-			out[i].Content = m.Content + "\n\n" + hint
-			return out
-		}
+func parseJSONSchema(jsonSchema string) (map[string]any, error) {
+	raw := strings.TrimSpace(jsonSchema)
+	if raw == "" {
+		return nil, fmt.Errorf("json schema is required")
 	}
 
-	return append([]port.ChatMessage{{Role: "system", Content: hint}}, out...)
+	var schema map[string]any
+	if err := json.Unmarshal([]byte(raw), &schema); err != nil {
+		return nil, err
+	}
+
+	return schema, nil
 }

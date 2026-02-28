@@ -9,5 +9,5 @@ type ChatMessage struct {
 
 type LLMProvider interface {
 	Complete(ctx context.Context, messages []ChatMessage) (string, error)
-	CompleteJSON(ctx context.Context, messages []ChatMessage, schemaHint string) (string, error)
+	CompleteJSON(ctx context.Context, messages []ChatMessage, jsonSchema string) (string, error)
 }

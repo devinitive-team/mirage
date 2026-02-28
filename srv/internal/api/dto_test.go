@@ -17,7 +17,6 @@ func TestQueryResultToBodyConvertsEvidenceToOneIndexedPages(t *testing.T) {
 				NodeTitle:    "Financial Results",
 				PageStart:    0,
 				PageEnd:      2,
-				Snippet:      "evidence snippet",
 			},
 		},
 	})

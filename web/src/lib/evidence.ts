@@ -40,7 +40,6 @@ export function evidenceToReference(
 	const titleFromTree =
 		titlesByDocument[item.document_id]?.[item.node_id]?.trim() || "";
 	const title = item.node_title?.trim() || titleFromTree || "Untitled section";
-	const snippet = item.snippet?.trim();
 
 	return {
 		id: `${item.document_id}:${item.node_id}:${pages.pageStart}:${pages.pageEnd}:${index}`,
@@ -50,7 +49,6 @@ export function evidenceToReference(
 		nodeTitle: title,
 		pageStart: pages.pageStart,
 		pageEnd: pages.pageEnd,
-		snippet: snippet || undefined,
 	};
 }
 

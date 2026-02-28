@@ -55,7 +55,6 @@ describe("evidenceListToReferences", () => {
 					node_title: "",
 					page_start: 2,
 					page_end: 3,
-					snippet: "Revenue grew 14%",
 				},
 			],
 			{
@@ -74,7 +73,6 @@ describe("evidenceListToReferences", () => {
 				nodeTitle: "Financial Results",
 				pageStart: 2,
 				pageEnd: 3,
-				snippet: "Revenue grew 14%",
 			},
 		]);
 	});

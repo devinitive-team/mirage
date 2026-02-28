@@ -12,7 +12,6 @@ type Evidence struct {
 	NodeTitle    string `json:"node_title"`
 	PageStart    int    `json:"page_start"`
 	PageEnd      int    `json:"page_end"`
-	Snippet      string `json:"snippet"`
 }
 
 type QueryResult struct {

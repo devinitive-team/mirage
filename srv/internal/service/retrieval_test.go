@@ -4,7 +4,6 @@ import (
 	"context"
 	"fmt"
 	"io"
-	"strings"
 	"testing"
 	"time"
 
@@ -139,8 +138,7 @@ func makeSingleLeafStorage() *mockStorage {
 func TestAnswerBuildsEvidenceFromVisitedLeafPages(t *testing.T) {
 	llm := &mockLLM{
 		responses: []string{
-			`{"selected_nodes":["leaf-1"],"reasoning":"relevant"}`,
-			`{"sufficient":true,"reasoning":"enough"}`,
+			`{"selected_candidates":[{"document_id":"doc-1","node_id":"leaf-1","page_start":0,"page_end":1}],"reasoning":"relevant"}`,
 			`{"answer":"Revenue improved year-over-year."}`,
 		},
 	}
@@ -200,19 +198,13 @@ func TestAnswerBuildsEvidenceFromVisitedLeafPages(t *testing.T) {
 	if evidence.PageStart != 0 || evidence.PageEnd != 1 {
 		t.Fatalf("page range = %d-%d, want 0-1", evidence.PageStart, evidence.PageEnd)
 	}
-	expectedSnippet := "Revenue increased by 14%.\n\nMargins expanded to 22%."
-	if evidence.Snippet != expectedSnippet {
-		t.Fatalf("snippet = %q, want %q", evidence.Snippet, expectedSnippet)
-	}
 }
 
 func TestAnswerEvidenceIncludesOnlyLeafNodes(t *testing.T) {
 	llm := &mockLLM{
 		responses: []string{
-			`{"selected_nodes":["parent"],"reasoning":"drill down"}`,
-			`{"sufficient":false,"reasoning":"need details"}`,
-			`{"selected_nodes":["leaf"],"reasoning":"exact section"}`,
-			`{"sufficient":true,"reasoning":"done"}`,
+			`{"selected_candidates":[{"document_id":"doc-1","node_id":"parent","page_start":0,"page_end":1}],"reasoning":"drill down"}`,
+			`{"selected_candidates":[{"document_id":"doc-1","node_id":"leaf","page_start":1,"page_end":1}],"reasoning":"exact section"}`,
 			`{"answer":"The policy changed in Q2."}`,
 		},
 	}
@@ -272,8 +264,7 @@ func TestAnswerEvidenceIncludesOnlyLeafNodes(t *testing.T) {
 func TestAnswerDeduplicatesEvidenceByLeafKey(t *testing.T) {
 	llm := &mockLLM{
 		responses: []string{
-			`{"selected_nodes":["dup"],"reasoning":"both match"}`,
-			`{"sufficient":true,"reasoning":"enough"}`,
+			`{"selected_candidates":[{"document_id":"doc-1","node_id":"dup","page_start":0,"page_end":0}],"reasoning":"matches"}`,
 			`{"answer":"Duplicated branches were handled."}`,
 		},
 	}
@@ -322,16 +313,12 @@ func TestAnswerDeduplicatesEvidenceByLeafKey(t *testing.T) {
 	if len(result.Evidence) != 1 {
 		t.Fatalf("len(evidence) = %d, want 1", len(result.Evidence))
 	}
-	if !strings.Contains(result.Evidence[0].Snippet, "Duplicated content.") {
-		t.Fatalf("snippet did not include expected content")
-	}
 }
 
 func TestAnswerAcceptsObjectWrappedAnswerText(t *testing.T) {
 	llm := &mockLLM{
 		responses: []string{
-			`{"selected_nodes":["leaf-1"],"reasoning":"relevant"}`,
-			`{"sufficient":true,"reasoning":"enough"}`,
+			`{"selected_candidates":[{"document_id":"doc-1","node_id":"leaf-1","page_start":0,"page_end":0}],"reasoning":"relevant"}`,
 			`{"answer":{"text":"Revenue improved year-over-year."}}`,
 		},
 	}
@@ -376,88 +363,47 @@ func TestAnswerAcceptsObjectWrappedAnswerText(t *testing.T) {
 	}
 }
 
-func TestAnswerFallsBackWhenSelectResponseIsMalformed(t *testing.T) {
+func TestAnswerReturnsErrorWhenSelectResponseIsMalformed(t *testing.T) {
 	llm := &mockLLM{
 		responses: []string{
 			`not-json`,
-			`{"sufficient":true,"reasoning":"enough"}`,
-			`{"answer":"Fallback selection still produced answer."}`,
 		},
 	}
 
 	svc := NewRetrieval(llm, makeSingleLeafStorage(), 3)
-	result, err := svc.Answer(context.Background(), domain.Query{
+	_, err := svc.Answer(context.Background(), domain.Query{
 		Question:    "What happened to revenue?",
 		DocumentIDs: []string{"doc-1"},
 	})
-	if err != nil {
-		t.Fatalf("Answer returned error: %v", err)
-	}
-	if result.Answer == "" {
-		t.Fatalf("answer should not be empty")
-	}
-	if len(result.Evidence) != 1 {
-		t.Fatalf("len(evidence) = %d, want 1", len(result.Evidence))
+	if err == nil {
+		t.Fatalf("expected error when selection payload is malformed")
 	}
 }
 
-func TestAnswerContinuesWhenSufficiencyCallFails(t *testing.T) {
+func TestAnswerReturnsErrorWhenAnswerCallFails(t *testing.T) {
 	llm := &mockLLM{
 		responses: []string{
-			`{"selected_nodes":["leaf-1"],"reasoning":"relevant"}`,
-			`{"unused":"response index consumed by injected error"}`,
-			`{"answer":"Sufficiency fallback worked."}`,
+			`{"selected_candidates":[{"document_id":"doc-1","node_id":"leaf-1","page_start":0,"page_end":0}],"reasoning":"relevant"}`,
 		},
 		errors: map[int]error{
-			1: fmt.Errorf("sufficiency api timeout"),
+			1: fmt.Errorf("answer model unavailable"),
 		},
 	}
 
 	svc := NewRetrieval(llm, makeSingleLeafStorage(), 3)
-	result, err := svc.Answer(context.Background(), domain.Query{
+	_, err := svc.Answer(context.Background(), domain.Query{
 		Question:    "What happened to revenue?",
 		DocumentIDs: []string{"doc-1"},
 	})
-	if err != nil {
-		t.Fatalf("Answer returned error: %v", err)
-	}
-	if result.Answer == "" {
-		t.Fatalf("answer should not be empty")
-	}
-}
-
-func TestAnswerReturnsFallbackTextWhenAnswerCallFails(t *testing.T) {
-	llm := &mockLLM{
-		responses: []string{
-			`{"selected_nodes":["leaf-1"],"reasoning":"relevant"}`,
-			`{"sufficient":true,"reasoning":"enough"}`,
-		},
-		errors: map[int]error{
-			2: fmt.Errorf("answer model unavailable"),
-		},
-	}
-
-	svc := NewRetrieval(llm, makeSingleLeafStorage(), 3)
-	result, err := svc.Answer(context.Background(), domain.Query{
-		Question:    "What happened to revenue?",
-		DocumentIDs: []string{"doc-1"},
-	})
-	if err != nil {
-		t.Fatalf("Answer returned error: %v", err)
-	}
-	if result.Answer == "" {
-		t.Fatalf("answer should not be empty")
-	}
-	if !strings.Contains(result.Answer, "Revenue increased by 14%.") {
-		t.Fatalf("fallback answer did not include retrieved snippet: %q", result.Answer)
+	if err == nil {
+		t.Fatalf("expected error when answer generation fails")
 	}
 }
 
 func TestAnswerAcceptsFencedJSONAndTrailingCommas(t *testing.T) {
 	llm := &mockLLM{
 		responses: []string{
-			"```json\n{\"selected_nodes\":[\"leaf-1\"],\"reasoning\":\"relevant\",}\n```",
-			"```json\n{\"sufficient\":true,\"reasoning\":\"enough\",}\n```",
+			"```json\n{\"selected_candidates\":[{\"document_id\":\"doc-1\",\"node_id\":\"leaf-1\",\"page_start\":0,\"page_end\":0}],\"reasoning\":\"relevant\",}\n```",
 			`{"answer":{"content":"Decoder handled fenced payloads."}}`,
 		},
 	}
@@ -471,6 +417,88 @@ func TestAnswerAcceptsFencedJSONAndTrailingCommas(t *testing.T) {
 		t.Fatalf("Answer returned error: %v", err)
 	}
 	if result.Answer != "Decoder handled fenced payloads." {
+		t.Fatalf("answer = %q", result.Answer)
+	}
+}
+
+func TestAnswerAvoidsCrossDocumentNodeIDCollisions(t *testing.T) {
+	llm := &mockLLM{
+		responses: []string{
+			`{"selected_candidates":[{"document_id":"doc-2","node_id":"0001","page_start":0,"page_end":0}],"reasoning":"target document"}`,
+			`{"answer":"The selected company is from Document B."}`,
+		},
+	}
+	storage := &mockStorage{
+		docs: map[string]domain.Document{
+			"doc-1": makeDoc("doc-1", "Document A.pdf"),
+			"doc-2": makeDoc("doc-2", "Document B.pdf"),
+		},
+		trees: map[string]domain.TreeIndex{
+			"doc-1": {
+				DocumentID: "doc-1",
+				Root: domain.TreeNode{
+					NodeID: "root",
+					Children: []domain.TreeNode{{
+						NodeID:    "0001",
+						Title:     "A Section",
+						StartPage: 0,
+						EndPage:   0,
+					}},
+				},
+			},
+			"doc-2": {
+				DocumentID: "doc-2",
+				Root: domain.TreeNode{
+					NodeID: "root",
+					Children: []domain.TreeNode{{
+						NodeID:    "0001",
+						Title:     "B Section",
+						StartPage: 0,
+						EndPage:   0,
+					}},
+				},
+			},
+		},
+		pages: map[string][]domain.Page{
+			"doc-1": {{Index: 0, Markdown: "Document A content"}},
+			"doc-2": {{Index: 0, Markdown: "Document B content"}},
+		},
+	}
+
+	svc := NewRetrieval(llm, storage, 3)
+	result, err := svc.Answer(context.Background(), domain.Query{
+		Question:    "Which document was selected?",
+		DocumentIDs: []string{"doc-1", "doc-2"},
+	})
+	if err != nil {
+		t.Fatalf("Answer returned error: %v", err)
+	}
+
+	if len(result.Evidence) != 1 {
+		t.Fatalf("len(evidence) = %d, want 1", len(result.Evidence))
+	}
+	if result.Evidence[0].DocumentID != "doc-2" {
+		t.Fatalf("document_id = %q, want doc-2", result.Evidence[0].DocumentID)
+	}
+}
+
+func TestAnswerNormalizesNonPositiveMaxIterations(t *testing.T) {
+	llm := &mockLLM{
+		responses: []string{
+			`{"selected_candidates":[{"document_id":"doc-1","node_id":"leaf-1","page_start":0,"page_end":0}],"reasoning":"relevant"}`,
+			`{"answer":"Normalization worked."}`,
+		},
+	}
+
+	svc := NewRetrieval(llm, makeSingleLeafStorage(), 0)
+	result, err := svc.Answer(context.Background(), domain.Query{
+		Question:    "What happened to revenue?",
+		DocumentIDs: []string{"doc-1"},
+	})
+	if err != nil {
+		t.Fatalf("Answer returned error: %v", err)
+	}
+	if result.Answer != "Normalization worked." {
 		t.Fatalf("answer = %q", result.Answer)
 	}
 }

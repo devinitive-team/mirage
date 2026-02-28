@@ -122,7 +122,6 @@ export function PreviewDialog({
 											id: reference.id,
 											pageStart: reference.pageStart,
 											pageEnd: reference.pageEnd,
-											snippet: reference.snippet,
 											nodeTitle: reference.nodeTitle,
 										},
 									]}

@@ -85,7 +85,6 @@ type EvidenceBody struct {
 	NodeTitle    string `json:"node_title"`
 	PageStart    int    `json:"page_start"`
 	PageEnd      int    `json:"page_end"`
-	Snippet      string `json:"snippet"`
 }
 
 type TreeBody struct {
@@ -125,7 +124,6 @@ func queryResultToBody(result domain.QueryResult) QueryResultBody {
 			NodeTitle:    item.NodeTitle,
 			PageStart:    item.PageStart + 1,
 			PageEnd:      item.PageEnd + 1,
-			Snippet:      item.Snippet,
 		})
 	}
 

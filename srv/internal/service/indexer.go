@@ -42,6 +42,25 @@ type inferredStructure struct {
 	Sections []tocSection `json:"sections"`
 }
 
+const tocSectionDefsJSONSchema = `
+"$defs": {
+	"sections": {
+		"type": "array",
+		"items": { "$ref": "#/$defs/section" }
+	},
+	"section": {
+		"type": "object",
+		"additionalProperties": false,
+		"properties": {
+			"title": { "type": "string" },
+			"start_page": { "type": "integer" },
+			"end_page": { "type": "integer" },
+			"subsections": { "$ref": "#/$defs/sections" }
+		},
+		"required": ["title", "start_page", "end_page", "subsections"]
+	}
+}`
+
 func (s *Indexer) Build(ctx context.Context, docID string, pages []domain.Page) (domain.TreeIndex, error) {
 	toc, err := s.detectTOC(ctx, pages)
 	if err != nil {
@@ -93,7 +112,16 @@ func (s *Indexer) detectTOC(ctx context.Context, pages []domain.Page) (tocResult
 		{Role: "user", Content: fmt.Sprintf("Analyze these pages and determine if there is a table of contents. If found, extract the section structure with page ranges.\n\n%s", sb.String())},
 	}
 
-	schema := `{"has_toc": true, "sections": [{"title": "string", "start_page": 0, "end_page": 0, "subsections": []}]}`
+	schema := `{
+		"type": "object",
+		"additionalProperties": false,
+		"properties": {
+			"has_toc": { "type": "boolean" },
+			"sections": { "$ref": "#/$defs/sections" }
+		},
+		"required": ["has_toc", "sections"],
+	` + tocSectionDefsJSONSchema + `
+	}`
 
 	raw, err := s.llm.CompleteJSON(ctx, messages, schema)
 	if err != nil {
@@ -123,7 +151,15 @@ func (s *Indexer) inferStructure(ctx context.Context, pages []domain.Page) (infe
 		{Role: "user", Content: fmt.Sprintf("Group these pages into logical sections. Each section should have a title, start_page, end_page, and optional subsections.\n\n%s", sb.String())},
 	}
 
-	schema := `{"sections": [{"title": "string", "start_page": 0, "end_page": 0, "subsections": []}]}`
+	schema := `{
+		"type": "object",
+		"additionalProperties": false,
+		"properties": {
+			"sections": { "$ref": "#/$defs/sections" }
+		},
+		"required": ["sections"],
+	` + tocSectionDefsJSONSchema + `
+	}`
 
 	raw, err := s.llm.CompleteJSON(ctx, messages, schema)
 	if err != nil {

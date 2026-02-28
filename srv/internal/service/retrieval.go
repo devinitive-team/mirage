@@ -4,11 +4,18 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"log/slog"
 	"sort"
 	"strings"
 
 	"github.com/devinitive-team/mirage/internal/domain"
 	"github.com/devinitive-team/mirage/internal/port"
+)
+
+const (
+	defaultMaxRetrievalIterations = 3
+	maxCollectedContentChars      = 120000
+	maxEvidenceItems              = 32
 )
 
 type Retrieval struct {
@@ -26,123 +33,19 @@ func NewRetrieval(llm port.LLMProvider, storage port.Storage, maxIterations int)
 }
 
 type branchSelection struct {
-	SelectedNodes []string `json:"selected_nodes"`
-	Reasoning     string   `json:"reasoning"`
+	SelectedCandidates []selectedCandidate `json:"selected_candidates"`
+	Reasoning          string              `json:"reasoning"`
 }
 
-type sufficiencyCheck struct {
-	Sufficient bool   `json:"sufficient"`
-	Reasoning  string `json:"reasoning"`
+type selectedCandidate struct {
+	DocumentID string `json:"document_id"`
+	NodeID     string `json:"node_id"`
+	PageStart  int    `json:"page_start"`
+	PageEnd    int    `json:"page_end"`
 }
 
 type answerResponse struct {
 	Answer json.RawMessage `json:"answer"`
-}
-
-func (s *Retrieval) Answer(ctx context.Context, query domain.Query) (domain.QueryResult, error) {
-	trees := make(map[string]domain.TreeIndex)
-	docs := make(map[string]domain.Document)
-	for _, docID := range query.DocumentIDs {
-		tree, err := s.storage.GetTree(ctx, docID)
-		if err != nil {
-			return domain.QueryResult{}, fmt.Errorf("get tree %s: %w", docID, err)
-		}
-		trees[docID] = tree
-
-		doc, err := s.storage.GetDocument(ctx, docID)
-		if err != nil {
-			return domain.QueryResult{}, fmt.Errorf("get document %s: %w", docID, err)
-		}
-		docs[docID] = doc
-	}
-
-	var collectedContent strings.Builder
-	evidenceByKey := make(map[string]struct{})
-	evidence := make([]domain.Evidence, 0)
-	explorationQueue := s.initialCandidates(trees)
-
-	for iteration := range s.maxIterations {
-		if len(explorationQueue) == 0 {
-			break
-		}
-
-		selection, err := s.selectBranches(ctx, query.Question, explorationQueue, &collectedContent, iteration)
-		if err != nil {
-			selection = branchSelection{
-				SelectedNodes: selectAllCandidateNodeIDs(explorationQueue),
-				Reasoning:     "fallback: select all nodes due to select branch error",
-			}
-		}
-		selection.SelectedNodes = normalizeSelectedNodeIDs(explorationQueue, selection.SelectedNodes)
-		if len(selection.SelectedNodes) == 0 {
-			selection.SelectedNodes = selectAllCandidateNodeIDs(explorationQueue)
-		}
-
-		selectedMap := make(map[string]bool)
-		for _, id := range selection.SelectedNodes {
-			selectedMap[id] = true
-		}
-
-		var nextQueue []candidateNode
-		for _, cand := range explorationQueue {
-			if !selectedMap[cand.NodeID] {
-				continue
-			}
-
-			if len(cand.Children) == 0 {
-				pages, err := s.storage.GetPageRange(ctx, cand.DocumentID, cand.StartPage, cand.EndPage)
-				if err != nil {
-					return domain.QueryResult{}, fmt.Errorf("get pages %s [%d-%d]: %w", cand.DocumentID, cand.StartPage, cand.EndPage, err)
-				}
-				for _, p := range pages {
-					fmt.Fprintf(&collectedContent, "[Doc:%s Page:%d Node:%s]\n%s\n\n", cand.DocumentID, p.Index, cand.NodeID, p.Markdown)
-				}
-
-				key := fmt.Sprintf("%s|%s|%d|%d", cand.DocumentID, cand.NodeID, cand.StartPage, cand.EndPage)
-				if _, exists := evidenceByKey[key]; !exists {
-					docName := ""
-					if doc, ok := docs[cand.DocumentID]; ok {
-						docName = doc.Name
-					}
-					evidence = append(evidence, domain.Evidence{
-						DocumentID:   cand.DocumentID,
-						DocumentName: docName,
-						NodeID:       cand.NodeID,
-						NodeTitle:    cand.Title,
-						PageStart:    cand.StartPage,
-						PageEnd:      cand.EndPage,
-						Snippet:      buildEvidenceSnippet(pages),
-					})
-					evidenceByKey[key] = struct{}{}
-				}
-			} else {
-				nextQueue = append(nextQueue, cand.Children...)
-			}
-		}
-
-		sufficient, err := s.checkSufficiency(ctx, query.Question, &collectedContent)
-		if err != nil {
-			sufficient = sufficiencyCheck{
-				Sufficient: len(nextQueue) == 0,
-				Reasoning:  "fallback: sufficiency unavailable",
-			}
-		}
-		if sufficient.Sufficient {
-			break
-		}
-
-		explorationQueue = nextQueue
-	}
-
-	answer, err := s.generateAnswer(ctx, query, &collectedContent)
-	if err != nil || strings.TrimSpace(answer) == "" {
-		answer = fallbackAnswerText(query.Question, &collectedContent, evidence)
-	}
-
-	return domain.QueryResult{
-		Answer:   answer,
-		Evidence: evidence,
-	}, nil
 }
 
 type candidateNode struct {
@@ -153,6 +56,267 @@ type candidateNode struct {
 	StartPage  int
 	EndPage    int
 	Children   []candidateNode
+}
+
+func (c candidateNode) selectionKey() string {
+	return fmt.Sprintf("%s|%s|%d|%d", c.DocumentID, c.NodeID, c.StartPage, c.EndPage)
+}
+
+func (c selectedCandidate) selectionKey() string {
+	return fmt.Sprintf(
+		"%s|%s|%d|%d",
+		strings.TrimSpace(c.DocumentID),
+		strings.TrimSpace(c.NodeID),
+		c.PageStart,
+		c.PageEnd,
+	)
+}
+
+func (s *Retrieval) Answer(ctx context.Context, query domain.Query) (domain.QueryResult, error) {
+	if strings.TrimSpace(query.Question) == "" {
+		err := fmt.Errorf("question is required")
+		slog.ErrorContext(ctx, "retrieval failed", "stage", "validate_query", "error", err)
+		return domain.QueryResult{}, err
+	}
+
+	trees, docs, err := s.loadQueryContext(ctx, query.DocumentIDs)
+	if err != nil {
+		slog.ErrorContext(
+			ctx,
+			"retrieval failed",
+			"stage",
+			"load_query_context",
+			"error",
+			err,
+			"document_count",
+			len(query.DocumentIDs),
+		)
+		return domain.QueryResult{}, err
+	}
+
+	frontier := s.initialCandidates(trees)
+	if len(frontier) == 0 {
+		err := fmt.Errorf("no retrieval candidates available")
+		slog.ErrorContext(ctx, "retrieval failed", "stage", "initialize_frontier", "error", err)
+		return domain.QueryResult{}, err
+	}
+	maxIterations := normalizeMaxIterations(s.maxIterations)
+
+	var collectedContent strings.Builder
+	evidence := make([]domain.Evidence, 0)
+	evidenceByKey := make(map[string]struct{})
+
+	for iteration := 0; iteration < maxIterations && len(frontier) > 0; iteration++ {
+		slog.InfoContext(
+			ctx,
+			"retrieval frontier",
+			"iteration",
+			iteration,
+			"frontier_size",
+			len(frontier),
+			"frontier",
+			summarizeCandidates(frontier, 24),
+		)
+
+		selection, err := s.selectBranches(ctx, query.Question, frontier, iteration)
+		if err != nil {
+			slog.ErrorContext(
+				ctx,
+				"retrieval failed",
+				"stage",
+				"select_branches",
+				"iteration",
+				iteration,
+				"error",
+				err,
+			)
+			return domain.QueryResult{}, err
+		}
+		slog.InfoContext(
+			ctx,
+			"retrieval selected_candidates response",
+			"iteration",
+			iteration,
+			"selected_candidate_count",
+			len(selection.SelectedCandidates),
+			"selected_candidate_keys",
+			summarizeSelectedCandidateKeys(selection.SelectedCandidates, 24),
+		)
+
+		selected := normalizeSelectedCandidates(frontier, selection.SelectedCandidates)
+		slog.InfoContext(
+			ctx,
+			"retrieval selected candidates normalized",
+			"iteration",
+			iteration,
+			"selected_size",
+			len(selected),
+			"selected",
+			summarizeCandidates(selected, 24),
+		)
+		if len(selected) == 0 {
+			err := fmt.Errorf("selected_candidates did not match available candidates")
+			slog.ErrorContext(
+				ctx,
+				"retrieval failed",
+				"stage",
+				"validate_branch_selection",
+				"iteration",
+				iteration,
+				"error",
+				err,
+				"available_candidates",
+				len(frontier),
+				"frontier",
+				summarizeCandidates(frontier, 24),
+				"selected_candidate_keys",
+				summarizeSelectedCandidateKeys(selection.SelectedCandidates, 24),
+			)
+			return domain.QueryResult{}, err
+		}
+
+		nextFrontier := make([]candidateNode, 0)
+		nextFrontierByKey := make(map[string]struct{})
+
+		for _, cand := range selected {
+			if len(cand.Children) == 0 {
+				pages, err := s.storage.GetPageRange(ctx, cand.DocumentID, cand.StartPage, cand.EndPage)
+				if err != nil {
+					wrappedErr := fmt.Errorf("get pages %s [%d-%d]: %w", cand.DocumentID, cand.StartPage, cand.EndPage, err)
+					slog.ErrorContext(
+						ctx,
+						"retrieval failed",
+						"stage",
+						"load_leaf_pages",
+						"iteration",
+						iteration,
+						"document_id",
+						cand.DocumentID,
+						"node_id",
+						cand.NodeID,
+						"page_start",
+						cand.StartPage,
+						"page_end",
+						cand.EndPage,
+						"error",
+						wrappedErr,
+					)
+					return domain.QueryResult{}, wrappedErr
+				}
+				appendCollectedContent(&collectedContent, cand, pages)
+
+				key := cand.selectionKey()
+				if _, exists := evidenceByKey[key]; exists {
+					continue
+				}
+
+				docName := ""
+				if doc, ok := docs[cand.DocumentID]; ok {
+					docName = doc.Name
+				}
+
+				evidence = append(evidence, domain.Evidence{
+					DocumentID:   cand.DocumentID,
+					DocumentName: docName,
+					NodeID:       cand.NodeID,
+					NodeTitle:    cand.Title,
+					PageStart:    cand.StartPage,
+					PageEnd:      cand.EndPage,
+				})
+				evidenceByKey[key] = struct{}{}
+				if len(evidence) >= maxEvidenceItems {
+					break
+				}
+				continue
+			}
+
+			for _, child := range cand.Children {
+				key := child.selectionKey()
+				if _, exists := nextFrontierByKey[key]; exists {
+					continue
+				}
+				nextFrontierByKey[key] = struct{}{}
+				nextFrontier = append(nextFrontier, child)
+			}
+		}
+
+		if len(evidence) >= maxEvidenceItems {
+			break
+		}
+		if len(nextFrontier) == 0 {
+			break
+		}
+
+		frontier = nextFrontier
+	}
+
+	if len(evidence) == 0 {
+		err := fmt.Errorf("retrieval completed without evidence")
+		slog.ErrorContext(
+			ctx,
+			"retrieval failed",
+			"stage",
+			"finalize_evidence",
+			"error",
+			err,
+			"max_iterations",
+			maxIterations,
+		)
+		return domain.QueryResult{}, err
+	}
+
+	answer, err := s.generateAnswer(ctx, query.Question, collectedContent.String())
+	if err != nil {
+		slog.ErrorContext(ctx, "retrieval failed", "stage", "generate_answer", "error", err)
+		return domain.QueryResult{}, err
+	}
+	answer = strings.TrimSpace(answer)
+	if answer == "" {
+		err := fmt.Errorf("answer is empty")
+		slog.ErrorContext(ctx, "retrieval failed", "stage", "validate_answer", "error", err)
+		return domain.QueryResult{}, err
+	}
+
+	return domain.QueryResult{
+		Answer:   answer,
+		Evidence: evidence,
+	}, nil
+}
+
+func (s *Retrieval) loadQueryContext(ctx context.Context, documentIDs []string) (map[string]domain.TreeIndex, map[string]domain.Document, error) {
+	trees := make(map[string]domain.TreeIndex)
+	docs := make(map[string]domain.Document)
+	for _, docID := range documentIDs {
+		tree, err := s.storage.GetTree(ctx, docID)
+		if err != nil {
+			return nil, nil, fmt.Errorf("get tree %s: %w", docID, err)
+		}
+		trees[docID] = tree
+
+		doc, err := s.storage.GetDocument(ctx, docID)
+		if err != nil {
+			return nil, nil, fmt.Errorf("get document %s: %w", docID, err)
+		}
+		docs[docID] = doc
+	}
+	return trees, docs, nil
+}
+
+func normalizeMaxIterations(value int) int {
+	if value < 1 {
+		return defaultMaxRetrievalIterations
+	}
+	return value
+}
+
+func appendCollectedContent(collected *strings.Builder, candidate candidateNode, pages []domain.Page) {
+	for _, page := range pages {
+		chunk := fmt.Sprintf("[Doc:%s Page:%d Node:%s]\n%s\n\n", candidate.DocumentID, page.Index, candidate.NodeID, page.Markdown)
+		if collected.Len()+len(chunk) > maxCollectedContentChars {
+			return
+		}
+		collected.WriteString(chunk)
+	}
 }
 
 func (s *Retrieval) initialCandidates(trees map[string]domain.TreeIndex) []candidateNode {
@@ -187,23 +351,50 @@ func treeNodeToCandidate(docID string, node domain.TreeNode) candidateNode {
 	return cand
 }
 
-func (s *Retrieval) selectBranches(ctx context.Context, question string, candidates []candidateNode, collected *strings.Builder, iteration int) (branchSelection, error) {
+func (s *Retrieval) selectBranches(ctx context.Context, question string, candidates []candidateNode, iteration int) (branchSelection, error) {
 	var sb strings.Builder
 	for _, c := range candidates {
-		fmt.Fprintf(&sb, "- [%s] %s (pages %d-%d): %s\n", c.NodeID, c.Title, c.StartPage, c.EndPage, c.Summary)
-	}
-
-	contextNote := ""
-	if collected.Len() > 0 {
-		contextNote = fmt.Sprintf("\n\nContent already collected:\n%s", collected.String())
+		fmt.Fprintf(&sb, "- [%s] %s (doc %s, pages %d-%d): %s\n", c.selectionKey(), c.Title, c.DocumentID, c.StartPage, c.EndPage, c.Summary)
 	}
 
 	messages := []port.ChatMessage{
-		{Role: "system", Content: "You are a research assistant. Select the most relevant document sections to answer the user's question."},
-		{Role: "user", Content: fmt.Sprintf("Question: %s\n\nAvailable sections (iteration %d):\n%s%s\n\nSelect the node IDs most likely to contain relevant information.", question, iteration, sb.String(), contextNote)},
+		{
+			Role:    "system",
+			Content: "Select relevant sections. Return JSON only.",
+		},
+		{
+			Role: "user",
+			Content: fmt.Sprintf(
+				"Question: %s\n\nAvailable sections (iteration %d):\n%s\n\nReturn selected_candidates as objects with these exact fields copied from the list: document_id, node_id, page_start, page_end. Do not return labels or extra text.",
+				question,
+				iteration,
+				sb.String(),
+			),
+		},
 	}
 
-	schema := `{"selected_nodes": ["string"], "reasoning": "string"}`
+	schema := `{
+		"type": "object",
+		"additionalProperties": false,
+		"properties": {
+			"selected_candidates": {
+				"type": "array",
+				"items": {
+					"type": "object",
+					"additionalProperties": false,
+					"properties": {
+						"document_id": { "type": "string" },
+						"node_id": { "type": "string" },
+						"page_start": { "type": "integer" },
+						"page_end": { "type": "integer" }
+					},
+					"required": ["document_id", "node_id", "page_start", "page_end"]
+				}
+			},
+			"reasoning": { "type": "string" }
+		},
+		"required": ["selected_candidates", "reasoning"]
+	}`
 
 	var result branchSelection
 	if err := s.completeAndDecodeJSON(ctx, messages, schema, &result); err != nil {
@@ -213,44 +404,102 @@ func (s *Retrieval) selectBranches(ctx context.Context, question string, candida
 	return result, nil
 }
 
-func (s *Retrieval) checkSufficiency(ctx context.Context, question string, collected *strings.Builder) (sufficiencyCheck, error) {
-	messages := []port.ChatMessage{
-		{Role: "system", Content: "You are a research assistant. Determine if the collected content is sufficient to answer the user's question."},
-		{Role: "user", Content: fmt.Sprintf("Question: %s\n\nCollected content:\n%s\n\nIs this content sufficient to provide a comprehensive answer?", question, collected.String())},
+func normalizeSelectedCandidates(candidates []candidateNode, selected []selectedCandidate) []candidateNode {
+	candidateByKey := make(map[string]candidateNode, len(candidates))
+	for _, cand := range candidates {
+		candidateByKey[cand.selectionKey()] = cand
 	}
 
-	schema := `{"sufficient": true, "reasoning": "string"}`
-
-	var result sufficiencyCheck
-	if err := s.completeAndDecodeJSON(ctx, messages, schema, &result); err != nil {
-		return sufficiencyCheck{}, fmt.Errorf("decode sufficiency check: %w", err)
-	}
-
-	return result, nil
-}
-
-func buildEvidenceSnippet(pages []domain.Page) string {
-	var sb strings.Builder
-	for _, page := range pages {
-		text := strings.TrimSpace(page.Markdown)
-		if text == "" {
+	filtered := make([]candidateNode, 0, len(selected))
+	seen := make(map[string]struct{}, len(selected))
+	for _, raw := range selected {
+		key := raw.selectionKey()
+		if key == "" {
 			continue
 		}
-		if sb.Len() > 0 {
-			sb.WriteString("\n\n")
+
+		cand, ok := candidateByKey[key]
+		if !ok {
+			continue
 		}
-		sb.WriteString(text)
+
+		selectionKey := cand.selectionKey()
+		if _, exists := seen[selectionKey]; exists {
+			continue
+		}
+		seen[selectionKey] = struct{}{}
+		filtered = append(filtered, cand)
 	}
-	return sb.String()
+	return filtered
 }
 
-func (s *Retrieval) generateAnswer(ctx context.Context, query domain.Query, collected *strings.Builder) (string, error) {
-	messages := []port.ChatMessage{
-		{Role: "system", Content: "You are a research assistant. Answer the question based on the provided content."},
-		{Role: "user", Content: fmt.Sprintf("Question: %s\n\nSource content:\n%s\n\nProvide a comprehensive answer.", query.Question, collected.String())},
+func summarizeCandidates(candidates []candidateNode, limit int) []string {
+	if limit < 1 {
+		limit = 1
 	}
 
-	schema := `{"answer": "string"}`
+	summary := make([]string, 0, min(limit, len(candidates)))
+	for i, cand := range candidates {
+		if i >= limit {
+			break
+		}
+
+		title := strings.TrimSpace(cand.Title)
+		if title == "" {
+			title = "<untitled>"
+		}
+
+		summary = append(summary, fmt.Sprintf("%s [%s]", cand.selectionKey(), title))
+	}
+
+	if len(candidates) > limit {
+		summary = append(summary, fmt.Sprintf("... +%d more", len(candidates)-limit))
+	}
+
+	return summary
+}
+
+func summarizeSelectedCandidateKeys(candidates []selectedCandidate, limit int) []string {
+	if limit < 1 {
+		limit = 1
+	}
+
+	summary := make([]string, 0, min(limit, len(candidates)))
+	for i, cand := range candidates {
+		if i >= limit {
+			break
+		}
+		summary = append(summary, cand.selectionKey())
+	}
+
+	if len(candidates) > limit {
+		summary = append(summary, fmt.Sprintf("... +%d more", len(candidates)-limit))
+	}
+
+	return summary
+}
+
+func (s *Retrieval) generateAnswer(ctx context.Context, question, collected string) (string, error) {
+	messages := []port.ChatMessage{
+		{Role: "system", Content: "Answer the question from source content. Return JSON only."},
+		{
+			Role: "user",
+			Content: fmt.Sprintf(
+				"Question: %s\n\nSource content:\n%s\n\nReturn {\"answer\": \"...\"} with answer as a plain string.",
+				question,
+				collected,
+			),
+		},
+	}
+
+	schema := `{
+		"type": "object",
+		"additionalProperties": false,
+		"properties": {
+			"answer": { "type": "string" }
+		},
+		"required": ["answer"]
+	}`
 
 	var resp answerResponse
 	if err := s.completeAndDecodeJSON(ctx, messages, schema, &resp); err != nil {
@@ -376,57 +625,4 @@ func normalizeJSON(raw string) string {
 	cleaned = strings.ReplaceAll(cleaned, ",]", "]")
 
 	return cleaned
-}
-
-func selectAllCandidateNodeIDs(candidates []candidateNode) []string {
-	selected := make([]string, 0, len(candidates))
-	for _, cand := range candidates {
-		selected = append(selected, cand.NodeID)
-	}
-	return selected
-}
-
-func normalizeSelectedNodeIDs(candidates []candidateNode, selected []string) []string {
-	allowed := make(map[string]struct{}, len(candidates))
-	for _, cand := range candidates {
-		allowed[cand.NodeID] = struct{}{}
-	}
-
-	filtered := make([]string, 0, len(selected))
-	seen := make(map[string]struct{}, len(selected))
-	for _, nodeID := range selected {
-		if _, ok := allowed[nodeID]; !ok {
-			continue
-		}
-		if _, dup := seen[nodeID]; dup {
-			continue
-		}
-		seen[nodeID] = struct{}{}
-		filtered = append(filtered, nodeID)
-	}
-	return filtered
-}
-
-func fallbackAnswerText(question string, collected *strings.Builder, evidence []domain.Evidence) string {
-	const maxLen = 800
-
-	clip := func(text string) string {
-		text = strings.TrimSpace(text)
-		if len(text) <= maxLen {
-			return text
-		}
-		return text[:maxLen] + "..."
-	}
-
-	for _, item := range evidence {
-		if snippet := clip(item.Snippet); snippet != "" {
-			return fmt.Sprintf("I could not synthesize a complete answer for %q, but this retrieved content is relevant:\n\n%s", question, snippet)
-		}
-	}
-
-	if snippet := clip(collected.String()); snippet != "" {
-		return fmt.Sprintf("I could not synthesize a complete answer for %q, but this retrieved content is relevant:\n\n%s", question, snippet)
-	}
-
-	return fmt.Sprintf("I could not synthesize a complete answer for %q, and no relevant source content was retrieved.", question)
 }
