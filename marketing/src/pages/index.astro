@@ -1,7 +1,6 @@
 ---
 import "../styles/global.css";
 
-import SemanticSearchHero from "@/components/landing/semantic-search-hero.astro";
 import { InteractiveGridPattern } from "@/components/ui/interactive-grid-pattern";
 import { tryForFreeUrl } from "@/config/site";
 import { buildTryForFreeUrl } from "@/lib/cta";
@@ -81,14 +80,6 @@ const ctaHref = buildTryForFreeUrl(tryForFreeUrl, Astro.url);
             </a>
             <a href="#how-it-works" class="button button--secondary">See how Mirage works</a>
           </div>
-          <ul class="hero__checks" aria-label="Core value points">
-            <li>Upload once and search across all ready documents</li>
-            <li>Get precise answers from semantic retrieval, not keyword guesswork</li>
-            <li>Review page-linked evidence before sharing decisions</li>
-          </ul>
-        </div>
-        <div class="hero__visual surface-card">
-          <SemanticSearchHero />
         </div>
       </section>
 
@@ -118,7 +109,7 @@ const ctaHref = buildTryForFreeUrl(tryForFreeUrl, Astro.url);
         </p>
         <div class="step-grid">
           <article class="step-card">
-            <p class="step-card__index">01</p>
+            <p class="step-card__index">01 · Ingest</p>
             <h3>Ingest documents</h3>
             <p>
               Drop in PDFs and let background processing extract document structure while your team
@@ -126,7 +117,7 @@ const ctaHref = buildTryForFreeUrl(tryForFreeUrl, Astro.url);
             </p>
           </article>
           <article class="step-card">
-            <p class="step-card__index">02</p>
+            <p class="step-card__index">02 · Retrieve</p>
             <h3>Build semantic index</h3>
             <p>
               Mirage organizes content by meaning, so questions are matched to relevant sections
@@ -134,7 +125,7 @@ const ctaHref = buildTryForFreeUrl(tryForFreeUrl, Astro.url);
             </p>
           </article>
           <article class="step-card">
-            <p class="step-card__index">03</p>
+            <p class="step-card__index">03 · Verify</p>
             <h3>Return cited answers</h3>
             <p>
               Every answer includes page-linked evidence so reviewers can validate context in

@@ -1033,9 +1033,7 @@ function Dashboard() {
 						<p className="text-xs text-center text-[var(--sea-ink-soft)]">
 							{totalFileCount} file{totalFileCount !== 1 ? "s" : ""} total
 							{selectedCount > 0 ? ` • ${selectedCount} selected` : ""}
-							{processingCount > 0
-								? ` • ${processingCount} processing`
-								: ""}
+							{processingCount > 0 ? ` • ${processingCount} processing` : ""}
 						</p>
 					)}
 					<button
