@@ -17,6 +17,8 @@ Upload flow: PDF uploaded → async OCR extracts text → LLM builds hierarchica
 
 Query flow: question submitted → LLM reasons over tree index, drilling into relevant branches → page content loaded → answer generated with deterministic evidence entries (`node`, `page range`) for highlight rendering.
 
+Current limitation: evidence page ranges are tree-section ranges, not mention-level spans, and TOC-derived ranges are not yet offset-calibrated to physical PDF page numbering.
+
 ## Design Targets
 
 - No data loss on restart — all state persisted to filesystem before responding.

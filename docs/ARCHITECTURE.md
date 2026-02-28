@@ -4,7 +4,7 @@ This file is the top-level codemap for the project. Update it as modules are add
 
 ## Problem Scope
 
-Mirage is a document search system. Users upload PDFs, the system extracts text via OCR, builds a hierarchical index, and answers natural-language questions with deterministic evidence grounded to document sections and page ranges. Current milestone: MVP with ingestion, indexing, retrieval, and query-to-PDF highlight support via Mistral.
+Mirage is a document search system. Users upload PDFs, the system extracts text via OCR, builds a hierarchical index, and answers natural-language questions with deterministic evidence grounded to traversed sections and stored page ranges. Current milestone: MVP with ingestion, indexing, retrieval, and query-to-PDF highlight support via Mistral.
 
 ## Codemap
 
@@ -38,6 +38,8 @@ Monorepo with three projects:
 - All filesystem writes use write-to-temp-then-rename for crash safety.
 - Document processing is asynchronous — upload returns 202, worker processes in background.
 - Document status transitions: pending → processing → complete (or failed at any step).
+- Internal page ranges are 0-indexed in storage/service layers; API responses convert them to 1-indexed fields.
+- Known gap: TOC-derived section page numbers are not yet calibrated against physical PDF page offsets.
 
 ## Cross-Cutting Concerns
 
