@@ -12,6 +12,15 @@ When a change touches only `marketing/`, still run:
 
 - `task marketing:build` passes.
 
+For `marketing/` page work, iterate with this loop while implementing:
+
+1. Start the marketing app in watch mode:
+   `cd marketing && npm run dev`
+2. Validate the current change with `agent-browser` against `http://localhost:4321`.
+3. Apply the next set of edits and repeat this dev + browser check loop.
+4. Before handoff, run a production build:
+   `cd marketing && npm run build` (or `task marketing:build`)
+
 For any UI or behavior change, also run interactive validation by driving the app in a browser:
 
 1. Start the app: `task run` (server on `:2137`, `web` on `:3000`, `marketing` on `:4321`).
@@ -35,7 +44,7 @@ For any UI or behavior change, also run interactive validation by driving the ap
    - Close when done:
      `agent-browser close`
 
-For `marketing/` page changes, run an additional interactive check:
+For `marketing/` page changes, run this minimum scripted `agent-browser` check:
 
 1. Open the marketing app:
    `agent-browser open http://localhost:4321`

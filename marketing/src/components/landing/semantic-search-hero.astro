@@ -1,0 +1,289 @@
+---
+const arrowId = `semantic-search-hero-arrow-${Math.random().toString(36).slice(2, 10)}`;
+---
+
+<figure
+  class="semantic-search-hero"
+  role="img"
+  aria-label="Process diagram showing input documents moving through semantic indexing and search to a cited answer output."
+>
+  <svg viewBox="0 0 960 620" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+    <defs>
+      <marker
+        id={arrowId}
+        viewBox="0 0 10 10"
+        refX="9"
+        refY="5"
+        markerWidth="8"
+        markerHeight="8"
+        orient="auto-start-reverse"
+      >
+        <path d="M 0 0 L 10 5 L 0 10 z" class="sshero-arrowhead" />
+      </marker>
+    </defs>
+
+    <rect class="sshero-canvas" x="24" y="24" width="912" height="572" rx="0" />
+
+    <rect class="sshero-panel" x="56" y="96" width="252" height="428" rx="0" />
+    <rect class="sshero-panel" x="354" y="96" width="252" height="428" rx="0" />
+    <rect class="sshero-panel" x="652" y="96" width="252" height="428" rx="0" />
+
+    <text class="sshero-panel-title" x="182" y="142" text-anchor="middle">Input Documents</text>
+    <text class="sshero-panel-title" x="480" y="142" text-anchor="middle">Semantic Index + Search</text>
+    <text class="sshero-panel-title" x="778" y="142" text-anchor="middle">Cited Answer Output</text>
+
+    <g>
+      <rect class="sshero-doc sshero-doc--back" x="116" y="206" width="122" height="164" rx="0" />
+      <rect class="sshero-doc sshero-doc--mid" x="108" y="196" width="122" height="164" rx="0" />
+      <rect class="sshero-doc" x="100" y="186" width="122" height="164" rx="0" />
+
+      <line class="sshero-doc-line" x1="118" y1="216" x2="204" y2="216" />
+      <line class="sshero-doc-line" x1="118" y1="236" x2="206" y2="236" />
+      <line class="sshero-doc-line" x1="118" y1="256" x2="188" y2="256" />
+      <line class="sshero-doc-line" x1="118" y1="276" x2="203" y2="276" />
+
+      <rect class="sshero-chip" x="106" y="382" width="56" height="24" rx="0" />
+      <rect class="sshero-chip" x="166" y="382" width="56" height="24" rx="0" />
+      <text class="sshero-chip-text" x="134" y="398" text-anchor="middle">PDF</text>
+      <text class="sshero-chip-text" x="194" y="398" text-anchor="middle">DOCX</text>
+    </g>
+
+    <g>
+      <circle class="sshero-hub-ring" cx="480" cy="286" r="72" />
+      <circle class="sshero-hub" cx="480" cy="286" r="48" />
+
+      <line class="sshero-node-link" x1="480" y1="238" x2="480" y2="214" />
+      <line class="sshero-node-link" x1="442" y1="271" x2="422" y2="258" />
+      <line class="sshero-node-link" x1="518" y1="271" x2="538" y2="258" />
+      <line class="sshero-node-link" x1="442" y1="301" x2="422" y2="314" />
+      <line class="sshero-node-link" x1="518" y1="301" x2="538" y2="314" />
+
+      <circle class="sshero-node" cx="480" cy="208" r="9" />
+      <circle class="sshero-node" cx="416" cy="254" r="9" />
+      <circle class="sshero-node" cx="544" cy="254" r="9" />
+      <circle class="sshero-node" cx="416" cy="318" r="9" />
+      <circle class="sshero-node" cx="544" cy="318" r="9" />
+
+      <circle class="sshero-search-lens" cx="474" cy="282" r="16" />
+      <line class="sshero-search-handle" x1="486" y1="294" x2="500" y2="308" />
+
+      <rect class="sshero-search-bar" x="390" y="390" width="180" height="54" rx="0" />
+      <text class="sshero-search-text" x="480" y="424" text-anchor="middle">semantic query</text>
+    </g>
+
+    <g>
+      <rect class="sshero-answer" x="684" y="188" width="188" height="244" rx="0" />
+      <text class="sshero-answer-title" x="702" y="222">Answer</text>
+
+      <line class="sshero-answer-line" x1="702" y1="246" x2="852" y2="246" />
+      <line class="sshero-answer-line" x1="702" y1="266" x2="844" y2="266" />
+      <line class="sshero-answer-line" x1="702" y1="286" x2="838" y2="286" />
+
+      <line class="sshero-answer-line" x1="702" y1="324" x2="852" y2="324" />
+      <line class="sshero-answer-line" x1="702" y1="344" x2="834" y2="344" />
+
+      <rect class="sshero-cite" x="702" y="372" width="76" height="26" rx="0" />
+      <rect class="sshero-cite" x="786" y="372" width="76" height="26" rx="0" />
+      <text class="sshero-cite-text" x="740" y="389" text-anchor="middle">p.12</text>
+      <text class="sshero-cite-text" x="824" y="389" text-anchor="middle">p.31</text>
+    </g>
+
+    <path
+      class="sshero-connector"
+      d="M 308 286 C 327 286 335 286 354 286"
+      marker-end={`url(#${arrowId})`}
+    />
+    <path
+      class="sshero-connector"
+      d="M 606 286 C 625 286 633 286 652 286"
+      marker-end={`url(#${arrowId})`}
+    />
+
+    <text class="sshero-connector-label" x="331" y="267" text-anchor="middle">Chunk + Embed</text>
+    <text class="sshero-connector-label" x="629" y="267" text-anchor="middle">Retrieve + Cite</text>
+  </svg>
+</figure>
+
+<style>
+  .semantic-search-hero {
+    width: min(100%, 72rem);
+    margin: 0;
+  }
+
+  .semantic-search-hero svg {
+    display: block;
+    width: 100%;
+    height: auto;
+  }
+
+  .semantic-search-hero text {
+    font-family: 'Sora', 'Avenir Next', 'Segoe UI', sans-serif;
+  }
+
+  .sshero-canvas {
+    fill: #ffffff;
+    stroke: #111111;
+    stroke-width: 2;
+  }
+
+  .sshero-panel {
+    fill: #ffffff;
+    stroke: #111111;
+    stroke-width: 2;
+  }
+
+  .sshero-panel-title {
+    fill: #111111;
+    font-size: 21px;
+    font-weight: 600;
+    letter-spacing: 0.2px;
+  }
+
+  .sshero-doc {
+    fill: #ffffff;
+    stroke: #111111;
+    stroke-width: 2;
+  }
+
+  .sshero-doc--mid {
+    fill: #f3f6f8;
+  }
+
+  .sshero-doc--back {
+    fill: #e9eef2;
+  }
+
+  .sshero-doc-line {
+    stroke: #384047;
+    stroke-width: 2;
+    stroke-linecap: round;
+  }
+
+  .sshero-chip {
+    fill: #ebf4ff;
+    stroke: #1c5981;
+    stroke-width: 1.5;
+  }
+
+  .sshero-chip-text {
+    fill: #1c5981;
+    font-size: 12px;
+    font-weight: 700;
+    letter-spacing: 0.6px;
+  }
+
+  .sshero-hub-ring {
+    fill: #f4f8fb;
+    stroke: #1c5981;
+    stroke-width: 2;
+  }
+
+  .sshero-hub {
+    fill: #ffffff;
+    stroke: #111111;
+    stroke-width: 2;
+  }
+
+  .sshero-node-link {
+    stroke: #4d5962;
+    stroke-width: 2;
+    stroke-linecap: round;
+  }
+
+  .sshero-node {
+    fill: #1c5981;
+    stroke: #0f3550;
+    stroke-width: 1.5;
+  }
+
+  .sshero-search-lens {
+    fill: none;
+    stroke: #111111;
+    stroke-width: 3;
+  }
+
+  .sshero-search-handle {
+    stroke: #111111;
+    stroke-width: 3;
+    stroke-linecap: round;
+  }
+
+  .sshero-search-bar {
+    fill: #ffffff;
+    stroke: #111111;
+    stroke-width: 2;
+  }
+
+  .sshero-search-text {
+    fill: #26343f;
+    font-size: 16px;
+    font-weight: 500;
+    letter-spacing: 0.2px;
+  }
+
+  .sshero-answer {
+    fill: #ffffff;
+    stroke: #111111;
+    stroke-width: 2;
+  }
+
+  .sshero-answer-title {
+    fill: #111111;
+    font-size: 22px;
+    font-weight: 650;
+  }
+
+  .sshero-answer-line {
+    stroke: #2f3c46;
+    stroke-width: 2;
+    stroke-linecap: round;
+  }
+
+  .sshero-cite {
+    fill: #ebf4ff;
+    stroke: #1c5981;
+    stroke-width: 1.5;
+  }
+
+  .sshero-cite-text {
+    fill: #1c5981;
+    font-size: 14px;
+    font-weight: 700;
+  }
+
+  .sshero-connector {
+    fill: none;
+    stroke: #111111;
+    stroke-width: 3;
+    stroke-linecap: round;
+  }
+
+  .sshero-arrowhead {
+    fill: #111111;
+  }
+
+  .sshero-connector-label {
+    fill: #1f2f39;
+    font-size: 13px;
+    font-weight: 600;
+    letter-spacing: 0.2px;
+  }
+
+  @media (max-width: 760px) {
+    .sshero-panel-title {
+      font-size: 17px;
+    }
+
+    .sshero-search-text {
+      font-size: 14px;
+    }
+
+    .sshero-answer-title {
+      font-size: 19px;
+    }
+
+    .sshero-connector-label {
+      display: none;
+    }
+  }
+</style>
