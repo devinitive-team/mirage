@@ -13,6 +13,7 @@ tasks:
 
   run:
     desc: Run the server
+    dotenv: ['.env']
     cmds:
       - go run ./cmd/mirage
 
