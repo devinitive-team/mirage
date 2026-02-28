@@ -35,3 +35,9 @@ tasks:
     desc: Run check
     cmds:
       - npm run check
+
+  codegen:
+    desc: Generate TypeScript types from the OpenAPI spec
+    cmds:
+      - cd ../srv && go run ./cmd/mirage openapi > /tmp/mirage.openapi.json
+      - npx openapi-typescript /tmp/mirage.openapi.json -o src/lib/api.gen.ts

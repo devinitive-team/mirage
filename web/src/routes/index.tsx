@@ -1,24 +1,40 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { FileText, Upload, X } from "lucide-react";
+import { FileText, Loader2, Upload, X } from "lucide-react";
 import { useCallback, useId, useRef, useState } from "react";
 
 import { Input } from "#/components/ui/input";
+import {
+	useDeleteDocument,
+	useDocuments,
+	useUploadDocument,
+} from "#/hooks/documents";
 
 export const Route = createFileRoute("/")({ component: Dashboard });
 
 const DUMMY_RESULTS = Array.from({ length: 500 }, (_, i) => ({ id: i }));
 
+const STATUS_LABEL: Record<string, string> = {
+	pending: "Pending",
+	ocr: "OCR",
+	indexing: "Indexing",
+	ready: "Ready",
+	failed: "Failed",
+};
+
 function Dashboard() {
-	const [uploadedFiles, setUploadedFiles] = useState<File[]>([]);
 	const [searchQuery, setSearchQuery] = useState("");
 	const [isDragging, setIsDragging] = useState(false);
 	const fileInputRef = useRef<HTMLInputElement>(null);
 	const parentRef = useRef<HTMLDivElement>(null);
 	const inputId = useId();
 
-	const filteredFiles = uploadedFiles.filter((f) =>
-		f.name.toLowerCase().includes(searchQuery.toLowerCase()),
+	const { data: documents = [], isLoading } = useDocuments();
+	const upload = useUploadDocument();
+	const remove = useDeleteDocument();
+
+	const filteredDocuments = documents.filter((d) =>
+		d.name.toLowerCase().includes(searchQuery.toLowerCase()),
 	);
 
 	const rowVirtualizer = useVirtualizer({
@@ -28,18 +44,13 @@ function Dashboard() {
 		overscan: 8,
 	});
 
-	const handleFiles = useCallback((files: FileList | null) => {
-		if (!files) return;
-		const newFiles = Array.from(files);
-		setUploadedFiles((prev) => {
-			const existingNames = new Set(prev.map((f) => f.name));
-			return [...prev, ...newFiles.filter((f) => !existingNames.has(f.name))];
-		});
-	}, []);
-
-	const removeFile = useCallback((name: string) => {
-		setUploadedFiles((prev) => prev.filter((f) => f.name !== name));
-	}, []);
+	const handleFiles = useCallback(
+		async (files: FileList | null) => {
+			if (!files) return;
+			await Promise.all(Array.from(files).map((f) => upload.mutateAsync(f)));
+		},
+		[upload],
+	);
 
 	const handleDrop = useCallback(
 		(e: React.DragEvent) => {
@@ -114,31 +125,35 @@ function Dashboard() {
 				</div>
 
 				<div className="flex-1 min-h-0 overflow-y-auto p-2 space-y-1">
-					{filteredFiles.length === 0 ? (
+					{isLoading ? (
+						<div className="flex items-center justify-center h-full py-8">
+							<Loader2 className="w-6 h-6 animate-spin text-[var(--sea-ink-soft)]" />
+						</div>
+					) : filteredDocuments.length === 0 ? (
 						<div className="flex flex-col items-center justify-center h-full gap-2 py-8">
 							<FileText className="w-8 h-8 text-[var(--sea-ink-soft)] opacity-30" />
 							<p className="text-sm text-[var(--sea-ink-soft)] text-center">
-								{uploadedFiles.length === 0
+								{documents.length === 0
 									? "Drop files anywhere or use the upload button"
 									: "No files match your search"}
 							</p>
 						</div>
 					) : (
-						filteredFiles.map((file) => (
+						filteredDocuments.map((doc) => (
 							<div
-								key={file.name}
+								key={doc.id}
 								className="group flex items-center gap-2 rounded-lg px-3 py-2 text-sm hover:bg-[var(--sea-ink)]/5 transition-colors"
 							>
 								<FileText className="w-4 h-4 shrink-0 text-[var(--lagoon-deep)]" />
 								<span className="truncate flex-1 text-[var(--sea-ink)]">
-									{file.name}
+									{doc.name}
 								</span>
 								<span className="text-xs text-[var(--sea-ink-soft)] shrink-0">
-									{(file.size / 1024).toFixed(0)}KB
+									{STATUS_LABEL[doc.status] ?? doc.status}
 								</span>
 								<button
 									type="button"
-									onClick={() => removeFile(file.name)}
+									onClick={() => remove.mutate(doc.id)}
 									className="shrink-0 opacity-0 group-hover:opacity-100 text-[var(--sea-ink-soft)] hover:text-[var(--sea-ink)] transition-opacity"
 								>
 									<X className="w-3.5 h-3.5" />
@@ -149,16 +164,16 @@ function Dashboard() {
 				</div>
 
 				<div className="p-3 border-t border-[var(--line)] shrink-0 space-y-2">
-					{uploadedFiles.length > 0 && (
+					{documents.length > 0 && (
 						<p className="text-xs text-center text-[var(--sea-ink-soft)]">
-							{uploadedFiles.length} file{uploadedFiles.length !== 1 ? "s" : ""}{" "}
-							total
+							{documents.length} file{documents.length !== 1 ? "s" : ""} total
 						</p>
 					)}
 					<button
 						type="button"
 						onClick={() => fileInputRef.current?.click()}
-						className="w-full flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-all hover:scale-[1.02] active:scale-[0.98]"
+						disabled={upload.isPending}
+						className="w-full flex items-center justify-center gap-2 rounded-xl px-4 py-2.5 text-sm font-semibold transition-all hover:scale-[1.02] active:scale-[0.98] disabled:opacity-70 disabled:cursor-not-allowed"
 						style={{
 							background:
 								"linear-gradient(135deg, var(--lagoon), var(--lagoon-deep))",
@@ -167,8 +182,12 @@ function Dashboard() {
 								"0 4px 14px rgba(79, 184, 178, 0.35), 0 2px 6px rgba(23, 58, 64, 0.12)",
 						}}
 					>
-						<Upload className="w-4 h-4" />
-						Upload Files
+						{upload.isPending ? (
+							<Loader2 className="w-4 h-4 animate-spin" />
+						) : (
+							<Upload className="w-4 h-4" />
+						)}
+						{upload.isPending ? "Uploading..." : "Upload Files"}
 					</button>
 				</div>
 			</aside>

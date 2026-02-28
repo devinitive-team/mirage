@@ -39,6 +39,11 @@ tasks:
       - task: srv:lint
       - task: web:lint
 
+  codegen:
+    desc: Generate TypeScript types from the OpenAPI spec
+    cmds:
+      - task: web:codegen
+
   run:
     desc: Run both server and frontend in dev mode
     deps:
