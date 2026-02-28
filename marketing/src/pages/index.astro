@@ -23,7 +23,7 @@ const attributionParams = [
 const ctaHref = buildTryForFreeUrl(tryForFreeUrl, Astro.url);
 
 const containerClass =
-  "mx-auto w-[min(1040px,calc(100%-2.6rem))] max-[720px]:w-[min(1040px,calc(100%-1.2rem))]";
+  "mx-auto w-[min(1200px,calc(100%-3rem))] max-[720px]:w-[min(1200px,calc(100%-1.4rem))]";
 
 const eyebrowClass =
   "m-0 inline-flex items-center gap-[0.4rem] font-mono text-[0.76rem] uppercase tracking-[0.08em] text-[color-mix(in_oklab,var(--text-1)_80%,var(--text-0)_20%)] before:h-px before:w-[10px] before:bg-[color-mix(in_oklab,var(--text-1)_40%,transparent_60%)] before:content-[''] after:h-px after:w-[10px]  after:content-['']";
@@ -45,17 +45,37 @@ const sectionTitleClass =
 
 const sectionIntroClass = "mt-[1.25rem] max-w-[66ch] text-[var(--text-1)] leading-[1.7]";
 
+const workflowListClass = "mt-[1.8rem] flex flex-col gap-y-[1.15rem]";
+
+const workflowStepClass =
+  "border-y border-[var(--line-0)] px-[clamp(0.8rem,2.4vw,1.2rem)] py-[1rem] min-[981px]:py-[1.25rem]";
+
+const workflowStepRowClass =
+  "grid grid-cols-1 gap-y-[1rem] min-[981px]:grid-cols-2 min-[981px]:items-center min-[981px]:gap-x-[clamp(1.6rem,3vw,2.8rem)]";
+
+const workflowImageWrapClass = "min-w-0";
+
+const workflowTextWrapClass = "min-w-0";
+
+const workflowStepLabelClass =
+  "m-0 inline-flex items-center gap-[0.5rem] font-mono text-[0.8rem] text-black";
+
+const workflowStepDotClass = "h-[8px] w-[8px] shrink-0 bg-black";
+
+const workflowSvgClass =
+  "block h-auto w-full max-h-[240px] text-[color-mix(in_oklab,var(--text-0)_84%,var(--text-1)_16%)]";
+
 const heroImageFrameClass =
-  "relative mt-8 border border-[color-mix(in_oklab,var(--line-1)_74%,var(--accent-cyan)_26%)] bg-[linear-gradient(180deg,color-mix(in_oklab,var(--surface-1)_76%,white_24%)_0%,color-mix(in_oklab,var(--surface-1)_94%,var(--accent-cyan-soft)_6%)_100%)] p-[clamp(0.34rem,0.9vw,0.68rem)] motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-2 motion-safe:duration-500";
+  "group relative left-1/2 mt-8 w-[min(1460px,132vw)] max-w-none -translate-x-1/2 border border-[var(--line-0)] bg-[linear-gradient(180deg,color-mix(in_oklab,var(--surface-1)_76%,white_24%)_0%,color-mix(in_oklab,var(--surface-1)_94%,var(--accent-cyan-soft)_6%)_100%)] p-[clamp(0.34rem,0.9vw,0.68rem)] transition-transform duration-500 ease-out motion-safe:hover:scale-[1.02] motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-2 motion-safe:duration-500";
 
 const heroImageClass =
-  "block h-[clamp(260px,44vw,520px)] w-full object-cover object-top [filter:contrast(1.04)_saturate(1.06)]";
+  "block h-[clamp(280px,46vw,620px)] w-full object-cover object-top [filter:contrast(1.04)_saturate(1.06)] transition-transform duration-700 ease-out motion-safe:group-hover:scale-[1.035]";
 
 const heroImageBeamFrameClass =
-  "relative overflow-hidden border border-[color-mix(in_oklab,var(--line-1)_78%,transparent)]";
+  "relative overflow-hidden border border-[var(--line-0)]";
 
 const heroImageAccentClass =
-  "pointer-events-none absolute inset-x-[9%] -top-px h-px bg-[color-mix(in_oklab,var(--accent-cyan)_58%,transparent)]";
+  "pointer-events-none absolute inset-x-[8%] -top-px h-px bg-[var(--line-1)]";
 ---
 
 <html lang="en">
@@ -71,7 +91,7 @@ const heroImageAccentClass =
 
   <body>
     <header
-      class="sticky top-0 z-40 border-b border-[color-mix(in_oklab,var(--line-0)_88%,transparent)] bg-[color-mix(in_oklab,var(--surface-1)_78%,transparent)] backdrop-blur-[10px]"
+      class="sticky top-0 z-40 border-b border-[var(--line-0)] bg-[color-mix(in_oklab,var(--surface-1)_78%,transparent)] backdrop-blur-[10px]"
     >
       <div
         class={`${containerClass} flex min-h-[82px] items-center justify-between gap-4 max-[720px]:min-h-[72px]`}
@@ -202,20 +222,14 @@ const heroImageAccentClass =
           Start with real files, ask a real question, and trace each answer back to the source
           before anyone acts on it.
         </p>
-        <ol
-          class="mt-[1.8rem] grid grid-cols-1 gap-y-[1.35rem] min-[981px]:grid-cols-3 min-[981px]:gap-x-[1.35rem]"
-        >
-          <li class="relative border-l border-[var(--line-0)] pl-[1.1rem]">
-            <span
-              aria-hidden="true"
-              class="absolute left-[-5px] top-[0.35rem] h-[9px] w-[9px] bg-black"></span>
-            <p class="m-0 font-mono text-[0.8rem] text-black">01 · Ingest</p>
-
+        <ol class={workflowListClass}>
+          <li class={workflowStepClass}>
+            <div class={workflowStepRowClass}>
+              <div class={workflowImageWrapClass}>
             <svg
               xmlns="http://www.w3.org/2000/svg"
               viewBox="0 0 400 400"
-              width="100%"
-              height="100%"
+              class={workflowSvgClass}
             >
               <defs>
                 <style>
@@ -337,24 +351,28 @@ const heroImageAccentClass =
                 <path d="M 86,225 L 94,225" stroke-width="1.5"></path>
               </g>
             </svg>
-            <h3 class="mt-[0.66rem] font-display text-[1.05rem] tracking-[-0.01em]">
+              </div>
+              <div class={workflowTextWrapClass}>
+                <p class={workflowStepLabelClass}>
+                  <span aria-hidden="true" class={workflowStepDotClass}></span>01 · Ingest
+                </p>
+                <h3 class="mt-[0.66rem] font-display text-[1.05rem] tracking-[-0.01em]">
               Ingest documents
             </h3>
-            <p class="mt-[0.72rem] text-[var(--text-1)] leading-[1.65]">
+                <p class="mt-[0.72rem] text-[var(--text-1)] leading-[1.65]">
               Drop in PDFs and let background processing extract document structure while your team
               keeps moving.
             </p>
+              </div>
+            </div>
           </li>
-          <li class="relative border-l border-[var(--line-0)] pl-[1.1rem]">
-            <span
-              aria-hidden="true"
-              class="absolute left-[-5px] top-[0.35rem] h-[9px] w-[9px] bg-black"></span>
-            <p class="m-0 font-mono text-[0.8rem] text-black">02 · Retrieve</p>
-            <svg
+          <li class={workflowStepClass}>
+            <div class={workflowStepRowClass}>
+              <div class={`${workflowImageWrapClass} min-[981px]:order-2`}>
+                <svg
               xmlns="http://www.w3.org/2000/svg"
               viewBox="0 0 500 500"
-              width="100%"
-              height="100%"
+              class={workflowSvgClass}
             >
               <defs>
                 <style>
@@ -545,24 +563,28 @@ const heroImageAccentClass =
                 <path d="M 385,320 L 395,320 M 390,315 L 390,325"></path>
               </g>
             </svg>
-            <h3 class="mt-[0.66rem] font-display text-[1.05rem] tracking-[-0.01em]">
+              </div>
+              <div class={`${workflowTextWrapClass} min-[981px]:order-1`}>
+                <p class={workflowStepLabelClass}>
+                  <span aria-hidden="true" class={workflowStepDotClass}></span>02 · Retrieve
+                </p>
+                <h3 class="mt-[0.66rem] font-display text-[1.05rem] tracking-[-0.01em]">
               Build semantic index
             </h3>
-            <p class="mt-[0.72rem] text-[var(--text-1)] leading-[1.65]">
+                <p class="mt-[0.72rem] text-[var(--text-1)] leading-[1.65]">
               Mirage organizes content by meaning, so questions are matched to relevant sections
               instead of loose keyword hits.
             </p>
+              </div>
+            </div>
           </li>
-          <li class="relative border-l border-[var(--line-0)] pl-[1.1rem]">
-            <span
-              aria-hidden="true"
-              class="absolute left-[-5px] top-[0.35rem] h-[9px] w-[9px] bg-black"></span>
-            <p class="m-0 font-mono text-[0.8rem] text-black">03 · Verify</p>
-            <svg
+          <li class={workflowStepClass}>
+            <div class={workflowStepRowClass}>
+              <div class={workflowImageWrapClass}>
+                <svg
               xmlns="http://www.w3.org/2000/svg"
               viewBox="0 0 500 500"
-              width="100%"
-              height="100%"
+              class={workflowSvgClass}
             >
               <defs>
                 <style>
@@ -750,13 +772,20 @@ const heroImageAccentClass =
                 <text x="260" y="41" class="tech-text">GENERATED_RESPONSE</text>
               </g>
             </svg>
-            <h3 class="mt-[0.66rem] font-display text-[1.05rem] tracking-[-0.01em]">
+              </div>
+              <div class={workflowTextWrapClass}>
+                <p class={workflowStepLabelClass}>
+                  <span aria-hidden="true" class={workflowStepDotClass}></span>03 · Verify
+                </p>
+                <h3 class="mt-[0.66rem] font-display text-[1.05rem] tracking-[-0.01em]">
               Return cited answers
             </h3>
-            <p class="mt-[0.72rem] text-[var(--text-1)] leading-[1.65]">
+                <p class="mt-[0.72rem] text-[var(--text-1)] leading-[1.65]">
               Every answer includes page-linked evidence so reviewers can validate context in
               seconds.
             </p>
+              </div>
+            </div>
           </li>
         </ol>
       </section>
