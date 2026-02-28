@@ -10,9 +10,7 @@ export async function listDocuments(
 	limit = 100,
 	offset = 0,
 ): Promise<Document[]> {
-	const res = await fetch(
-		`${BASE}/documents?limit=${limit}&offset=${offset}`,
-	);
+	const res = await fetch(`${BASE}/documents?limit=${limit}&offset=${offset}`);
 	if (!res.ok) throw new Error(`Failed to list documents: ${res.statusText}`);
 	return res.json();
 }
@@ -41,9 +39,7 @@ export async function deleteDocument(id: string): Promise<void> {
 
 // ─── Query ────────────────────────────────────────────────────────────────────
 
-export async function queryDocuments(
-	body: QueryRequest,
-): Promise<QueryResult> {
+export async function queryDocuments(body: QueryRequest): Promise<QueryResult> {
 	const res = await fetch(`${BASE}/query`, {
 		method: "POST",
 		headers: { "Content-Type": "application/json" },

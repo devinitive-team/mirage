@@ -3,6 +3,11 @@ import { useVirtualizer } from "@tanstack/react-virtual";
 import { FileText, Loader2, Upload, X } from "lucide-react";
 import { useCallback, useId, useRef, useState } from "react";
 
+import {
+	REFERENCE_LIST_ITEM_HEIGHT,
+	type ReferenceListItemData,
+	ReferenceListItem,
+} from "#/components/ReferenceListItem";
 import { Input } from "#/components/ui/input";
 import {
 	useDeleteDocument,
@@ -12,7 +17,45 @@ import {
 
 export const Route = createFileRoute("/")({ component: Dashboard });
 
-const DUMMY_RESULTS = Array.from({ length: 500 }, (_, i) => ({ id: i }));
+const REFERENCE_ROW_HEIGHT = REFERENCE_LIST_ITEM_HEIGHT + 8;
+
+const REFERENCE_FILES = [
+	"2025_Annual_Report.pdf",
+	"Market_Sizing_Notes.pdf",
+	"Customer_Interviews_Q4.pdf",
+	"Implementation_Roadmap.pdf",
+];
+
+const SEARCH_PHRASES = [
+	"operating margin",
+	"renewal rate",
+	"response latency",
+	"compliance controls",
+];
+
+const EXCERPT_TEMPLATES = [
+	"The document notes that {phrase} improved after the second release window. The same section compares current outcomes against last quarter baselines and includes caveats about sample size and collection methodology.",
+	"In the methodology appendix, {phrase} is used as the primary indicator for deciding whether a rollout can continue. The author highlights a threshold and lists scenarios where manual review is still required.",
+	"The risk section references {phrase} during dependency analysis. It explains which assumptions hold for enterprise accounts and where additional verification is required before publishing results.",
+	"A summary paragraph ties {phrase} to user-facing outcomes and prioritization. The recommendation is to monitor this signal weekly and correlate shifts with support load and incident trends.",
+];
+
+const DUMMY_RESULTS: ReferenceListItemData[] = Array.from(
+	{ length: 500 },
+	(_, i) => {
+		const searchPhrase = SEARCH_PHRASES[i % SEARCH_PHRASES.length];
+		return {
+			id: i,
+			documentName: REFERENCE_FILES[i % REFERENCE_FILES.length],
+			pageNumber: (i % 47) + 1,
+			searchPhrase,
+			excerpt: EXCERPT_TEMPLATES[i % EXCERPT_TEMPLATES.length].replaceAll(
+				"{phrase}",
+				searchPhrase,
+			),
+		};
+	},
+);
 
 const STATUS_LABEL: Record<string, string> = {
 	pending: "Pending",
@@ -40,7 +83,7 @@ function Dashboard() {
 	const rowVirtualizer = useVirtualizer({
 		count: DUMMY_RESULTS.length,
 		getScrollElement: () => parentRef.current,
-		estimateSize: () => 88,
+		estimateSize: () => REFERENCE_ROW_HEIGHT,
 		overscan: 8,
 	});
 
@@ -221,7 +264,9 @@ function Dashboard() {
 								}}
 								className="p-1"
 							>
-								<div className="h-full rounded-lg bg-[var(--sea-ink)]/5 border border-[var(--line)]" />
+								<ReferenceListItem
+									reference={DUMMY_RESULTS[virtualItem.index]}
+								/>
 							</div>
 						))}
 					</div>

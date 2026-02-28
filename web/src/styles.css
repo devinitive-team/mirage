@@ -26,6 +26,20 @@
   --link-bg-hover: rgba(255, 255, 255, 0.9);
   --hero-a: rgba(79, 184, 178, 0.36);
   --hero-b: rgba(47, 106, 74, 0.2);
+  --reference-item-border: color-mix(in oklab, var(--line) 80%, rgba(23, 58, 64, 0.22) 20%);
+  --reference-item-bg: linear-gradient(
+    165deg,
+    color-mix(in oklab, var(--surface-strong) 95%, white 5%),
+    var(--surface)
+  );
+  --reference-item-title: color-mix(in oklab, var(--sea-ink) 90%, black 10%);
+  --reference-item-page-bg: color-mix(in oklab, var(--surface-strong) 80%, white 20%);
+  --reference-item-page-border: color-mix(in oklab, var(--lagoon-deep) 24%, var(--line));
+  --reference-item-page-text: color-mix(in oklab, var(--sea-ink) 86%, black 14%);
+  --reference-item-excerpt-bg: color-mix(in oklab, var(--surface-strong) 88%, white 12%);
+  --reference-item-excerpt-border: color-mix(in oklab, var(--line) 78%, rgba(23, 58, 64, 0.24) 22%);
+  --reference-item-mark-bg: color-mix(in oklab, var(--lagoon) 64%, white 36%);
+  --reference-item-mark-text: color-mix(in oklab, var(--sea-ink) 88%, black 12%);
 
   --background: oklch(1 0 0);
   --foreground: oklch(0.141 0.005 285.823);
@@ -82,6 +96,20 @@
   --link-bg-hover: rgba(24, 44, 49, 0.8);
   --hero-a: rgba(96, 215, 207, 0.18);
   --hero-b: rgba(110, 200, 154, 0.12);
+  --reference-item-border: color-mix(in oklab, var(--lagoon-deep) 36%, var(--line));
+  --reference-item-bg: linear-gradient(
+    165deg,
+    color-mix(in oklab, var(--surface-strong) 95%, black 5%),
+    var(--surface)
+  );
+  --reference-item-title: color-mix(in oklab, var(--sea-ink) 96%, white 4%);
+  --reference-item-page-bg: color-mix(in oklab, var(--surface-strong) 84%, var(--lagoon-deep) 16%);
+  --reference-item-page-border: color-mix(in oklab, var(--lagoon-deep) 52%, var(--line));
+  --reference-item-page-text: color-mix(in oklab, var(--sea-ink) 96%, white 4%);
+  --reference-item-excerpt-bg: color-mix(in oklab, var(--surface-strong) 94%, black 6%);
+  --reference-item-excerpt-border: color-mix(in oklab, var(--lagoon-deep) 30%, var(--line));
+  --reference-item-mark-bg: color-mix(in oklab, var(--lagoon-deep) 52%, rgba(10, 20, 24, 0.48) 48%);
+  --reference-item-mark-text: color-mix(in oklab, var(--sea-ink) 96%, white 4%);
 
   --background: oklch(0.141 0.005 285.823);
   --foreground: oklch(0.985 0 0);
@@ -270,6 +298,39 @@ pre code {
 .feature-card:hover {
   transform: translateY(-2px);
   border-color: color-mix(in oklab, var(--lagoon-deep) 35%, var(--line));
+}
+
+.reference-list-item {
+  border: 1px solid var(--reference-item-border);
+  background: var(--reference-item-bg);
+  box-shadow:
+    0 1px 0 var(--inset-glint) inset,
+    0 8px 20px rgba(23, 58, 64, 0.06);
+}
+
+.reference-list-item__icon {
+  color: var(--lagoon-deep);
+}
+
+.reference-list-item__title {
+  color: var(--reference-item-title);
+}
+
+.reference-list-item__page {
+  border: 1px solid var(--reference-item-page-border);
+  background: var(--reference-item-page-bg);
+  color: var(--reference-item-page-text);
+}
+
+.reference-list-item__excerpt {
+  border: 1px solid var(--reference-item-excerpt-border);
+  background: var(--reference-item-excerpt-bg);
+  box-shadow: 0 1px 0 var(--inset-glint) inset;
+}
+
+.reference-list-item__mark {
+  background: var(--reference-item-mark-bg);
+  color: var(--reference-item-mark-text);
 }
 
 button,

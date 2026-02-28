@@ -11,7 +11,7 @@ React 19, TanStack (Router, Query, Form, Table), Vite, Tailwind CSS, Biome (lint
 - Document upload: file picker for PDFs.
 - Document list: table with name, status, and actions.
 - Query input: text field for natural-language questions.
-- Results: answer text with citations linking back to source pages.
+- Results: fixed-height virtualized reference cards with file name, page number, and scrollable excerpt text that highlights matched phrases.
 
 ## Render Contract
 
