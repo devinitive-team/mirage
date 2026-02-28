@@ -1,0 +1,27 @@
+version: '3'
+
+tasks:
+  install:
+    desc: Install npm dependencies
+    cmds:
+      - npm install
+
+  build:
+    desc: Build for production
+    cmds:
+      - npm run build
+
+  dev:
+    desc: Start dev server
+    cmds:
+      - npm run dev
+
+  test:
+    desc: Run tests
+    cmds:
+      - npm run test
+
+  lint:
+    desc: Run biome linter
+    cmds:
+      - npm run lint

@@ -1,0 +1,40 @@
+version: '3'
+
+includes:
+  srv:
+    taskfile: srv/Taskfile.yml
+    dir: srv
+  web:
+    taskfile: web/Taskfile.yml
+    dir: web
+
+tasks:
+  setup:
+    desc: Install all dependencies
+    cmds:
+      - task: srv:install
+      - task: web:install
+
+  build:
+    desc: Build all projects
+    cmds:
+      - task: srv:build
+      - task: web:build
+
+  test:
+    desc: Run all tests
+    cmds:
+      - task: srv:test
+      - task: web:test
+
+  lint:
+    desc: Lint all projects
+    cmds:
+      - task: srv:lint
+      - task: web:lint
+
+  run:
+    desc: Run both server and frontend in dev mode
+    deps:
+      - srv:run
+      - web:dev
