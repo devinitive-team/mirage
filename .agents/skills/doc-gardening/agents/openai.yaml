@@ -1,0 +1,4 @@
+interface:
+  display_name: "Doc Gardening"
+  short_description: "Audit and reconcile repository docs"
+  default_prompt: "Use $doc-gardening to detect documentation drift and patch stale docs so they match the current codebase."
