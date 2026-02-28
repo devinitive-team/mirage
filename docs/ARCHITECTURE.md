@@ -39,7 +39,7 @@ Monorepo with three projects:
 - Document processing is asynchronous — upload returns 202, worker processes in background.
 - Document status transitions: pending → processing → complete (or failed at any step).
 - Internal page ranges are 0-indexed in storage/service layers; API responses convert them to 1-indexed fields.
-- TOC-derived page labels are calibrated to physical page offsets before tree ranges are persisted.
+- TOC-derived page labels are best-effort calibrated to physical page offsets before tree ranges are persisted; if calibration yields no usable matches, original TOC labels are retained.
 
 ## Cross-Cutting Concerns
 

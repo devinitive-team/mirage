@@ -17,7 +17,7 @@ PageIndex is an open-source, vectorless RAG framework by VectifyAI that builds h
 | Aspect | Mirage (current) | PageIndex |
 |---|---|---|
 | **Index structure** | Hierarchical tree: `node_id`, `start_page`, `end_page`, `summary`, `children` | Nearly identical tree with same fields |
-| **TOC detection** | LLM analyzes first 5 pages | LLM-based, configurable page count |
+| **TOC detection** | LLM analyzes first 20 pages (`min(20, len(pages))`) | LLM-based, configurable page count |
 | **Structure inference** | LLM groups pages when no TOC found | Similar fallback |
 | **Retrieval** | Iterative branch selection + sufficiency check (up to 5 iterations) | Iterative 5-step reasoning loop (read TOC, select, extract, evaluate, answer/loop) |
 | **Citation tracking** | LLM generates citations in the answer step — non-deterministic | Deterministic: returns `retrieved_nodes` (node IDs + titles) and `relevant_contents` (page index + text excerpts) as byproducts of traversal |
