@@ -44,7 +44,7 @@ import {
 	evidenceListToReferences,
 	type NodeTitleLookupByDocument,
 } from "#/lib/evidence";
-import { isPdfFile } from "#/lib/referencePreviews";
+import { isPdfFile } from "#/lib/pdfFiles";
 
 export const Route = createFileRoute("/")({ component: Dashboard });
 
@@ -181,7 +181,8 @@ function Dashboard() {
 		[filteredDocuments],
 	);
 	const selectedCount = selectedDocumentIds.length;
-	const allFilesSelected = documents.length > 0 && selectedCount === documents.length;
+	const allFilesSelected =
+		documents.length > 0 && selectedCount === documents.length;
 	const uploadingCount = uploadingFiles.length;
 	const totalFileCount = documents.length + uploadingCount;
 	const processingCount = documents.filter((document) =>
@@ -427,12 +428,6 @@ function Dashboard() {
 					selectVisibleFiles();
 					return;
 				}
-				case "KeyR": {
-					if (isDeleting || documents.length === 0) return;
-					event.preventDefault();
-					void handleDeleteAll();
-					return;
-				}
 				default:
 					return;
 			}
@@ -443,9 +438,7 @@ function Dashboard() {
 	}, [
 		allFilesSelected,
 		clearSelection,
-		documents.length,
 		filteredDocumentIds.length,
-		handleDeleteAll,
 		isDeleting,
 		selectVisibleFiles,
 	]);
@@ -621,7 +614,6 @@ function Dashboard() {
 												? "Deleting..."
 												: `Delete all (${documents.length})`}
 										</span>
-										<DropdownMenuShortcut>⌘R</DropdownMenuShortcut>
 									</DropdownMenuItem>
 								</DropdownMenuContent>
 							</DropdownMenu>
@@ -730,7 +722,7 @@ function Dashboard() {
 													<span
 														className={`relative mt-1 block h-1.5 w-full overflow-hidden rounded-full ${loadingTrackClass}`}
 													>
-													<span
+														<span
 															className={`absolute inset-y-0 left-[-45%] rounded-full ${loadingBarClass} ${loadingBarWidthClass}`}
 														/>
 													</span>
@@ -755,9 +747,7 @@ function Dashboard() {
 							{totalFileCount} file{totalFileCount !== 1 ? "s" : ""} total
 							{selectedCount > 0 ? ` • ${selectedCount} selected` : ""}
 							{uploadingCount > 0 ? ` • ${uploadingCount} uploading` : ""}
-							{processingCount > 0
-								? ` • ${processingCount} indexing`
-								: ""}
+							{processingCount > 0 ? ` • ${processingCount} indexing` : ""}
 						</p>
 					)}
 					<button
