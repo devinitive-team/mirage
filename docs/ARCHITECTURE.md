@@ -8,7 +8,7 @@ Mirage is a document search system. Users upload PDFs, the system extracts text 
 
 ## Codemap
 
-Monorepo with two projects:
+Monorepo with three projects:
 
 ### `srv/` — Go backend
 
@@ -25,6 +25,11 @@ Monorepo with two projects:
 ### `web/` — React frontend
 
 - `web/src` — React + TanStack (Router, Query, Form, Table) + Vite + Biome.
+
+### `marketing/` — Astro marketing site
+
+- `marketing/src/pages` — Route entrypoints for public marketing pages.
+- `marketing/src/styles` — Global and page-level marketing styling.
 
 ## Invariants
 
@@ -47,4 +52,5 @@ Monorepo with two projects:
 - **Business logic**: `srv/internal/service/`
 - **REST endpoints**: Add handler in `srv/internal/api/`, register in `api.New(...)`
 - **Configuration**: Add env var to `srv/.env.example`, parse in `srv/internal/config/config.go`
-- **Frontend features**: `web/src/`
+- **Product frontend features**: `web/src/`
+- **Marketing site features**: `marketing/src/`

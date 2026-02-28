@@ -4,9 +4,12 @@ This file specifies the user-facing interface behavior. Update it as UI features
 
 ## Stack
 
-React 19, TanStack (Router, Query, Form, Table), Vite, Tailwind CSS, Biome (lint + format).
+Frontend is split across two apps:
 
-## Controls
+- `web/`: React 19, TanStack (Router, Query, Form, Table), Vite, Tailwind CSS, Biome (lint + format).
+- `marketing/`: Astro 5 for the public landing site.
+
+## Product App Controls (`web/`)
 
 - Document upload: file picker for PDFs.
 - Document list: searchable uploaded-file list with row status, per-file preview, per-file delete, multi-select checkboxes, `Delete selected`, and `Delete all` actions.
@@ -16,6 +19,13 @@ React 19, TanStack (Router, Query, Form, Table), Vite, Tailwind CSS, Biome (lint
 - Results: fixed-height virtualized evidence cards generated from query responses; each card shows document name, section title, page range, and snippet text, and opens a PDF preview dialog on click.
 - Preview dialog modes: `Evidence pages` (render only selected pages) and `Whole document` (render entire PDF), both with in-page text highlighting when snippet matching succeeds and page overlay fallback when it does not.
 
+## Marketing Site Contract (`marketing/`)
+
+- Public landing page served from Astro at `http://localhost:4321/` in development.
+- Primary conversion CTA label is `Try for free` wherever primary CTA appears.
+- Marketing styles are owned in `marketing/src/styles/` and may intentionally differ from `web/` layout while staying brand-aligned.
+
 ## Render Contract
 
-TBD — layout and component structure to be defined as the UI is built.
+- `web/`: interactive document workflow (upload, process, query, evidence preview).
+- `marketing/`: static-first conversion flow with optional animated islands.

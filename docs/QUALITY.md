@@ -8,9 +8,13 @@ Run this full baseline for every code change:
 - `task typecheck` passes.
 - `task test` passes.
 
+When a change touches only `marketing/`, still run:
+
+- `task marketing:build` passes.
+
 For any UI or behavior change, also run interactive validation by driving the app in a browser:
 
-1. Start the app: `task run` (server on `:2137`, frontend on `:3000`).
+1. Start the app: `task run` (server on `:2137`, `web` on `:3000`, `marketing` on `:4321`).
 
 2. `agent-browser` scripted verification (required):
    - Open the app:
@@ -24,12 +28,24 @@ For any UI or behavior change, also run interactive validation by driving the ap
    - For file upload flows, use:
      `agent-browser upload @ref /path/to/test.pdf`
      then wait for processing and assert the document appears in the list.
-  - For query flows, fill the query input and submit, then assert result text is present:
+   - For query flows, fill the query input and submit, then assert result text is present:
      `agent-browser wait --text "expected result"`
    - Capture a final screenshot for visual confirmation:
      `agent-browser screenshot`
    - Close when done:
      `agent-browser close`
+
+For `marketing/` page changes, run an additional interactive check:
+
+1. Open the marketing app:
+   `agent-browser open http://localhost:4321`
+2. Wait for load completion:
+   `agent-browser wait --load networkidle`
+3. Validate key visible content and CTA text (for example `Try for free`) with `get text` / `is visible`.
+4. Capture a screenshot:
+   `agent-browser screenshot`
+5. Close the browser:
+   `agent-browser close`
 
 For backend CORS changes, add this API smoke check:
 
