@@ -25,7 +25,16 @@ function PreviewPage() {
 					width: 157.64,
 					height: 19.04,
 				},
-				rects: [[350.44, 769.12, 508.08, 788.16]] as any,
+				rects: [
+					{
+						x1: 350.44,
+						y1: 769.12,
+						x2: 508.08,
+						y2: 788.16,
+						width: 157.64,
+						height: 19.04,
+					},
+				],
 			},
 			content: {
 				text: "three long minutes",

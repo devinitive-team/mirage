@@ -61,8 +61,9 @@ function Dashboard() {
 	}, []);
 
 	return (
-		<div
+		<section
 			className="flex h-full gap-3 p-3 relative"
+			aria-label="File upload workspace"
 			onDrop={handleDrop}
 			onDragOver={handleDragOver}
 			onDragLeave={handleDragLeave}
@@ -207,6 +208,6 @@ function Dashboard() {
 					</div>
 				</div>
 			</div>
-		</div>
+		</section>
 	);
 }
