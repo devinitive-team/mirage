@@ -39,6 +39,11 @@ tasks:
       - task: srv:lint
       - task: web:lint
 
+  typecheck:
+    desc: Run TypeScript type checks
+    cmds:
+      - task: web:typecheck
+
   codegen:
     desc: Generate TypeScript types from the OpenAPI spec
     cmds:

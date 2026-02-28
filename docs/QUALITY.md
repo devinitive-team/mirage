@@ -5,6 +5,7 @@ Run this full baseline for every code change:
 - `task build` passes.
 - `task format` passes.
 - `task lint` passes.
+- `task typecheck` passes.
 - `task test` passes.
 
 For any UI or behavior change, also run interactive validation by driving the app in a browser:
