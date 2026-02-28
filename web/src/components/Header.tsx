@@ -1,4 +1,6 @@
 import { Link } from "@tanstack/react-router";
+
+import { PreviewDialog } from "./PreviewDialog";
 import ThemeToggle from "./ThemeToggle";
 
 export default function Header() {
@@ -56,13 +58,7 @@ export default function Header() {
 					>
 						Home
 					</Link>
-					<Link
-						to="/preview"
-						className="nav-link"
-						activeProps={{ className: "nav-link is-active" }}
-					>
-						Preview
-					</Link>
+					<PreviewDialog />
 				</div>
 			</nav>
 		</header>
