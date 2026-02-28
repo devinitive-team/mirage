@@ -26,7 +26,7 @@ export function PreviewDialog({
 }: PreviewDialogProps) {
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
-			<DialogContent className="max-w-[90vw] h-[85vh] max-h-[85vh] p-0">
+			<DialogContent className="w-[70vw] max-w-[70vw] sm:max-w-[70vw] h-[85vh] max-h-[85vh] p-0">
 				<div className="relative h-full w-full">
 					{reference && (
 						<DialogHeader className="px-6 pt-6 pb-3 border-b border-[var(--line)]">
