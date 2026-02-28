@@ -20,6 +20,29 @@ const attributionParams = [
 ];
 
 const ctaHref = buildTryForFreeUrl(tryForFreeUrl, Astro.url);
+
+const containerClass =
+  "mx-auto w-[min(1040px,calc(100%-2.6rem))] max-[720px]:w-[min(1040px,calc(100%-1.2rem))]";
+
+const eyebrowClass =
+  "m-0 inline-flex items-center gap-[0.4rem] font-mono text-[0.76rem] uppercase tracking-[0.08em] text-[color-mix(in_oklab,var(--text-1)_80%,var(--text-0)_20%)] before:h-px before:w-[10px] before:bg-[color-mix(in_oklab,var(--text-1)_40%,transparent_60%)] before:content-[''] after:h-px after:w-[10px]  after:content-['']";
+
+const sectionClass =
+  "mt-[clamp(3rem,8vw,6.2rem)] motion-safe:animate-in motion-safe:fade-in motion-safe:slide-in-from-bottom-3 motion-safe:duration-500";
+
+const buttonBaseClass =
+  "inline-flex min-h-11 items-center justify-center border border-transparent px-[1.15rem] py-[0.62rem] font-display text-[0.92rem] font-bold tracking-[0.004em] transition duration-150 ease-out hover:-translate-y-px focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[color-mix(in_oklab,var(--accent-cyan)_60%,var(--text-0)_40%)]";
+
+const buttonPrimaryClass = `${buttonBaseClass} border-[#111820] bg-[linear-gradient(180deg,#1d2835_0%,#111820_100%)] text-[#f8fafb] hover:bg-[linear-gradient(180deg,#1a3545_0%,#10161d_100%)]`;
+
+const buttonSecondaryClass = `${buttonBaseClass} border-[var(--line-0)] bg-[color-mix(in_oklab,var(--surface-1)_88%,white_12%)] text-[var(--text-0)] hover:border-[var(--line-1)] hover:bg-white`;
+
+const buttonCompactClass = `${buttonPrimaryClass} min-h-[38px] px-[0.95rem] py-[0.46rem] text-[0.84rem]`;
+
+const sectionTitleClass =
+  "mt-4 max-w-[20ch] font-display text-[clamp(1.4rem,3.2vw,2.35rem)] leading-[1.08] tracking-[-0.02em]";
+
+const sectionIntroClass = "mt-[1.25rem] max-w-[66ch] text-[var(--text-1)] leading-[1.7]";
 ---
 
 <html lang="en">
@@ -34,24 +57,44 @@ const ctaHref = buildTryForFreeUrl(tryForFreeUrl, Astro.url);
   </head>
 
   <body>
-    <header class="topbar">
-      <div class="page-wrap topbar__inner">
-        <a href="/" class="wordmark" aria-label="Mirage home">
-          <svg viewBox="0 0 32 32" aria-hidden="true" class="wordmark__mark">
+    <header
+      class="sticky top-0 z-40 border-b border-[color-mix(in_oklab,var(--line-0)_88%,transparent)] bg-[color-mix(in_oklab,var(--surface-1)_78%,transparent)] backdrop-blur-[10px]"
+    >
+      <div
+        class={`${containerClass} flex min-h-[82px] items-center justify-between gap-4 max-[720px]:min-h-[72px]`}
+      >
+        <a
+          href="/"
+          class="inline-flex items-center gap-[0.52rem] font-display text-[1.26rem] font-extrabold tracking-[0.01em]"
+          aria-label="Mirage home"
+        >
+          <svg viewBox="0 0 32 32" aria-hidden="true" class="h-[1.6rem] w-[1.6rem] shrink-0">
             <path d="M5 24.5L9.1 8h3.8L8.8 24.5H5Z" fill="currentColor"></path>
             <path d="M12.2 24.5L16 11.5h3.7L16 24.5h-3.8Z" fill="currentColor"></path>
             <path d="M19.6 24.5L23.7 8H27l-4 16.5h-3.4Z" fill="currentColor"></path>
           </svg>
           <span>Mirage</span>
         </a>
-        <nav class="topnav" aria-label="Primary">
-          <a href="#how-it-works">How it works</a>
-          <a href="#proof">Proof</a>
-          <a href="#faq">FAQ</a>
+        <nav class="inline-flex items-center gap-[1.05rem] max-[720px]:hidden" aria-label="Primary">
+          <a
+            href="#how-it-works"
+            class="text-[0.9rem] text-[var(--text-1)] transition-colors duration-[160ms] ease-out hover:text-[var(--text-0)]"
+            >How it works</a
+          >
+          <a
+            href="#proof"
+            class="text-[0.9rem] text-[var(--text-1)] transition-colors duration-[160ms] ease-out hover:text-[var(--text-0)]"
+            >Proof</a
+          >
+          <a
+            href="#faq"
+            class="text-[0.9rem] text-[var(--text-1)] transition-colors duration-[160ms] ease-out hover:text-[var(--text-0)]"
+            >FAQ</a
+          >
         </nav>
         <a
           href={ctaHref}
-          class="button button--primary button--compact"
+          class={buttonCompactClass}
           data-cta="try-for-free"
           data-cta-location="nav"
         >
@@ -60,138 +103,184 @@ const ctaHref = buildTryForFreeUrl(tryForFreeUrl, Astro.url);
       </div>
     </header>
 
-    <main class="page-wrap landing">
-      <section class="hero section" id="top">
-        <div class="hero__copy">
-          <p class="eyebrow">Ask any document. Verify every answer.</p>
-          <h1>Find what matters across thousands of pages, with citations.</h1>
-          <p class="hero__lede">
+    <main class={`${containerClass} pb-[clamp(4.5rem,8vw,7.5rem)] pt-[clamp(1.8rem,4vw,3.1rem)]`}>
+      <section class="mt-[1.4rem] flex items-stretch" id="top">
+        <div class="min-w-0">
+          <p class={eyebrowClass}>Ask any document. Verify every answer.</p>
+          <h1 class="mt-[0.86rem] font-display text-[clamp(2rem,5.6vw,4rem)] leading-[1.02]">
+            Find what matters across thousands of pages, with citations.
+          </h1>
+          <p
+            class="mt-[1.4rem] max-w-[60ch] text-[clamp(1rem,1.4vw,1.16rem)] leading-[1.7] text-[var(--text-1)]"
+          >
             Mirage turns raw PDFs into semantic context so your team can ask in plain language and
             get answers tied to exact source pages.
           </p>
-          <div class="hero__actions">
+          <div class="mt-8 flex flex-wrap items-center gap-[0.72rem]">
             <a
               href={ctaHref}
-              class="button button--primary"
+              class={buttonPrimaryClass}
               data-cta="try-for-free"
               data-cta-location="hero"
             >
               Try for free
             </a>
-            <a href="#how-it-works" class="button button--secondary">See how Mirage works</a>
+            <a href="#how-it-works" class={buttonSecondaryClass}>See how Mirage works</a>
           </div>
+          <img
+            src="/hero.png"
+            alt="Mirage product preview with cited answers and document context"
+            class="mt-8 block h-[clamp(220px,38vw,420px)] w-full object-cover object-top"
+            loading="eager"
+            fetchpriority="high"
+            decoding="async"
+          />
         </div>
       </section>
 
-      <section class="signal-strip" aria-label="Proof strip">
-        <article>
-          <p class="signal-strip__value">0 tags</p>
-          <p class="signal-strip__label">No taxonomy project before first results</p>
-        </article>
-        <article>
-          <p class="signal-strip__value">1 query</p>
-          <p class="signal-strip__label">One question searches every ready file in scope</p>
-        </article>
-        <article>
-          <p class="signal-strip__value">Page-level</p>
-          <p class="signal-strip__label">Evidence links make review fast and auditable</p>
-        </article>
+      <section
+        class="mt-[clamp(2.3rem,4vw,3.3rem)] border-y border-[var(--line-0)] py-[1.3rem]"
+        aria-label="Proof strip"
+      >
+        <div
+          class="flex flex-col divide-y divide-[var(--line-0)] min-[981px]:flex-row min-[981px]:divide-x min-[981px]:divide-y-0"
+        >
+          <article class="py-[0.92rem] min-[981px]:flex-1 min-[981px]:px-4">
+            <p class="font-display text-[clamp(1.32rem,3vw,2.1rem)] tracking-[-0.02em]">0 tags</p>
+            <p class="pt-[0.2rem] text-[0.86rem] text-[var(--text-1)]">
+              No taxonomy project before first results
+            </p>
+          </article>
+          <article class="py-[0.92rem] min-[981px]:flex-1 min-[981px]:px-4">
+            <p class="font-display text-[clamp(1.32rem,3vw,2.1rem)] tracking-[-0.02em]">1 query</p>
+            <p class="pt-[0.2rem] text-[0.86rem] text-[var(--text-1)]">
+              One question searches every ready file in scope
+            </p>
+          </article>
+          <article class="py-[0.92rem] min-[981px]:flex-1 min-[981px]:px-4">
+            <p class="font-display text-[clamp(1.32rem,3vw,2.1rem)] tracking-[-0.02em]">
+              Page-level
+            </p>
+            <p class="pt-[0.2rem] text-[0.86rem] text-[var(--text-1)]">
+              Evidence links make review fast and auditable
+            </p>
+          </article>
+        </div>
       </section>
 
-      <section class="section" id="how-it-works" aria-labelledby="flow-title">
-        <p class="eyebrow">Workflow</p>
-        <h2 id="flow-title" class="section-title">
+      <section class={sectionClass} id="how-it-works" aria-labelledby="flow-title">
+        <p class={eyebrowClass}>Workflow</p>
+        <h2 id="flow-title" class={sectionTitleClass}>
           Three steps from upload to a defensible answer
         </h2>
-        <p class="section-intro">
+        <p class={sectionIntroClass}>
           Start with real files, ask a real question, and trace each answer back to the source
           before anyone acts on it.
         </p>
-        <div class="step-grid">
-          <article class="step-card">
-            <p class="step-card__index">01 · Ingest</p>
-            <h3>Ingest documents</h3>
-            <p>
+        <ol
+          class="mt-[1.8rem] grid grid-cols-1 gap-y-[1.35rem] min-[981px]:grid-cols-3 min-[981px]:gap-x-[1.35rem]"
+        >
+          <li class="relative border-l border-[var(--line-0)] pl-[1.1rem]">
+            <span
+              aria-hidden="true"
+              class="absolute left-[-5px] top-[0.35rem] h-[9px] w-[9px] bg-black"></span>
+            <p class="m-0 font-mono text-[0.8rem] text-black">01 · Ingest</p>
+            <h3 class="mt-[0.66rem] font-display text-[1.05rem] tracking-[-0.01em]">
+              Ingest documents
+            </h3>
+            <p class="mt-[0.72rem] text-[var(--text-1)] leading-[1.65]">
               Drop in PDFs and let background processing extract document structure while your team
               keeps moving.
             </p>
-          </article>
-          <article class="step-card">
-            <p class="step-card__index">02 · Retrieve</p>
-            <h3>Build semantic index</h3>
-            <p>
+          </li>
+          <li class="relative border-l border-[var(--line-0)] pl-[1.1rem]">
+            <span
+              aria-hidden="true"
+              class="absolute left-[-5px] top-[0.35rem] h-[9px] w-[9px] bg-black"></span>
+            <p class="m-0 font-mono text-[0.8rem] text-black">02 · Retrieve</p>
+            <h3 class="mt-[0.66rem] font-display text-[1.05rem] tracking-[-0.01em]">
+              Build semantic index
+            </h3>
+            <p class="mt-[0.72rem] text-[var(--text-1)] leading-[1.65]">
               Mirage organizes content by meaning, so questions are matched to relevant sections
               instead of loose keyword hits.
             </p>
-          </article>
-          <article class="step-card">
-            <p class="step-card__index">03 · Verify</p>
-            <h3>Return cited answers</h3>
-            <p>
+          </li>
+          <li class="relative border-l border-[var(--line-0)] pl-[1.1rem]">
+            <span
+              aria-hidden="true"
+              class="absolute left-[-5px] top-[0.35rem] h-[9px] w-[9px] bg-black"></span>
+            <p class="m-0 font-mono text-[0.8rem] text-black">03 · Verify</p>
+            <h3 class="mt-[0.66rem] font-display text-[1.05rem] tracking-[-0.01em]">
+              Return cited answers
+            </h3>
+            <p class="mt-[0.72rem] text-[var(--text-1)] leading-[1.65]">
               Every answer includes page-linked evidence so reviewers can validate context in
               seconds.
             </p>
-          </article>
-        </div>
+          </li>
+        </ol>
       </section>
 
-      <section class="section" id="proof" aria-labelledby="proof-title">
-        <p class="eyebrow">Why Mirage</p>
-        <h2 id="proof-title" class="section-title">
+      <section class={sectionClass} id="proof" aria-labelledby="proof-title">
+        <p class={eyebrowClass}>Why Mirage</p>
+        <h2 id="proof-title" class={sectionTitleClass}>
           Built for teams that cannot afford “probably right”
         </h2>
-        <div class="feature-grid">
-          <article class="feature-card">
-            <h3>Evidence first</h3>
-            <p>
+        <div class="mt-[1.6rem] grid grid-cols-1 gap-x-[1.4rem] min-[721px]:grid-cols-2">
+          <article class="border-t border-[var(--line-0)] py-[1.3rem]">
+            <h3 class="font-display text-[1.06rem]">Evidence first</h3>
+            <p class="mt-[0.72rem] text-[var(--text-1)] leading-[1.65]">
               Each claim points back to specific pages, so audits and peer review take minutes, not
               hours.
             </p>
           </article>
-          <article class="feature-card">
-            <h3>Higher answer precision</h3>
-            <p>
+          <article class="border-t border-[var(--line-0)] py-[1.3rem] min-[721px]:border-t-0">
+            <h3 class="font-display text-[1.06rem]">Higher answer precision</h3>
+            <p class="mt-[0.72rem] text-[var(--text-1)] leading-[1.65]">
               Semantic retrieval follows document meaning and structure to reduce noisy, irrelevant
               output.
             </p>
           </article>
-          <article class="feature-card">
-            <h3>Faster team adoption</h3>
-            <p>
+          <article class="border-t border-[var(--line-0)] py-[1.3rem]">
+            <h3 class="font-display text-[1.06rem]">Faster team adoption</h3>
+            <p class="mt-[0.72rem] text-[var(--text-1)] leading-[1.65]">
               Ask natural-language questions without building custom tagging systems or brittle
               rules.
             </p>
           </article>
-          <article class="feature-card">
-            <h3>Scales with your corpus</h3>
-            <p>Use the same workflow from first pilot to large, multi-team document collections.</p>
+          <article class="border-t border-[var(--line-0)] py-[1.3rem]">
+            <h3 class="font-display text-[1.06rem]">Scales with your corpus</h3>
+            <p class="mt-[0.72rem] text-[var(--text-1)] leading-[1.65]">
+              Use the same workflow from first pilot to large, multi-team document collections.
+            </p>
           </article>
         </div>
       </section>
 
-      <section class="section" id="faq" aria-labelledby="faq-title">
-        <p class="eyebrow">FAQ</p>
-        <h2 id="faq-title" class="section-title">Questions teams ask before rollout</h2>
-        <div class="faq-grid">
-          <article class="faq-card">
-            <h3>How long does setup take?</h3>
-            <p>
+      <section class={sectionClass} id="faq" aria-labelledby="faq-title">
+        <p class={eyebrowClass}>FAQ</p>
+        <h2 id="faq-title" class={sectionTitleClass}>Questions teams ask before rollout</h2>
+        <div class="mt-[1.45rem] border-y border-[var(--line-0)]">
+          <article class="py-[1.1rem]">
+            <h3 class="font-display text-[1.03rem]">How long does setup take?</h3>
+            <p class="mt-[0.66rem] text-[var(--text-1)] leading-[1.68]">
               Most teams start by uploading existing files and asking live questions the same day.
               No manual schema design is required up front.
             </p>
           </article>
 
-          <article class="faq-card">
-            <h3>How do we trust the answers?</h3>
-            <p>
-              Mirage returns source-linked evidence cards with each response, so reviewers can
-              inspect original context before sharing or acting.
+          <article class="border-t border-[var(--line-0)] py-[1.1rem]">
+            <h3 class="font-display text-[1.03rem]">How do we trust the answers?</h3>
+            <p class="mt-[0.66rem] text-[var(--text-1)] leading-[1.68]">
+              Mirage returns source-linked evidence with each response, so reviewers can inspect
+              original context before sharing or acting.
             </p>
           </article>
 
-          <article class="faq-card">
-            <h3>Can we pilot before a broader rollout?</h3>
-            <p>
+          <article class="border-t border-[var(--line-0)] py-[1.1rem]">
+            <h3 class="font-display text-[1.03rem]">Can we pilot before a broader rollout?</h3>
+            <p class="mt-[0.66rem] text-[var(--text-1)] leading-[1.68]">
               Yes. Start with one high-friction workflow, confirm citation quality, then expand to
               adjacent document-heavy use cases.
             </p>
@@ -199,33 +288,40 @@ const ctaHref = buildTryForFreeUrl(tryForFreeUrl, Astro.url);
         </div>
       </section>
 
-      <section class="section final-cta" aria-label="Final conversion section">
-        <div class="final-cta__inner">
-          <div class="final-cta__pattern" aria-hidden="true">
+      <section class={sectionClass} aria-label="Final conversion section">
+        <div
+          class="relative isolate min-h-[320px] overflow-hidden border-y border-[var(--line-0)] px-[clamp(1.2rem,3vw,2rem)] py-[clamp(2rem,5vw,3.4rem)] text-center"
+        >
+          <div class="pointer-events-none absolute inset-0" aria-hidden="true">
             <InteractiveGridPattern
               client:load
-              className="[mask-image:radial-gradient(360px_circle_at_center,white,transparent)] opacity-85"
+              className="h-full w-full [mask-image:radial-gradient(360px_circle_at_center,white,transparent)] opacity-85"
               width={18}
               height={18}
               squares={[72, 24]}
               squaresClassName="hover:fill-[rgba(74,197,231,0.3)]"
             />
           </div>
-          <p class="eyebrow">Ready to stop re-reading documents for every decision?</p>
-          <h2>Give your team one place to ask, verify, and move faster.</h2>
-          <p>
+          <p class={`${eyebrowClass} relative z-10`}>
+            Ready to stop re-reading documents for every decision?
+          </p>
+          <h2
+            class="relative z-10 mx-auto mt-[1.05rem] max-w-[18ch] font-display text-[clamp(1.44rem,3.4vw,2.65rem)] leading-[1.06] tracking-[-0.02em]"
+          >
+            Give your team one place to ask, verify, and move faster.
+          </h2>
+          <p class="relative z-10 mx-auto mt-4 max-w-[58ch] text-[var(--text-1)] leading-[1.7]">
             Keep your current document workflows and add Mirage as the semantic layer that returns
             cited, review-ready answers.
           </p>
           <a
             href={ctaHref}
-            class="button button--primary"
+            class={`${buttonPrimaryClass} relative z-10 mt-[1.4rem]`}
             data-cta="try-for-free"
             data-cta-location="footer"
           >
             Try for free
           </a>
-          <p class="fine-print">All primary CTAs preserve attribution parameters automatically.</p>
         </div>
       </section>
     </main>
