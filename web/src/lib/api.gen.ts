@@ -171,6 +171,23 @@ export interface components {
 			/** Format: int64 */
 			page_start: number;
 		};
+		ListDocumentsBody: {
+			/**
+			 * Format: uri
+			 * @description A URL to the JSON Schema for this object.
+			 * @example https://example.com/schemas/ListDocumentsBody.json
+			 */
+			readonly $schema?: string;
+			items: components["schemas"]["DocumentBody"][] | null;
+			/** Format: int64 */
+			page: number;
+			/** Format: int64 */
+			page_size: number;
+			/** Format: int64 */
+			pages: number;
+			/** Format: int64 */
+			total: number;
+		};
 		QueryBody: {
 			/**
 			 * Format: uri
@@ -223,8 +240,8 @@ export interface operations {
 	"list-documents": {
 		parameters: {
 			query?: {
-				limit?: number;
-				offset?: number;
+				page?: number;
+				page_size?: number;
 			};
 			header?: never;
 			path?: never;
@@ -238,7 +255,7 @@ export interface operations {
 					[name: string]: unknown;
 				};
 				content: {
-					"application/json": components["schemas"]["DocumentBody"][] | null;
+					"application/json": components["schemas"]["ListDocumentsBody"];
 				};
 			};
 			/** @description Error */
