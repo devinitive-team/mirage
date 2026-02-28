@@ -1,7 +1,6 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useVirtualizer } from "@tanstack/react-virtual";
-import { FileText, Loader2, Upload, X } from "lucide-react";
-import { toast } from "sonner";
+import { FileText, Loader2, SendHorizontal, Upload, X } from "lucide-react";
 import {
 	useCallback,
 	useEffect,
@@ -10,13 +9,14 @@ import {
 	useRef,
 	useState,
 } from "react";
+import { toast } from "sonner";
 
+import { PreviewDialog } from "#/components/PreviewDialog";
 import {
 	REFERENCE_LIST_ITEM_HEIGHT,
-	type ReferenceListItemData,
 	ReferenceListItem,
+	type ReferenceListItemData,
 } from "#/components/ReferenceListItem";
-import { PreviewDialog } from "#/components/PreviewDialog";
 import { Input } from "#/components/ui/input";
 import {
 	useDeleteDocument,
@@ -55,13 +55,14 @@ function Dashboard() {
 	const [selectedReference, setSelectedReference] =
 		useState<ReferenceListItemData | null>(null);
 	const [selectedDocumentIds, setSelectedDocumentIds] = useState<string[]>([]);
-	const [referenceByDocumentId, setReferenceByDocumentId] = useState<
-		Record<string, ReferenceListItemData>
-	>({});
-	const [referenceBuildCount, setReferenceBuildCount] = useState(0);
+	const [references, setReferences] = useState<ReferenceListItemData[]>([]);
+	const [question, setQuestion] = useState("");
+	const [queryAnswer, setQueryAnswer] = useState("");
+	const [isQuerying, setIsQuerying] = useState(false);
+	const [treeTitlesByDocument, setTreeTitlesByDocument] =
+		useState<NodeTitleLookupByDocument>({});
 	const fileInputRef = useRef<HTMLInputElement>(null);
 	const parentRef = useRef<HTMLDivElement>(null);
-	const referenceRefreshInFlightRef = useRef<Set<string>>(new Set());
 	const inputId = useId();
 
 	const { data: documents = [], isLoading } = useDocuments();
@@ -77,11 +78,11 @@ function Dashboard() {
 		return map;
 	}, [documents]);
 
-	const filteredDocuments = documents.filter((d) =>
-		d.name.toLowerCase().includes(searchQuery.toLowerCase()),
+	const filteredDocuments = documents.filter((document) =>
+		document.name.toLowerCase().includes(searchQuery.toLowerCase()),
 	);
 	const filteredDocumentIds = useMemo(
-		() => filteredDocuments.map((doc) => doc.id),
+		() => filteredDocuments.map((document) => document.id),
 		[filteredDocuments],
 	);
 	const selectedCount = selectedDocumentIds.length;
@@ -94,7 +95,7 @@ function Dashboard() {
 	const isDeleting = remove.isPending || removeMany.isPending;
 
 	const visibleDocumentIDs = useMemo(
-		() => new Set(filteredDocuments.map((doc) => doc.id)),
+		() => new Set(filteredDocuments.map((document) => document.id)),
 		[filteredDocuments],
 	);
 	const visibleReferences = useMemo(
@@ -122,9 +123,21 @@ function Dashboard() {
 		selectedCompleteDocumentIDs.length > 0
 			? selectedCompleteDocumentIDs
 			: allCompleteDocumentIDs;
+	const queryScopeLabel = useMemo(() => {
+		if (queryableDocumentIDs.length === 0) return "No ready files";
+		if (selectedCompleteDocumentIDs.length > 0) {
+			const plural = selectedCompleteDocumentIDs.length === 1 ? "" : "s";
+			return `${selectedCompleteDocumentIDs.length} selected ready file${plural}`;
+		}
+		return `All ready files (${allCompleteDocumentIDs.length})`;
+	}, [
+		allCompleteDocumentIDs.length,
+		queryableDocumentIDs.length,
+		selectedCompleteDocumentIDs.length,
+	]);
 
 	useEffect(() => {
-		const availableIds = new Set(documents.map((doc) => doc.id));
+		const availableIds = new Set(documents.map((document) => document.id));
 		setSelectedDocumentIds((current) =>
 			current.filter((id) => availableIds.has(id)),
 		);
@@ -134,12 +147,12 @@ function Dashboard() {
 		setTreeTitlesByDocument((current) => {
 			let changed = false;
 			const next: NodeTitleLookupByDocument = {};
-			for (const [docID, titleLookup] of Object.entries(current)) {
-				if (!availableIds.has(docID)) {
+			for (const [documentID, titleLookup] of Object.entries(current)) {
+				if (!availableIds.has(documentID)) {
 					changed = true;
 					continue;
 				}
-				next[docID] = titleLookup;
+				next[documentID] = titleLookup;
 			}
 			return changed ? next : current;
 		});
@@ -148,54 +161,6 @@ function Dashboard() {
 			return availableIds.has(current.documentId) ? current : null;
 		});
 	}, [documents]);
-
-	useEffect(() => {
-		let isCancelled = false;
-		const docsNeedingReference = documents.filter(
-			(doc) =>
-				doc.status === "complete" &&
-				!referenceByDocumentId[doc.id] &&
-				!referenceRefreshInFlightRef.current.has(doc.id),
-		);
-
-		for (const doc of docsNeedingReference) {
-			referenceRefreshInFlightRef.current.add(doc.id);
-			setReferenceBuildCount((current) => current + 1);
-			void (async () => {
-				try {
-					const pageCount = Math.max(1, doc.page_count);
-					const pageNumber = 1 + Math.floor(Math.random() * pageCount);
-					const area = buildRandomReferenceArea(pageNumber);
-					const randomPreview = {
-						pageNumber,
-						area,
-						areaLabel: formatAreaLabel(area),
-					};
-					if (isCancelled) return;
-					const referenceID = buildReferenceID(doc.id, randomPreview);
-					setReferenceByDocumentId((current) => ({
-						...current,
-						[doc.id]: {
-							id: referenceID,
-							documentId: doc.id,
-							documentName: doc.name,
-							pageNumber: randomPreview.pageNumber,
-							areaLabel: randomPreview.areaLabel,
-						},
-					}));
-				} finally {
-					referenceRefreshInFlightRef.current.delete(doc.id);
-					if (!isCancelled) {
-						setReferenceBuildCount((current) => Math.max(0, current - 1));
-					}
-				}
-			})();
-		}
-
-		return () => {
-			isCancelled = true;
-		};
-	}, [documents, referenceByDocumentId]);
 
 	const rowVirtualizer = useVirtualizer({
 		count: visibleReferences.length,
@@ -212,34 +177,8 @@ function Dashboard() {
 					try {
 						const uploadedDocument = await upload.mutateAsync(file);
 						toast.success(`Uploaded "${uploadedDocument.name}"`);
-						let randomPreview: Awaited<
-							ReturnType<typeof buildRandomReferenceFromPdfFile>
-						> = null;
-						try {
-							randomPreview = await buildRandomReferenceFromPdfFile(file);
-						} catch {
-							randomPreview = null;
-						}
-						if (!randomPreview) return;
-
-						const referenceID = buildReferenceID(
-							uploadedDocument.id,
-							randomPreview,
-						);
-						setReferenceByDocumentId((current) => ({
-							...current,
-							[uploadedDocument.id]: {
-								id: referenceID,
-								documentId: uploadedDocument.id,
-								documentName: uploadedDocument.name,
-								pageNumber: randomPreview.pageNumber,
-								areaLabel: randomPreview.areaLabel,
-							},
-						}));
 					} catch {
 						toast.error(`Failed to upload "${file.name}"`);
-					} finally {
-						setReferenceBuildCount((current) => Math.max(0, current - 1));
 					}
 				}),
 			);
@@ -248,21 +187,21 @@ function Dashboard() {
 	);
 
 	const handleDrop = useCallback(
-		(e: React.DragEvent) => {
-			e.preventDefault();
+		(event: React.DragEvent) => {
+			event.preventDefault();
 			setIsDragging(false);
-			void handleFiles(e.dataTransfer.files);
+			void handleFiles(event.dataTransfer.files);
 		},
 		[handleFiles],
 	);
 
-	const handleDragOver = useCallback((e: React.DragEvent) => {
-		e.preventDefault();
+	const handleDragOver = useCallback((event: React.DragEvent) => {
+		event.preventDefault();
 		setIsDragging(true);
 	}, []);
 
-	const handleDragLeave = useCallback((e: React.DragEvent) => {
-		if (e.currentTarget.contains(e.relatedTarget as Node)) return;
+	const handleDragLeave = useCallback((event: React.DragEvent) => {
+		if (event.currentTarget.contains(event.relatedTarget as Node)) return;
 		setIsDragging(false);
 	}, []);
 
@@ -336,11 +275,12 @@ function Dashboard() {
 
 	const handleDeleteAll = useCallback(async () => {
 		if (documents.length === 0) return;
-		const idsToDelete = documents.map((doc) => doc.id);
+		const idsToDelete = documents.map((document) => document.id);
 		try {
 			await removeMany.mutateAsync(idsToDelete);
 			setSelectedDocumentIds([]);
 			setReferences([]);
+			setTreeTitlesByDocument({});
 			setSelectedReference(null);
 			setQueryAnswer("");
 			const plural = idsToDelete.length === 1 ? "" : "s";
@@ -349,6 +289,79 @@ function Dashboard() {
 			toast.error("Failed to delete all files");
 		}
 	}, [documents, removeMany]);
+
+	const handleRunQuery = useCallback(async () => {
+		const trimmedQuestion = question.trim();
+		if (!trimmedQuestion) {
+			toast.error("Enter a question first.");
+			return;
+		}
+		if (queryableDocumentIDs.length === 0) {
+			setReferences([]);
+			setQueryAnswer("");
+			toast.error("No ready documents to query.");
+			return;
+		}
+
+		setIsQuerying(true);
+		try {
+			let mergedTreeTitlesByDocument = treeTitlesByDocument;
+			const missingTreeDocumentIDs = queryableDocumentIDs.filter(
+				(documentID) => !treeTitlesByDocument[documentID],
+			);
+			if (missingTreeDocumentIDs.length > 0) {
+				const fetchedTreeEntries = await Promise.all(
+					missingTreeDocumentIDs.map(async (documentID) => {
+						try {
+							const tree = await getDocumentTree(documentID);
+							return [documentID, buildNodeTitleLookup(tree)] as const;
+						} catch {
+							return null;
+						}
+					}),
+				);
+
+				const fetchedTreeTitles: NodeTitleLookupByDocument = {};
+				for (const entry of fetchedTreeEntries) {
+					if (!entry) continue;
+					const [documentID, titleLookup] = entry;
+					fetchedTreeTitles[documentID] = titleLookup;
+				}
+				if (Object.keys(fetchedTreeTitles).length > 0) {
+					mergedTreeTitlesByDocument = {
+						...treeTitlesByDocument,
+						...fetchedTreeTitles,
+					};
+					setTreeTitlesByDocument((current) => ({
+						...current,
+						...fetchedTreeTitles,
+					}));
+				}
+			}
+
+			const result = await queryDocuments({
+				document_ids: queryableDocumentIDs,
+				question: trimmedQuestion,
+			});
+
+			setQueryAnswer(result.answer);
+			const nextReferences = evidenceListToReferences(
+				result.evidence ?? [],
+				mergedTreeTitlesByDocument,
+			);
+			setReferences(nextReferences);
+			setSelectedReference((current) => {
+				if (!current) return current;
+				return nextReferences.some((reference) => reference.id === current.id)
+					? current
+					: null;
+			});
+		} catch {
+			toast.error("Failed to run query.");
+		}
+		setIsQuerying(false);
+	}, [question, queryableDocumentIDs, treeTitlesByDocument]);
+
 	return (
 		<section
 			className="flex h-full gap-3 p-3 relative"
@@ -375,7 +388,7 @@ function Dashboard() {
 				accept=".pdf,application/pdf"
 				multiple
 				className="sr-only"
-				onChange={(e) => void handleFiles(e.target.files)}
+				onChange={(event) => void handleFiles(event.target.files)}
 			/>
 
 			<aside className="w-72 shrink-0 flex flex-col island-shell rounded-2xl overflow-hidden">
@@ -384,7 +397,7 @@ function Dashboard() {
 					<div className="relative">
 						<Input
 							value={searchQuery}
-							onChange={(e) => setSearchQuery(e.target.value)}
+							onChange={(event) => setSearchQuery(event.target.value)}
 							placeholder="Search files..."
 							className="pr-8 text-sm"
 						/>
@@ -453,33 +466,35 @@ function Dashboard() {
 							</p>
 						</div>
 					) : (
-						filteredDocuments.map((doc) => (
+						filteredDocuments.map((document) => (
 							<div
-								key={doc.id}
+								key={document.id}
 								className={`group flex items-center gap-2 rounded-lg px-3 py-2 text-sm transition-colors ${
-									selectedDocumentIds.includes(doc.id)
+									selectedDocumentIds.includes(document.id)
 										? "bg-[var(--lagoon)]/10"
 										: "hover:bg-[var(--sea-ink)]/5"
 								}`}
 							>
 								<input
 									type="checkbox"
-									checked={selectedDocumentIds.includes(doc.id)}
-									onChange={() => toggleDocumentSelection(doc.id)}
+									checked={selectedDocumentIds.includes(document.id)}
+									onChange={() => toggleDocumentSelection(document.id)}
 									disabled={isDeleting}
-									aria-label={`Select ${doc.name}`}
+									aria-label={`Select ${document.name}`}
 									className="h-3.5 w-3.5 shrink-0 rounded border-[var(--line)] text-[var(--lagoon)] focus:ring-[var(--lagoon)]"
 								/>
 								<FileText className="w-4 h-4 shrink-0 text-[var(--lagoon-deep)]" />
 								<span className="truncate flex-1 text-[var(--sea-ink)]">
-									{doc.name}
+									{document.name}
 								</span>
 								<span className="text-xs text-[var(--sea-ink-soft)] shrink-0">
-									{STATUS_LABEL[doc.status] ?? doc.status}
+									{STATUS_LABEL[document.status] ?? document.status}
 								</span>
 								<button
 									type="button"
-									onClick={() => void handleDeleteSingle(doc.id, doc.name)}
+									onClick={() =>
+										void handleDeleteSingle(document.id, document.name)
+									}
 									disabled={isDeleting}
 									className="shrink-0 opacity-0 group-hover:opacity-100 text-[var(--sea-ink-soft)] hover:text-[var(--sea-ink)] transition-opacity"
 								>
