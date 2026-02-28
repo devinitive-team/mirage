@@ -10,3 +10,4 @@
 - When the user states the project is greenfield, avoid rollout plans, migration strategy, and backward-compatibility framing unless explicitly requested.
 - When introducing strict structured output, audit every `CompleteJSON` callsite and convert all schema hints to proper JSON Schema objects in the same change.
 - For strict structured-output APIs, avoid heuristic schema detection; require JSON Schema input directly and fail fast if it is missing or invalid.
+- When the user requests parity with a reference implementation, mirror the same algorithmic flow (inputs, matching logic, and offset/selection rules) before adding local optimizations.

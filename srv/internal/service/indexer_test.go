@@ -1,6 +1,7 @@
 package service
 
 import (
+	"context"
 	"testing"
 
 	"github.com/devinitive-team/mirage/internal/domain"
@@ -182,5 +183,140 @@ func TestClampPageRanges_ValidRangeUnchanged(t *testing.T) {
 
 	if node.StartPage != 2 || node.EndPage != 7 {
 		t.Errorf("expected 2-7, got %d-%d", node.StartPage, node.EndPage)
+	}
+}
+
+func TestExtractMatchingTOCPagePairs_FiltersByStartPageAndUnknownLabels(t *testing.T) {
+	labels := []tocPageLabel{
+		{Title: "Intro", Page: 1},
+		{Title: "Methods", Page: 5},
+		{Title: "Appendix", Page: -1},
+	}
+	physical := []tocPhysicalSection{
+		{Title: "Intro", PhysicalStartPage: 9},
+		{Title: "Methods", PhysicalStartPage: 4},
+		{Title: "Methods", PhysicalStartPage: 13},
+		{Title: "Unknown", PhysicalStartPage: 20},
+	}
+
+	pairs := extractMatchingTOCPagePairs(labels, physical, 8)
+	if len(pairs) != 2 {
+		t.Fatalf("expected 2 pairs, got %d", len(pairs))
+	}
+	if pairs[0].Title != "Intro" || pairs[0].Page != 1 || pairs[0].PhysicalStartPage != 9 {
+		t.Fatalf("unexpected first pair: %+v", pairs[0])
+	}
+	if pairs[1].Title != "Methods" || pairs[1].Page != 5 || pairs[1].PhysicalStartPage != 13 {
+		t.Fatalf("unexpected second pair: %+v", pairs[1])
+	}
+}
+
+func TestCalculateTOCPageOffset_UsesMostFrequentDifference(t *testing.T) {
+	offset, ok := calculateTOCPageOffset([]tocPagePair{
+		{Title: "A", Page: 1, PhysicalStartPage: 9},  // diff 8
+		{Title: "B", Page: 5, PhysicalStartPage: 13}, // diff 8
+		{Title: "C", Page: 3, PhysicalStartPage: 12}, // diff 9
+	})
+
+	if !ok {
+		t.Fatal("expected offset to be found")
+	}
+	if offset != 8 {
+		t.Fatalf("expected offset 8, got %d", offset)
+	}
+}
+
+func TestApplyTOCPageOffset_RecursivelyShiftsSections(t *testing.T) {
+	sections := []tocSection{
+		{
+			Title:     "Top",
+			StartPage: 1,
+			EndPage:   4,
+			Subsections: []tocSection{
+				{Title: "Child", StartPage: 2, EndPage: 2},
+			},
+		},
+	}
+
+	applyTOCPageOffset(sections, 7)
+
+	if sections[0].StartPage != 8 || sections[0].EndPage != 11 {
+		t.Fatalf("top section range = %d-%d, want 8-11", sections[0].StartPage, sections[0].EndPage)
+	}
+	child := sections[0].Subsections[0]
+	if child.StartPage != 9 || child.EndPage != 9 {
+		t.Fatalf("child section range = %d-%d, want 9-9", child.StartPage, child.EndPage)
+	}
+}
+
+func TestCalibrateTOCPageOffset_ShiftsSectionsUsingModeOffset(t *testing.T) {
+	pages := make([]domain.Page, 30)
+	for i := range pages {
+		pages[i] = domain.Page{Index: i, Markdown: "Page content"}
+	}
+
+	toc := tocResult{
+		HasTOC:     true,
+		TOCEndPage: 1,
+		Sections: []tocSection{
+			{Title: "Intro", StartPage: 1, EndPage: 4},
+			{
+				Title:     "Methods",
+				StartPage: 5,
+				EndPage:   8,
+				Subsections: []tocSection{
+					{Title: "Methods - Details", StartPage: 6, EndPage: 7},
+				},
+			},
+		},
+	}
+	llm := &mockLLM{
+		responses: []string{
+			`{"sections":[{"title":"Intro","physical_start_page":9},{"title":"Methods","physical_start_page":13}]}`,
+		},
+	}
+
+	s := &Indexer{llm: llm}
+	calibrated := s.calibrateTOCPageOffset(context.Background(), toc, pages)
+
+	if calibrated[0].StartPage != 9 || calibrated[0].EndPage != 12 {
+		t.Fatalf("intro range = %d-%d, want 9-12", calibrated[0].StartPage, calibrated[0].EndPage)
+	}
+	if calibrated[1].StartPage != 13 || calibrated[1].EndPage != 16 {
+		t.Fatalf("methods range = %d-%d, want 13-16", calibrated[1].StartPage, calibrated[1].EndPage)
+	}
+	if calibrated[1].Subsections[0].StartPage != 14 || calibrated[1].Subsections[0].EndPage != 15 {
+		t.Fatalf("methods detail range = %d-%d, want 14-15", calibrated[1].Subsections[0].StartPage, calibrated[1].Subsections[0].EndPage)
+	}
+
+	// Ensure original TOC remains unchanged.
+	if toc.Sections[0].StartPage != 1 || toc.Sections[1].StartPage != 5 {
+		t.Fatalf("original toc mutated: %+v", toc.Sections)
+	}
+}
+
+func TestCalibrateTOCPageOffset_LeavesSectionsUnchangedWithoutPairs(t *testing.T) {
+	pages := make([]domain.Page, 10)
+	for i := range pages {
+		pages[i] = domain.Page{Index: i, Markdown: "Page content"}
+	}
+
+	toc := tocResult{
+		HasTOC:     true,
+		TOCEndPage: 1,
+		Sections: []tocSection{
+			{Title: "Intro", StartPage: 1, EndPage: 2},
+		},
+	}
+	llm := &mockLLM{
+		responses: []string{
+			`{"sections":[]}`,
+		},
+	}
+
+	s := &Indexer{llm: llm}
+	calibrated := s.calibrateTOCPageOffset(context.Background(), toc, pages)
+	if calibrated[0].StartPage != 1 || calibrated[0].EndPage != 2 {
+		t.Fatalf("unexpected calibrated range %d-%d", calibrated[0].StartPage, calibrated[0].EndPage)
 	}
 }

@@ -27,8 +27,9 @@ func NewIndexer(llm port.LLMProvider, storage port.Storage, maxPagesPerNode, max
 }
 
 type tocResult struct {
-	HasTOC   bool         `json:"has_toc"`
-	Sections []tocSection `json:"sections"`
+	HasTOC     bool         `json:"has_toc"`
+	TOCEndPage int          `json:"toc_end_page"`
+	Sections   []tocSection `json:"sections"`
 }
 
 type tocSection struct {
@@ -41,6 +42,31 @@ type tocSection struct {
 type inferredStructure struct {
 	Sections []tocSection `json:"sections"`
 }
+
+type tocPageLabel struct {
+	Title string `json:"title"`
+	Page  int    `json:"page"`
+}
+
+type tocPhysicalResult struct {
+	Sections []tocPhysicalSection `json:"sections"`
+}
+
+type tocPhysicalSection struct {
+	Title             string `json:"title"`
+	PhysicalStartPage int    `json:"physical_start_page"`
+}
+
+type tocPagePair struct {
+	Title             string
+	Page              int
+	PhysicalStartPage int
+}
+
+const (
+	tocDetectPageCount       = 20
+	tocCalibrationPageWindow = 20
+)
 
 const tocSectionDefsJSONSchema = `
 "$defs": {
@@ -69,7 +95,7 @@ func (s *Indexer) Build(ctx context.Context, docID string, pages []domain.Page) 
 
 	var root domain.TreeNode
 	if toc.HasTOC && len(toc.Sections) > 0 {
-		root = s.buildFromTOC(toc.Sections, pages)
+		root = s.buildFromTOC(s.calibrateTOCPageOffset(ctx, toc, pages), pages)
 	} else {
 		structure, err := s.inferStructure(ctx, pages)
 		if err != nil {
@@ -104,15 +130,15 @@ func (s *Indexer) Build(ctx context.Context, docID string, pages []domain.Page) 
 }
 
 func (s *Indexer) detectTOC(ctx context.Context, pages []domain.Page) (tocResult, error) {
-	n := min(5, len(pages))
+	n := min(tocDetectPageCount, len(pages))
 	var sb strings.Builder
 	for _, p := range pages[:n] {
 		fmt.Fprintf(&sb, "<page_%d>\n%s\n</page_%d>\n\n", p.Index, p.Markdown, p.Index)
 	}
 
 	messages := []port.ChatMessage{
-		{Role: "system", Content: "You are a document analysis assistant. Analyze the following pages and determine if they contain a table of contents. Each page is wrapped in <page_N> tags where N is the physical page number. You MUST use these tag numbers for start_page and end_page values — ignore any printed page numbers in the content itself."},
-		{Role: "user", Content: fmt.Sprintf("Analyze these pages and determine if there is a table of contents. If found, extract the section structure with page ranges. Use the <page_N> tag numbers for start_page/end_page.\n\n%s", sb.String())},
+		{Role: "system", Content: "You are a document analysis assistant. Analyze the following pages and determine if they contain a table of contents. Each page is wrapped in <page_N> tags where N is the physical page index. If a TOC is present, extract sections using page labels printed in the TOC itself (not physical tag numbers). Return only integer page labels; if a label is missing or non-numeric, use -1. Also return toc_end_page as the N of the last TOC page in the provided input. If no TOC exists, return has_toc=false, toc_end_page=-1, sections=[]."},
+		{Role: "user", Content: fmt.Sprintf("Analyze these pages for a table of contents. If found, return section title/start_page/end_page/subsections using printed TOC page labels (integers) and return toc_end_page from <page_N> tags.\n\n%s", sb.String())},
 	}
 
 	schema := `{
@@ -120,9 +146,10 @@ func (s *Indexer) detectTOC(ctx context.Context, pages []domain.Page) (tocResult
 		"additionalProperties": false,
 		"properties": {
 			"has_toc": { "type": "boolean" },
+			"toc_end_page": { "type": "integer" },
 			"sections": { "$ref": "#/$defs/sections" }
 		},
-		"required": ["has_toc", "sections"],
+		"required": ["has_toc", "toc_end_page", "sections"],
 	` + tocSectionDefsJSONSchema + `
 	}`
 
@@ -137,6 +164,81 @@ func (s *Indexer) detectTOC(ctx context.Context, pages []domain.Page) (tocResult
 	}
 
 	return result, nil
+}
+
+func (s *Indexer) calibrateTOCPageOffset(ctx context.Context, toc tocResult, pages []domain.Page) []tocSection {
+	if len(toc.Sections) == 0 || len(pages) == 0 {
+		return toc.Sections
+	}
+
+	sections := cloneTOCSections(toc.Sections)
+	labels := flattenTOCPageLabels(sections)
+	if len(labels) == 0 {
+		return sections
+	}
+
+	startPage := toc.TOCEndPage + 1
+	if startPage < 0 {
+		startPage = min(tocDetectPageCount, len(pages))
+	}
+	if startPage >= len(pages) {
+		return sections
+	}
+
+	endPage := min(startPage+tocCalibrationPageWindow, len(pages))
+	var pagesSB strings.Builder
+	for _, p := range pages[startPage:endPage] {
+		fmt.Fprintf(&pagesSB, "<page_%d>\n%s\n</page_%d>\n\n", p.Index, p.Markdown, p.Index)
+	}
+
+	labelsJSON, err := json.Marshal(labels)
+	if err != nil {
+		return sections
+	}
+
+	messages := []port.ChatMessage{
+		{Role: "system", Content: "You map TOC section titles to physical start pages. Document pages are wrapped in <page_N> tags where N is the physical page index. Return matches only for sections that start in the provided pages."},
+		{Role: "user", Content: fmt.Sprintf("TOC sections with logical page labels:\n%s\n\nDocument pages:\n%s\n\nReturn matched sections with title and physical_start_page.", string(labelsJSON), pagesSB.String())},
+	}
+
+	schema := `{
+		"type": "object",
+		"additionalProperties": false,
+		"properties": {
+			"sections": {
+				"type": "array",
+				"items": {
+					"type": "object",
+					"additionalProperties": false,
+					"properties": {
+						"title": { "type": "string" },
+						"physical_start_page": { "type": "integer" }
+					},
+					"required": ["title", "physical_start_page"]
+				}
+			}
+		},
+		"required": ["sections"]
+	}`
+
+	raw, err := s.llm.CompleteJSON(ctx, messages, schema)
+	if err != nil {
+		return sections
+	}
+
+	var physical tocPhysicalResult
+	if err := json.Unmarshal([]byte(raw), &physical); err != nil {
+		return sections
+	}
+
+	pairs := extractMatchingTOCPagePairs(labels, physical.Sections, startPage)
+	offset, ok := calculateTOCPageOffset(pairs)
+	if !ok {
+		return sections
+	}
+
+	applyTOCPageOffset(sections, offset)
+	return sections
 }
 
 func (s *Indexer) inferStructure(ctx context.Context, pages []domain.Page) (inferredStructure, error) {
@@ -199,6 +301,96 @@ func (s *Indexer) sectionToNode(sec tocSection) domain.TreeNode {
 		}
 	}
 	return node
+}
+
+func cloneTOCSections(sections []tocSection) []tocSection {
+	cloned := make([]tocSection, len(sections))
+	for i := range sections {
+		cloned[i] = sections[i]
+		if len(sections[i].Subsections) > 0 {
+			cloned[i].Subsections = cloneTOCSections(sections[i].Subsections)
+		}
+	}
+	return cloned
+}
+
+func flattenTOCPageLabels(sections []tocSection) []tocPageLabel {
+	labels := make([]tocPageLabel, 0, len(sections))
+	var walk func(items []tocSection)
+	walk = func(items []tocSection) {
+		for _, item := range items {
+			labels = append(labels, tocPageLabel{
+				Title: item.Title,
+				Page:  item.StartPage,
+			})
+			if len(item.Subsections) > 0 {
+				walk(item.Subsections)
+			}
+		}
+	}
+	walk(sections)
+	return labels
+}
+
+func extractMatchingTOCPagePairs(labels []tocPageLabel, physical []tocPhysicalSection, startPage int) []tocPagePair {
+	pairs := make([]tocPagePair, 0)
+	for _, physicalItem := range physical {
+		for _, labelItem := range labels {
+			if physicalItem.Title != labelItem.Title {
+				continue
+			}
+			if physicalItem.PhysicalStartPage < startPage || labelItem.Page < 0 {
+				continue
+			}
+			pairs = append(pairs, tocPagePair{
+				Title:             physicalItem.Title,
+				Page:              labelItem.Page,
+				PhysicalStartPage: physicalItem.PhysicalStartPage,
+			})
+		}
+	}
+	return pairs
+}
+
+func calculateTOCPageOffset(pairs []tocPagePair) (int, bool) {
+	if len(pairs) == 0 {
+		return 0, false
+	}
+
+	counts := make(map[int]int)
+	order := make([]int, 0, len(pairs))
+	for _, pair := range pairs {
+		diff := pair.PhysicalStartPage - pair.Page
+		if _, ok := counts[diff]; !ok {
+			order = append(order, diff)
+		}
+		counts[diff]++
+	}
+
+	bestDiff := 0
+	bestCount := -1
+	for _, diff := range order {
+		if counts[diff] > bestCount {
+			bestDiff = diff
+			bestCount = counts[diff]
+		}
+	}
+
+	return bestDiff, true
+}
+
+func applyTOCPageOffset(sections []tocSection, offset int) {
+	for i := range sections {
+		if sections[i].StartPage >= 0 {
+			sections[i].StartPage += offset
+		}
+		if sections[i].EndPage >= 0 {
+			sections[i].EndPage += offset
+		}
+		if len(sections[i].Subsections) > 0 {
+			applyTOCPageOffset(sections[i].Subsections, offset)
+		}
+	}
 }
 
 func assignNodeIDs(node *domain.TreeNode, counter *int) {
