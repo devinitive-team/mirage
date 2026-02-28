@@ -1,6 +1,7 @@
 import { createFileRoute } from "@tanstack/react-router";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import { FileText, Loader2, Upload, X } from "lucide-react";
+import { toast } from "sonner";
 import {
 	useCallback,
 	useEffect,
@@ -17,11 +18,6 @@ import {
 } from "#/components/ReferenceListItem";
 import { PreviewDialog } from "#/components/PreviewDialog";
 import { Input } from "#/components/ui/input";
-import {
-	type ToastTone,
-	ToastStack,
-	type ToastItem,
-} from "#/components/ui/toast";
 import {
 	useDeleteDocument,
 	useDeleteDocuments,
@@ -71,11 +67,8 @@ function Dashboard() {
 		Record<string, ReferenceListItemData>
 	>({});
 	const [referenceBuildCount, setReferenceBuildCount] = useState(0);
-	const [toasts, setToasts] = useState<ToastItem[]>([]);
 	const fileInputRef = useRef<HTMLInputElement>(null);
 	const parentRef = useRef<HTMLDivElement>(null);
-	const toastTimeoutsRef = useRef<Record<number, number>>({});
-	const nextToastIDRef = useRef(1);
 	const referenceRefreshInFlightRef = useRef<Set<string>>(new Set());
 	const inputId = useId();
 
@@ -178,33 +171,6 @@ function Dashboard() {
 		};
 	}, [documents, referenceByDocumentId]);
 
-	useEffect(
-		() => () => {
-			for (const timeout of Object.values(toastTimeoutsRef.current)) {
-				window.clearTimeout(timeout);
-			}
-		},
-		[],
-	);
-
-	const dismissToast = useCallback((id: number) => {
-		const timeout = toastTimeoutsRef.current[id];
-		if (timeout) {
-			window.clearTimeout(timeout);
-			delete toastTimeoutsRef.current[id];
-		}
-		setToasts((current) => current.filter((toast) => toast.id !== id));
-	}, []);
-
-	const pushToast = useCallback((message: string, tone: ToastTone = "info") => {
-		const id = nextToastIDRef.current++;
-		setToasts((current) => [...current, { id, message, tone }]);
-		toastTimeoutsRef.current[id] = window.setTimeout(() => {
-			delete toastTimeoutsRef.current[id];
-			setToasts((current) => current.filter((toast) => toast.id !== id));
-		}, 3500);
-	}, []);
-
 	const rowVirtualizer = useVirtualizer({
 		count: references.length,
 		getScrollElement: () => parentRef.current,
@@ -220,7 +186,7 @@ function Dashboard() {
 					setReferenceBuildCount((current) => current + 1);
 					try {
 						const uploadedDocument = await upload.mutateAsync(file);
-						pushToast(`Uploaded "${uploadedDocument.name}"`, "success");
+						toast.success(`Uploaded "${uploadedDocument.name}"`);
 						let randomPreview: Awaited<
 							ReturnType<typeof buildRandomReferenceFromPdfFile>
 						> = null;
@@ -246,14 +212,14 @@ function Dashboard() {
 							},
 						}));
 					} catch {
-						pushToast(`Failed to upload "${file.name}"`, "error");
+						toast.error(`Failed to upload "${file.name}"`);
 					} finally {
 						setReferenceBuildCount((current) => Math.max(0, current - 1));
 					}
 				}),
 			);
 		},
-		[pushToast, upload],
+		[upload],
 	);
 
 	const handleDrop = useCallback(
@@ -322,12 +288,12 @@ function Dashboard() {
 			);
 			try {
 				await remove.mutateAsync(id);
-				pushToast(`Deleted "${name}"`, "success");
+				toast.success(`Deleted "${name}"`);
 			} catch {
-				pushToast(`Failed to delete "${name}"`, "error");
+				toast.error(`Failed to delete "${name}"`);
 			}
 		},
-		[pushToast, remove],
+		[remove],
 	);
 
 	const handleDeleteSelected = useCallback(async () => {
@@ -337,11 +303,11 @@ function Dashboard() {
 			await removeMany.mutateAsync(idsToDelete);
 			setSelectedDocumentIds([]);
 			const plural = idsToDelete.length === 1 ? "" : "s";
-			pushToast(`Deleted ${idsToDelete.length} file${plural}`, "success");
+			toast.success(`Deleted ${idsToDelete.length} file${plural}`);
 		} catch {
-			pushToast("Failed to delete selected files", "error");
+			toast.error("Failed to delete selected files");
 		}
-	}, [pushToast, removeMany, selectedCount, selectedDocumentIds]);
+	}, [removeMany, selectedCount, selectedDocumentIds]);
 
 	const handleDeleteAll = useCallback(async () => {
 		if (documents.length === 0) return;
@@ -350,11 +316,11 @@ function Dashboard() {
 			await removeMany.mutateAsync(idsToDelete);
 			setSelectedDocumentIds([]);
 			const plural = idsToDelete.length === 1 ? "" : "s";
-			pushToast(`Deleted all ${idsToDelete.length} file${plural}`, "success");
+			toast.success(`Deleted all ${idsToDelete.length} file${plural}`);
 		} catch {
-			pushToast("Failed to delete all files", "error");
+			toast.error("Failed to delete all files");
 		}
-	}, [documents, pushToast, removeMany]);
+	}, [documents, removeMany]);
 	return (
 		<section
 			className="flex h-full gap-3 p-3 relative"
@@ -581,7 +547,6 @@ function Dashboard() {
 				onOpenChange={handlePreviewOpenChange}
 				reference={selectedReference}
 			/>
-			<ToastStack toasts={toasts} onDismiss={dismissToast} />
 		</section>
 	);
 }

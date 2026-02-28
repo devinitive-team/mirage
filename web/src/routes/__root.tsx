@@ -7,6 +7,7 @@ import {
 } from "@tanstack/react-router";
 import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
 import Header from "../components/Header";
+import { Toaster } from "../components/ui/sonner";
 import PostHogProvider from "../integrations/posthog/provider";
 
 import TanStackQueryDevtools from "../integrations/tanstack-query/devtools";
@@ -65,6 +66,7 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 								TanStackQueryDevtools,
 							]}
 						/>
+						<Toaster position="bottom-right" />
 					</TanStackQueryProvider>
 				</PostHogProvider>
 				<Scripts />

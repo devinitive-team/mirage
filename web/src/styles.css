@@ -27,11 +27,7 @@
   --hero-a: rgba(17, 17, 17, 0.14);
   --hero-b: rgba(17, 17, 17, 0.08);
   --reference-item-border: color-mix(in oklab, var(--line) 80%, rgba(17, 17, 17, 0.22) 20%);
-  --reference-item-bg: linear-gradient(
-    165deg,
-    color-mix(in oklab, var(--surface-strong) 95%, white 5%),
-    var(--surface)
-  );
+  --reference-item-bg: color-mix(in oklab, var(--surface-strong) 92%, var(--surface) 8%);
   --reference-item-title: color-mix(in oklab, var(--sea-ink) 90%, black 10%);
   --reference-item-page-bg: color-mix(in oklab, var(--surface-strong) 80%, white 20%);
   --reference-item-page-border: color-mix(in oklab, var(--lagoon-deep) 24%, var(--line));
@@ -97,11 +93,7 @@
   --hero-a: rgba(255, 255, 255, 0.08);
   --hero-b: rgba(255, 255, 255, 0.04);
   --reference-item-border: color-mix(in oklab, var(--lagoon-deep) 36%, var(--line));
-  --reference-item-bg: linear-gradient(
-    165deg,
-    color-mix(in oklab, var(--surface-strong) 95%, black 5%),
-    var(--surface)
-  );
+  --reference-item-bg: color-mix(in oklab, var(--surface-strong) 90%, var(--surface) 10%);
   --reference-item-title: color-mix(in oklab, var(--sea-ink) 96%, white 4%);
   --reference-item-page-bg: color-mix(in oklab, var(--surface-strong) 84%, var(--lagoon-deep) 16%);
   --reference-item-page-border: color-mix(in oklab, var(--lagoon-deep) 52%, var(--line));
@@ -200,7 +192,7 @@ body {
     radial-gradient(1100px 620px at -8% -10%, var(--hero-a), transparent 58%),
     radial-gradient(1050px 620px at 112% -12%, var(--hero-b), transparent 62%),
     radial-gradient(720px 380px at 50% 115%, rgba(17, 17, 17, 0.08), transparent 68%),
-    linear-gradient(180deg, color-mix(in oklab, var(--sand) 68%, white) 0%, var(--foam) 44%, var(--bg-base) 100%);
+    radial-gradient(1700px 860px at 50% -42%, color-mix(in oklab, var(--sand) 68%, white), var(--bg-base) 72%);
   overflow-x: hidden;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
@@ -226,9 +218,7 @@ body::after {
   pointer-events: none;
   z-index: -1;
   opacity: 0.14;
-  background-image:
-    linear-gradient(rgba(255, 255, 255, 0.07) 1px, transparent 1px),
-    linear-gradient(90deg, rgba(255, 255, 255, 0.06) 1px, transparent 1px);
+  background-image: radial-gradient(rgba(255, 255, 255, 0.09) 0.9px, transparent 1px);
   background-size: 28px 28px;
   mask-image: radial-gradient(circle at 50% 30%, black, transparent 78%);
 }
@@ -279,7 +269,7 @@ pre code {
 
 .island-shell {
   border: 1px solid var(--line);
-  background: linear-gradient(165deg, var(--surface-strong), var(--surface));
+  background: color-mix(in oklab, var(--surface-strong) 84%, var(--surface) 16%);
   box-shadow:
     0 1px 0 var(--inset-glint) inset,
     0 22px 44px rgba(17, 17, 17, 0.1),
@@ -288,7 +278,7 @@ pre code {
 }
 
 .feature-card {
-  background: linear-gradient(165deg, color-mix(in oklab, var(--surface-strong) 93%, white 7%), var(--surface));
+  background: color-mix(in oklab, var(--surface-strong) 92%, var(--surface) 8%);
   box-shadow:
     0 1px 0 var(--inset-glint) inset,
     0 18px 34px rgba(17, 17, 17, 0.1),
@@ -372,7 +362,7 @@ a {
   height: 2px;
   transform: scaleX(0);
   transform-origin: left;
-  background: linear-gradient(90deg, var(--lagoon), var(--sea-ink-soft));
+  background: color-mix(in oklab, var(--lagoon) 72%, var(--sea-ink-soft) 28%);
   transition: transform 170ms ease;
 }
 
