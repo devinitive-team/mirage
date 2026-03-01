@@ -75,10 +75,6 @@ export function HeroVideoDialog({
   className,
 }: HeroVideoProps) {
   const [isVideoOpen, setIsVideoOpen] = useState(false)
-  const [isDarkTheme, setIsDarkTheme] = useState(() => {
-    if (typeof document === "undefined") return false
-    return document.documentElement.classList.contains("dark")
-  })
   const selectedAnimation = animationVariants[animationStyle]
   const iframeSrc = useMemo(() => {
     try {
@@ -90,25 +86,6 @@ export function HeroVideoDialog({
       return videoSrc.includes("?") ? `${videoSrc}&autoplay=1&rel=0` : `${videoSrc}?autoplay=1&rel=0`
     }
   }, [videoSrc])
-  const activeThumbnailSrc = isDarkTheme && thumbnailDarkSrc ? thumbnailDarkSrc : thumbnailSrc
-
-  useEffect(() => {
-    if (typeof document === "undefined") return
-
-    const root = document.documentElement
-    const syncThemeState = () => {
-      setIsDarkTheme(root.classList.contains("dark"))
-    }
-
-    syncThemeState()
-    const observer = new MutationObserver(syncThemeState)
-    observer.observe(root, { attributes: true, attributeFilter: ["class"] })
-
-    return () => {
-      observer.disconnect()
-    }
-  }, [])
-
   useEffect(() => {
     if (!isVideoOpen) return
 
@@ -138,12 +115,25 @@ export function HeroVideoDialog({
         onClick={() => setIsVideoOpen(true)}
       >
         <img
-          src={activeThumbnailSrc}
+          src={thumbnailSrc}
           alt={thumbnailAlt}
           width={1920}
           height={1080}
-          className="h-auto w-full rounded-2xl border border-black/10 object-contain shadow-lg transition-all duration-300 ease-out group-hover:scale-[1.01] group-hover:brightness-[0.75] dark:border-white/15"
+          className={cn(
+            "h-auto w-full rounded-2xl border border-black/10 object-contain shadow-lg transition-all duration-300 ease-out group-hover:scale-[1.01] group-hover:brightness-[0.75] dark:border-white/15",
+            thumbnailDarkSrc ? "dark:hidden" : "",
+          )}
         />
+        {thumbnailDarkSrc ? (
+          <img
+            src={thumbnailDarkSrc}
+            alt=""
+            aria-hidden="true"
+            width={1920}
+            height={1080}
+            className="hidden h-auto w-full rounded-2xl border border-black/10 object-contain shadow-lg transition-all duration-300 ease-out group-hover:scale-[1.01] group-hover:brightness-[0.75] dark:block dark:border-white/15"
+          />
+        ) : null}
         <div className="pointer-events-none absolute inset-0 " />
         <div className="absolute inset-0 flex items-center justify-center px-4">
           <div className="flex items-center gap-3 shadow-3xl border border-white/45 bg-black/70 px-4 py-2 text-white backdrop-blur-sm transition-all duration-200 ease-out group-hover:scale-[1.03] group-hover:bg-black/80 sm:px-5 sm:py-3">
