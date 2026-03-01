@@ -24,8 +24,8 @@ const INDEX_START = 65;
 const READY_START = 120;
 const TYPING_START = 165;
 const ANSWER_START = 255;
-const ANSWER_REVEAL = 290;
-const EVIDENCE_START = 410;
+const ANSWER_REVEAL = 334;
+const EVIDENCE_START = 454;
 
 export const Scene4_ProductDemo: React.FC = () => {
   const frame = useCurrentFrame();

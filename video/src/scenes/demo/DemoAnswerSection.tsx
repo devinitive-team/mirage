@@ -23,13 +23,6 @@ export const DemoAnswerSection: React.FC<DemoAnswerSectionProps> = ({
 
   const isLoading = frame >= showFrom && frame < revealFrom;
 
-  const loadingElapsed = interpolate(
-    frame,
-    [showFrom, revealFrom],
-    [0, 1],
-    { extrapolateLeft: "clamp", extrapolateRight: "clamp" },
-  );
-
   const revealChars =
     frame >= revealFrom
       ? Math.min(Math.floor((frame - revealFrom) * 4), ANSWER_TEXT.length)
@@ -87,20 +80,33 @@ export const DemoAnswerSection: React.FC<DemoAnswerSectionProps> = ({
             style={{
               display: "flex",
               flexDirection: "column",
-              gap: 6,
+              gap: 8,
             }}
           >
-            {[1.0, 0.82, 0.6].map((max, i) => (
-              <div
-                key={i}
-                style={{
-                  height: 4,
-                  width: `${Math.min(loadingElapsed * 1.4, max) * 100}%`,
-                  background: COLORS.seaInkSoft,
-                  opacity: 0.35,
-                }}
-              />
-            ))}
+            {[
+              { w: "100%", baseAlpha: 0.12, delay: 0 },
+              { w: "83%", baseAlpha: 0.10, delay: 4 },
+              { w: "66%", baseAlpha: 0.08, delay: 8 },
+            ].map((line, i) => {
+              // Staggered pulse: sine wave with per-line phase offset
+              const pulse = interpolate(
+                Math.sin((frame - line.delay) * 0.16),
+                [-1, 1],
+                [0.4, 1],
+              );
+              return (
+                <div
+                  key={i}
+                  style={{
+                    height: 6,
+                    width: line.w,
+                    borderRadius: 3,
+                    background: COLORS.lagoonDeep,
+                    opacity: line.baseAlpha * pulse * (1 / 0.12),
+                  }}
+                />
+              );
+            })}
           </div>
         </div>
       ) : (

@@ -34,6 +34,6 @@ export const TRANSITION_DURATION = 15;
 export const SCENE_DURATIONS = {
   scene1: 90,
   scene2: 270,
-  scene3: 620,
+  scene3: 664,
   scene4: 150,
 } as const;
