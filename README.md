@@ -1,5 +1,7 @@
 # Mirage
 
+![photo_2026-03-01 15 02 10](https://github.com/user-attachments/assets/ccb7026b-9057-4980-92f8-0122d40a8122)
+
 Built during the **Mistral Worldwide Hackathon 2026**, Mirage is an AI-powered document search system for PDF-heavy workflows.
 
 Mirage lets you upload PDFs, ask questions in plain language, and get answers with page-level evidence so results are reviewable and traceable.
