@@ -33,6 +33,33 @@ const ctaHref = buildTryForFreeUrl(tryForFreeUrl, Astro.url);
   <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <script is:inline>
+      (() => {
+        const storageKey = "mirage-theme";
+        const root = document.documentElement;
+
+        const readStoredTheme = () => {
+          try {
+            return window.localStorage.getItem(storageKey);
+          } catch {
+            return null;
+          }
+        };
+
+        const storedTheme = readStoredTheme();
+        const systemPrefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+        const activeTheme =
+          storedTheme === "light" || storedTheme === "dark"
+            ? storedTheme
+            : systemPrefersDark
+              ? "dark"
+              : "light";
+
+        root.classList.toggle("dark", activeTheme === "dark");
+        root.style.colorScheme = activeTheme;
+        root.setAttribute("data-theme", activeTheme);
+      })();
+    </script>
     <link rel="icon" type="image/svg+xml" href="/favicon.svg" />
     <link rel="icon" href="/favicon.ico" />
     <meta name="generator" content={Astro.generator} />
@@ -56,6 +83,62 @@ const ctaHref = buildTryForFreeUrl(tryForFreeUrl, Astro.url);
 
     <script is:inline define:vars={{ attributionParams }}>
       (() => {
+        const storageKey = "mirage-theme";
+        const root = document.documentElement;
+        const themeToggle = document.querySelector("[data-theme-toggle]");
+        const themeToggleLabel = themeToggle?.querySelector("[data-theme-label]");
+        const systemThemeQuery = window.matchMedia("(prefers-color-scheme: dark)");
+
+        const readStoredTheme = () => {
+          try {
+            return window.localStorage.getItem(storageKey);
+          } catch {
+            return null;
+          }
+        };
+
+        const writeStoredTheme = (theme) => {
+          try {
+            window.localStorage.setItem(storageKey, theme);
+          } catch {
+            // Ignore storage write failures.
+          }
+        };
+
+        const applyTheme = (theme) => {
+          root.classList.toggle("dark", theme === "dark");
+          root.style.colorScheme = theme;
+          root.setAttribute("data-theme", theme);
+
+          if (!themeToggle) return;
+          const nextLabel = theme === "dark" ? "Light" : "Dark";
+          themeToggle.setAttribute("aria-label", `Switch to ${nextLabel.toLowerCase()} mode`);
+          themeToggle.setAttribute("aria-pressed", String(theme === "dark"));
+          if (themeToggleLabel) {
+            themeToggleLabel.textContent = nextLabel;
+          }
+        };
+
+        applyTheme(root.classList.contains("dark") ? "dark" : "light");
+
+        themeToggle?.addEventListener("click", () => {
+          const nextTheme = root.classList.contains("dark") ? "light" : "dark";
+          writeStoredTheme(nextTheme);
+          applyTheme(nextTheme);
+        });
+
+        const handleSystemThemeChange = (event) => {
+          const storedTheme = readStoredTheme();
+          if (storedTheme === "light" || storedTheme === "dark") return;
+          applyTheme(event.matches ? "dark" : "light");
+        };
+
+        if (typeof systemThemeQuery.addEventListener === "function") {
+          systemThemeQuery.addEventListener("change", handleSystemThemeChange);
+        } else if (typeof systemThemeQuery.addListener === "function") {
+          systemThemeQuery.addListener(handleSystemThemeChange);
+        }
+
         const focusHeroWaitlistInput = () => {
           const emailInput = document.querySelector('#top input[name="email_address"]');
           if (!(emailInput instanceof HTMLInputElement)) return false;

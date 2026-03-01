@@ -5,10 +5,10 @@ import { BlurFade } from "@/components/ui/blur-fade";
 <section class="mt-16" id="faq" aria-labelledby="faq-title">
   <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
     <BlurFade client:visible direction="up" offset={8} duration={0.45} blur="4px">
-      <p class="inline-flex items-center gap-2 font-mono text-xs uppercase tracking-widest text-slate-600">
-        <span aria-hidden="true" class="h-px w-2.5 bg-slate-400"></span>
+      <p class="inline-flex items-center gap-2 font-mono text-xs uppercase tracking-widest text-zinc-600 dark:text-zinc-300">
+        <span aria-hidden="true" class="h-px w-2.5 bg-zinc-400 dark:bg-zinc-500"></span>
         FAQ
-        <span aria-hidden="true" class="h-px w-2.5 bg-slate-400"></span>
+        <span aria-hidden="true" class="h-px w-2.5 bg-zinc-400 dark:bg-zinc-500"></span>
       </p>
     </BlurFade>
     <BlurFade client:visible direction="up" offset={10} duration={0.5} blur="5px" delay={0.05}>
@@ -17,31 +17,31 @@ import { BlurFade } from "@/components/ui/blur-fade";
       </h2>
     </BlurFade>
 
-    <div class="mt-6 border-y border-black/10">
+    <div class="mt-6 border-y border-black/10 dark:border-white/15">
       <article class="py-4">
         <BlurFade client:visible direction="up" offset={8} duration={0.45} blur="4px" delay={0.1}>
           <h3 class="font-display text-lg">How long does setup take?</h3>
-          <p class="mt-3 leading-7 text-slate-600">
+          <p class="mt-3 leading-7 text-zinc-600 dark:text-zinc-300">
             Most teams start by uploading existing files and asking live questions the same day. No
             manual schema design is required up front.
           </p>
         </BlurFade>
       </article>
 
-      <article class="border-t border-black/10 py-4">
+      <article class="border-t border-black/10 dark:border-white/15 py-4">
         <BlurFade client:visible direction="up" offset={8} duration={0.45} blur="4px" delay={0.15}>
           <h3 class="font-display text-lg">How do we trust the answers?</h3>
-          <p class="mt-3 leading-7 text-slate-600">
+          <p class="mt-3 leading-7 text-zinc-600 dark:text-zinc-300">
             Mirage returns source-linked evidence with each response, so reviewers can inspect
             original context before sharing or acting.
           </p>
         </BlurFade>
       </article>
 
-      <article class="border-t border-black/10 py-4">
+      <article class="border-t border-black/10 dark:border-white/15 py-4">
         <BlurFade client:visible direction="up" offset={8} duration={0.45} blur="4px" delay={0.2}>
           <h3 class="font-display text-lg">Can we pilot before a broader rollout?</h3>
-          <p class="mt-3 leading-7 text-slate-600">
+          <p class="mt-3 leading-7 text-zinc-600 dark:text-zinc-300">
             Yes. Start with one high-friction workflow, confirm citation quality, then expand to
             adjacent document-heavy use cases.
           </p>

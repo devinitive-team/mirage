@@ -11,7 +11,7 @@ const { ctaHref } = Astro.props;
 
 <section class="relative isolate mt-16 overflow-hidden" aria-label="Final conversion section">
   <div aria-hidden="true" class="pointer-events-none absolute inset-0 -z-10">
-    <div class="mx-auto h-full max-w-5xl text-slate-700" style="opacity: 0.14;">
+    <div class="mx-auto h-full max-w-5xl text-zinc-700 dark:text-zinc-400" style="opacity: 0.14;">
       <svg
         xmlns="http://www.w3.org/2000/svg"
         viewBox="0 0 500 500"
@@ -224,7 +224,7 @@ const { ctaHref } = Astro.props;
       </BlurFade>
 
       <BlurFade client:visible direction="up" offset={8} duration={0.45} blur="4px" delay={0.06}>
-        <p class="mx-auto mt-6 max-w-2xl text-lg leading-8 text-slate-700">
+        <p class="mx-auto mt-6 max-w-2xl text-lg leading-8 text-zinc-700 dark:text-zinc-300">
           Keep your current document workflows and add Mirage as the semantic layer that returns
           cited, review-ready answers.
         </p>

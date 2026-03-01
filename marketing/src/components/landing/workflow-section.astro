@@ -6,11 +6,11 @@ import { BlurFade } from "@/components/ui/blur-fade";
   <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
     <BlurFade client:visible direction="up" offset={8} duration={0.45} blur="4px">
       <p
-        class="inline-flex items-center gap-2 font-mono text-xs uppercase tracking-widest text-slate-600"
+        class="inline-flex items-center gap-2 font-mono text-xs uppercase tracking-widest text-zinc-600 dark:text-zinc-300"
       >
-        <span aria-hidden="true" class="h-px w-2.5 bg-slate-400"></span>
+        <span aria-hidden="true" class="h-px w-2.5 bg-zinc-400 dark:bg-zinc-500"></span>
         Workflow
-        <span aria-hidden="true" class="h-px w-2.5 bg-slate-400"></span>
+        <span aria-hidden="true" class="h-px w-2.5 bg-zinc-400 dark:bg-zinc-500"></span>
       </p>
     </BlurFade>
     <BlurFade client:visible direction="up" offset={10} duration={0.5} blur="5px" delay={0.05}>
@@ -22,20 +22,20 @@ import { BlurFade } from "@/components/ui/blur-fade";
       </h2>
     </BlurFade>
     <BlurFade client:visible direction="up" offset={8} duration={0.45} blur="4px" delay={0.1}>
-      <p class="mt-5 max-w-3xl text-base leading-7 text-slate-600 text-balance">
+      <p class="mt-5 max-w-3xl text-base leading-7 text-zinc-600 dark:text-zinc-300 text-balance">
         Start with real files, ask a real question, and trace each answer back to the source before
         anyone acts on it.
       </p>
     </BlurFade>
     <ol class="mt-8 space-y-4">
-      <li class="border-y border-black/10 px-4 py-4 md:px-5 md:py-5">
+      <li class="border-y border-black/10 dark:border-white/15 px-4 py-4 md:px-5 md:py-5">
         <BlurFade client:visible direction="up" offset={10} duration={0.5} blur="5px" delay={0.12}>
           <div class="grid items-center gap-4 md:grid-cols-2 md:gap-10">
           <div class="min-w-0">
             <svg
               xmlns="http://www.w3.org/2000/svg"
               viewBox="0 0 400 400"
-              class="block h-auto w-full max-h-60 text-slate-900"
+              class="block h-auto w-full max-h-60 text-zinc-900 dark:text-zinc-100"
             >
               <defs>
                 <style>
@@ -159,11 +159,11 @@ import { BlurFade } from "@/components/ui/blur-fade";
             </svg>
           </div>
           <div class="min-w-0">
-            <p class="inline-flex items-center gap-2 font-mono text-xs text-black">
+            <p class="inline-flex items-center gap-2 font-mono text-xs text-black dark:text-zinc-100">
               <span aria-hidden="true" class="h-2 w-2 shrink-0 bg-blue-600"></span>01 · Ingest
             </p>
             <h3 class="mt-3 font-display text-lg tracking-tight">Ingest documents</h3>
-            <p class="mt-3 text-slate-600 leading-7 text-balance">
+            <p class="mt-3 text-zinc-600 dark:text-zinc-300 leading-7 text-balance">
               Drop in PDFs and let background processing extract document structure while your team
               keeps moving.
             </p>
@@ -171,14 +171,14 @@ import { BlurFade } from "@/components/ui/blur-fade";
           </div>
         </BlurFade>
       </li>
-      <li class="border-y border-black/10 px-4 py-4 md:px-5 md:py-5">
+      <li class="border-y border-black/10 dark:border-white/15 px-4 py-4 md:px-5 md:py-5">
         <BlurFade client:visible direction="up" offset={10} duration={0.5} blur="5px" delay={0.2}>
           <div class="grid items-center gap-4 md:grid-cols-2 md:gap-10">
           <div class="min-w-0 md:order-2">
             <svg
               xmlns="http://www.w3.org/2000/svg"
               viewBox="0 0 500 500"
-              class="block h-auto w-full max-h-60 text-slate-900"
+              class="block h-auto w-full max-h-60 text-zinc-900 dark:text-zinc-100"
             >
               <defs>
                 <style>
@@ -371,11 +371,11 @@ import { BlurFade } from "@/components/ui/blur-fade";
             </svg>
           </div>
           <div class="min-w-0 md:order-1">
-            <p class="inline-flex items-center gap-2 font-mono text-xs text-black">
+            <p class="inline-flex items-center gap-2 font-mono text-xs text-black dark:text-zinc-100">
               <span aria-hidden="true" class="h-2 w-2 shrink-0 bg-red-500"></span>02 · Retrieve
             </p>
             <h3 class="mt-3 font-display text-lg tracking-tight">Build relevance index</h3>
-            <p class="mt-3 text-slate-600 leading-7 text-balance">
+            <p class="mt-3 text-zinc-600 dark:text-zinc-300 leading-7 text-balance">
               Mirage organizes content by meaning, so questions are matched to relevant sections
               instead of loose keyword hits.
             </p>
@@ -383,14 +383,14 @@ import { BlurFade } from "@/components/ui/blur-fade";
           </div>
         </BlurFade>
       </li>
-      <li class="border-y border-black/10 px-4 py-4 md:px-5 md:py-5">
+      <li class="border-y border-black/10 dark:border-white/15 px-4 py-4 md:px-5 md:py-5">
         <BlurFade client:visible direction="up" offset={10} duration={0.5} blur="5px" delay={0.28}>
           <div class="grid items-center gap-4 md:grid-cols-2 md:gap-10">
           <div class="min-w-0">
             <svg
               xmlns="http://www.w3.org/2000/svg"
               viewBox="0 0 500 500"
-              class="block h-auto w-full max-h-60 text-slate-900"
+              class="block h-auto w-full max-h-60 text-zinc-900 dark:text-zinc-100"
             >
               <defs>
                 <style>
@@ -580,11 +580,11 @@ import { BlurFade } from "@/components/ui/blur-fade";
             </svg>
           </div>
           <div class="min-w-0">
-            <p class="inline-flex items-center gap-2 font-mono text-xs text-black">
+            <p class="inline-flex items-center gap-2 font-mono text-xs text-black dark:text-zinc-100">
               <span aria-hidden="true" class="h-2 w-2 shrink-0 bg-green-500"></span>03 · Verify
             </p>
             <h3 class="mt-3 font-display text-lg tracking-tight">Return cited answers</h3>
-            <p class="mt-3 text-slate-600 leading-7 text-balance">
+            <p class="mt-3 text-zinc-600 dark:text-zinc-300 leading-7 text-balance">
               Every answer includes page-linked evidence so reviewers can validate context in
               seconds.
             </p>

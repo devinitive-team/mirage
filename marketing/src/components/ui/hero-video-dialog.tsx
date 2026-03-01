@@ -18,6 +18,7 @@ interface HeroVideoProps {
   animationStyle?: AnimationStyle
   videoSrc: string
   thumbnailSrc: string
+  thumbnailDarkSrc?: string
   thumbnailAlt?: string
   className?: string
 }
@@ -69,10 +70,15 @@ export function HeroVideoDialog({
   animationStyle = "from-center",
   videoSrc,
   thumbnailSrc,
+  thumbnailDarkSrc,
   thumbnailAlt = "Video thumbnail",
   className,
 }: HeroVideoProps) {
   const [isVideoOpen, setIsVideoOpen] = useState(false)
+  const [isDarkTheme, setIsDarkTheme] = useState(() => {
+    if (typeof document === "undefined") return false
+    return document.documentElement.classList.contains("dark")
+  })
   const selectedAnimation = animationVariants[animationStyle]
   const iframeSrc = useMemo(() => {
     try {
@@ -84,6 +90,24 @@ export function HeroVideoDialog({
       return videoSrc.includes("?") ? `${videoSrc}&autoplay=1&rel=0` : `${videoSrc}?autoplay=1&rel=0`
     }
   }, [videoSrc])
+  const activeThumbnailSrc = isDarkTheme && thumbnailDarkSrc ? thumbnailDarkSrc : thumbnailSrc
+
+  useEffect(() => {
+    if (typeof document === "undefined") return
+
+    const root = document.documentElement
+    const syncThemeState = () => {
+      setIsDarkTheme(root.classList.contains("dark"))
+    }
+
+    syncThemeState()
+    const observer = new MutationObserver(syncThemeState)
+    observer.observe(root, { attributes: true, attributeFilter: ["class"] })
+
+    return () => {
+      observer.disconnect()
+    }
+  }, [])
 
   useEffect(() => {
     if (!isVideoOpen) return
@@ -114,11 +138,11 @@ export function HeroVideoDialog({
         onClick={() => setIsVideoOpen(true)}
       >
         <img
-          src={thumbnailSrc}
+          src={activeThumbnailSrc}
           alt={thumbnailAlt}
           width={1920}
           height={1080}
-          className="h-auto w-full rounded-2xl border border-black/10 object-contain shadow-lg transition-all duration-300 ease-out group-hover:scale-[1.01] group-hover:brightness-[0.75]"
+          className="h-auto w-full rounded-2xl border border-black/10 object-contain shadow-lg transition-all duration-300 ease-out group-hover:scale-[1.01] group-hover:brightness-[0.75] dark:border-white/15"
         />
         <div className="pointer-events-none absolute inset-0 " />
         <div className="absolute inset-0 flex items-center justify-center px-4">

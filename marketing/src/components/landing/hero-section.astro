@@ -1,6 +1,5 @@
 ---
 import { BlurFade } from "@/components/ui/blur-fade";
-import { ShineBorder } from "@/components/ui/shine-border";
 import { HeroVideoDialog } from "@/registry/magicui/hero-video-dialog";
 import EmailForm from "./email-form.astro";
 
@@ -16,24 +15,24 @@ const { ctaHref } = Astro.props;
     <div class="min-w-0">
       <BlurFade client:load direction="up" offset={8} duration={0.45} blur="4px">
         <p
-          class="inline-flex items-center gap-2 font-mono text-xs uppercase tracking-widest text-slate-600"
+          class="inline-flex items-center gap-2 font-mono text-xs uppercase tracking-widest text-zinc-600 dark:text-zinc-300"
         >
-          <span aria-hidden="true" class="h-px w-2.5 bg-slate-400"></span>
+          <span aria-hidden="true" class="h-px w-2.5 bg-zinc-400 dark:bg-zinc-500"></span>
           Ask any document. Verify every answer.
-          <span aria-hidden="true" class="h-px w-2.5 bg-slate-400"></span>
+          <span aria-hidden="true" class="h-px w-2.5 bg-zinc-400 dark:bg-zinc-500"></span>
         </p>
       </BlurFade>
 
       <BlurFade client:load direction="up" offset={10} duration={0.5} blur="5px" delay={0.05}>
         <h1
-          class="mt-4 font-display text-4xl leading-tight sm:text-5xl lg:text-7xl text-bold tracking-tighter text-slate-900 text-balance"
+          class="mt-4 font-display text-4xl leading-tight sm:text-5xl lg:text-7xl text-bold tracking-tighter text-zinc-900 dark:text-zinc-100 text-balance"
         >
           Find what matters across thousands of pages, with citations.
         </h1>
       </BlurFade>
 
       <BlurFade client:load direction="up" offset={8} duration={0.45} blur="4px" delay={0.1}>
-        <p class="mt-6 max-w-3xl text-base leading-7 text-slate-600 sm:text-lg">
+        <p class="mt-6 max-w-3xl text-base leading-7 text-zinc-600 dark:text-zinc-300 sm:text-lg">
           Mirage turns raw PDFs into semantic context so your team can ask in plain language and
           get answers tied to exact source pages.
         </p>
@@ -45,20 +44,15 @@ const { ctaHref } = Astro.props;
 
       <BlurFade client:load direction="up" offset={10} duration={0.55} blur="6px" delay={0.22}>
         <div
-          class="relative mt-12 overflow-hidden rounded-3xl border border-black/10 bg-white/50 p-3"
+          class="relative mt-12 overflow-hidden rounded-3xl border border-black/10 dark:border-white/15 bg-white/50 dark:bg-black/50 p-3"
         >
-          <ShineBorder
-            aria-hidden="true"
-            borderWidth={1}
-            duration={25}
-            shineColor={["#444", "#fff", "#444"]}
-          />
           <HeroVideoDialog
             client:load
             className="block w-full"
             animationStyle="from-center"
             videoSrc="https://www.youtube.com/embed/qh3NGpYRG3I?si=4rb-zSdDkVK9qxxb"
             thumbnailSrc="/hero-light.png"
+            thumbnailDarkSrc="/hero-dark.png"
             thumbnailAlt="Mirage product preview with cited answers and document context"
           />
         </div>

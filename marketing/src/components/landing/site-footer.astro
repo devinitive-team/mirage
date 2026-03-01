@@ -6,7 +6,7 @@ const currentYear = new Date().getFullYear();
   <svg
     aria-hidden="true"
     viewBox="0 0 1200 260"
-    class="pointer-events-none absolute inset-x-0 h-64 w-full text-slate-400 opacity-18"
+    class="pointer-events-none absolute inset-x-0 h-64 w-full text-zinc-400 opacity-18 dark:text-zinc-700"
   >
     <text
       x="50%"
@@ -28,7 +28,7 @@ const currentYear = new Date().getFullYear();
   >
     <a
       href="/"
-      class="inline-flex items-center gap-2 font-display text-base font-bold text-slate-900"
+      class="inline-flex items-center gap-2 font-display text-base font-bold text-zinc-900 dark:text-zinc-100"
     >
       <svg viewBox="0 0 32 32" aria-hidden="true" class="h-5 w-5 shrink-0">
         <path d="M5 24.5L9.1 8h3.8L8.8 24.5H5Z" fill="currentColor"></path>
@@ -38,6 +38,33 @@ const currentYear = new Date().getFullYear();
       <span>Mirage</span>
     </a>
 
-    <p class="text-sm text-slate-600">© {currentYear} Mirage. All rights reserved.</p>
+    <div class="flex items-center gap-3">
+      <button
+        type="button"
+        data-theme-toggle
+        aria-label="Switch to dark mode"
+        aria-pressed="false"
+        class="inline-flex h-10 items-center justify-center gap-2 border border-black/15 bg-white/70 px-3 text-zinc-700 transition duration-150 ease-out hover:-translate-y-0.5 hover:border-black/25 hover:text-zinc-900 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-500 dark:border-white/20 dark:bg-zinc-900/70 dark:text-zinc-200 dark:hover:border-white/35 dark:hover:text-white"
+      >
+        <svg
+          aria-hidden="true"
+          viewBox="0 0 24 24"
+          class="h-4 w-4 fill-none stroke-current stroke-[1.75] dark:hidden"
+        >
+          <path d="M21 12.79A9 9 0 1 1 11.2 3a7 7 0 0 0 9.8 9.79Z"></path>
+        </svg>
+        <svg
+          aria-hidden="true"
+          viewBox="0 0 24 24"
+          class="hidden h-4 w-4 fill-none stroke-current stroke-[1.75] dark:block"
+        >
+          <circle cx="12" cy="12" r="4"></circle>
+          <path d="M12 2v2.5M12 19.5V22M4.2 4.2l1.8 1.8M18 18l1.8 1.8M2 12h2.5M19.5 12H22M4.2 19.8 6 18M18 6l1.8-1.8"></path>
+        </svg>
+        <span data-theme-label class="font-mono text-[11px] uppercase tracking-[0.18em]">Dark</span>
+      </button>
+
+      <p class="text-sm text-zinc-600 dark:text-zinc-300">© {currentYear} Mirage. All rights reserved.</p>
+    </div>
   </div>
 </footer>

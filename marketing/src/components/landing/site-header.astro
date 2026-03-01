@@ -6,11 +6,11 @@ interface Props {
 const { ctaHref } = Astro.props;
 ---
 
-<header class="sticky top-0 z-40 border-b border-black/10 bg-white/80 backdrop-blur">
+<header class="sticky top-0 z-40 border-b border-black/10 bg-white/80 backdrop-blur dark:border-white/15 dark:bg-black/85">
   <div class="mx-auto flex h-20 max-w-7xl items-center justify-between gap-4 px-2 sm:px-4 lg:px-6">
     <a
       href="/"
-      class="inline-flex items-center gap-2 font-display text-xl font-extrabold tracking-tight"
+      class="inline-flex items-center gap-2 font-display text-xl font-extrabold tracking-tight text-zinc-900 dark:text-zinc-100"
       aria-label="Mirage home"
     >
       <svg viewBox="0 0 32 32" aria-hidden="true" class="h-6 w-6 shrink-0">
@@ -23,7 +23,7 @@ const { ctaHref } = Astro.props;
 
     <a
       href={ctaHref}
-      class="inline-flex h-10 items-center justify-center border border-slate-900 bg-slate-900 px-4 font-display text-sm font-bold text-white transition duration-150 ease-out hover:-translate-y-0.5 hover:bg-slate-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-500"
+      class="inline-flex h-10 items-center justify-center border border-zinc-900 bg-zinc-900 px-4 font-display text-sm font-bold text-white transition duration-150 ease-out hover:-translate-y-0.5 hover:bg-zinc-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-500 dark:border-zinc-100 dark:bg-zinc-100 dark:text-zinc-950 dark:hover:bg-white"
       data-cta="try-for-free"
       data-cta-location="nav"
     >
