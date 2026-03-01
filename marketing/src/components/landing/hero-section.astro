@@ -1,5 +1,6 @@
 ---
 import { BorderBeam } from "@/components/ui/border-beam";
+import EmailForm from "./email-form.astro";
 
 interface Props {
   ctaHref: string;
@@ -30,48 +31,18 @@ const { ctaHref } = Astro.props;
         answers tied to exact source pages.
       </p>
 
-      <div class="mt-8 flex flex-wrap items-center gap-3">
-        <a
-          href={ctaHref}
-          class="inline-flex h-11 items-center justify-center border border-slate-900 bg-slate-900 px-5 font-display text-sm font-bold text-white transition duration-150 ease-out hover:-translate-y-0.5 hover:bg-slate-800 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-cyan-500"
-          data-cta="try-for-free"
-          data-cta-location="hero"
-        >
-          Try for free
-        </a>
+      <EmailForm />
 
-        <a
-          href="#how-it-works"
-          class="inline-flex h-11 items-center justify-center border border-black/20 bg-white px-5 font-display text-sm font-bold text-slate-900 transition duration-150 ease-out hover:-translate-y-0.5 hover:border-black/30 hover:bg-slate-50"
-        >
-          See how Mirage works
-        </a>
-      </div>
+      <div class="w-12 h-12 bg-amber-500 rounded-2xl"></div>
 
-      <div
-        class="group relative mx-auto mt-8 w-full max-w-7xl border border-black/10 bg-white p-1.5"
-      >
-        <div class="relative overflow-hidden border border-black/10">
-          <span
-            aria-hidden="true"
-            class="pointer-events-none absolute inset-x-12 top-0 h-px bg-black/20"></span>
-          <img
-            src="/hero.png"
-            alt="Mirage product preview with cited answers and document context"
-            class="h-auto w-full object-contain transition-transform duration-700 ease-out"
-            loading="eager"
-            fetchpriority="high"
-            decoding="async"
-          />
-        </div>
-        <BorderBeam
-          client:load
-          size={210}
-          duration={7.5}
-          borderWidth={2}
-          colorFrom="#fff"
-          colorTo="#000"
-          className="opacity-60"
+      <div class="rounded-lg border border-black/10 bg-white/50 p-4 mt-12">
+        <img
+          src="/hero-light.png"
+          alt="Mirage product preview with cited answers and document context"
+          class="h-auto w-full object-contain transition-transform duration-700 ease-out"
+          loading="eager"
+          fetchpriority="high"
+          decoding="async"
         />
       </div>
     </div>

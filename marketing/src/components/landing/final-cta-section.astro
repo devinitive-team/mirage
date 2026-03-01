@@ -1,5 +1,6 @@
 ---
 import { InteractiveGridPattern } from "@/components/ui/interactive-grid-pattern";
+import EmailForm from "./email-form.astro";
 
 interface Props {
   ctaHref: string;
@@ -33,14 +34,9 @@ const { ctaHref } = Astro.props;
         cited, review-ready answers.
       </p>
 
-      <a
-        href={ctaHref}
-        class="relative z-10 mt-8 inline-flex h-14 items-center justify-center border border-slate-900 bg-slate-900 px-8 font-display text-base font-extrabold text-white transition duration-150 ease-out hover:-translate-y-0.5 hover:bg-slate-800 focus-visible:outline focus-visible:outline-offset-2 focus-visible:outline-cyan-500"
-        data-cta="try-for-free"
-        data-cta-location="footer"
-      >
-        Try for free
-      </a>
+      <div class="relative z-10 items-center">
+        <EmailForm />
+      </div>
     </div>
   </div>
 </section>
