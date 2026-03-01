@@ -1,5 +1,6 @@
 ---
 import { ShineBorder } from "@/components/ui/shine-border";
+import { HeroVideoDialog } from "@/registry/magicui/hero-video-dialog";
 import EmailForm from "./email-form.astro";
 
 interface Props {
@@ -42,13 +43,13 @@ const { ctaHref } = Astro.props;
           duration={25}
           shineColor={["#444", "#fff", "#444"]}
         />
-        <img
-          src="/hero-light.png"
-          alt="Mirage product preview with cited answers and document context"
-          class="border border-black/10 rounded-2xl h-auto w-full object-contain transition-transform duration-700 ease-out"
-          loading="eager"
-          fetchpriority="high"
-          decoding="async"
+        <HeroVideoDialog
+          client:load
+          className="block w-full"
+          animationStyle="from-center"
+          videoSrc="https://www.youtube.com/embed/qh3NGpYRG3I?si=4rb-zSdDkVK9qxxb"
+          thumbnailSrc="/hero-light.png"
+          thumbnailAlt="Mirage product preview with cited answers and document context"
         />
       </div>
     </div>

@@ -1,5 +1,4 @@
 ---
-import { InteractiveGridPattern } from "@/components/ui/interactive-grid-pattern";
 import EmailForm from "./email-form.astro";
 
 interface Props {
@@ -11,32 +10,32 @@ const { ctaHref } = Astro.props;
 
 <section class="mt-16" aria-label="Final conversion section">
   <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-    <div class="relative isolate min-h-96 overflow-hidden px-4 py-14 text-center sm:px-8 sm:py-16">
-      <div class="pointer-events-none absolute inset-0" aria-hidden="true">
-        <InteractiveGridPattern
-          client:load
-          className="h-full w-full opacity-80"
-          width={20}
-          height={20}
-          squares={[72, 24]}
-          squaresClassName="hover:fill-cyan-300/40"
-        />
-      </div>
-
+    <div class="min-h-96 px-4 py-14 text-center sm:px-8 sm:py-16">
       <h2
-        class="relative z-10 mx-auto mt-5 max-w-4xl font-display text-5xl font-extrabold leading-tight tracking-tight sm:text-6xl lg:text-7xl"
+        class="mx-auto mt-5 max-w-4xl font-display text-5xl font-extrabold leading-tight tracking-tight sm:text-6xl lg:text-7xl"
       >
         Ask once. Verify instantly. Move with confidence.
       </h2>
 
-      <p class="relative z-10 mx-auto mt-6 max-w-2xl text-lg leading-8 text-slate-700">
+      <p class="mx-auto mt-6 max-w-2xl text-lg leading-8 text-slate-700">
         Keep your current document workflows and add Mirage as the semantic layer that returns
         cited, review-ready answers.
       </p>
 
-      <div class="relative z-10 items-center">
+      <div class="final-cta-form mx-auto mt-10 w-full max-w-3xl">
         <EmailForm />
       </div>
     </div>
   </div>
 </section>
+
+<style>
+  .final-cta-form :global(form[data-uid="121137e280"]) {
+    width: 100%;
+    max-width: 48rem;
+    margin-inline: auto;
+  }
+  .final-cta-form :global(.formkit-fields) {
+    justify-content: center;
+  }
+</style>
