@@ -1,1 +1,19 @@
 @import "tailwindcss";
+
+:root {
+  --sea-ink: #f5f5f5;
+  --sea-ink-soft: #cccccc;
+  --lagoon: #ffffff;
+  --lagoon-deep: #ebebeb;
+  --palm: #d1d1d1;
+  --sand: #111111;
+  --foam: #151515;
+  --surface: rgba(23, 23, 23, 0.8);
+  --surface-strong: rgba(15, 15, 15, 0.92);
+  --line: rgba(230, 230, 230, 0.2);
+  --bg-base: #090909;
+}
+
+* {
+  border-radius: 0 !important;
+}
