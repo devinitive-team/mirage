@@ -18,11 +18,20 @@ const { fontFamily } = loadFont("normal", {
   subsets: ["latin"],
 });
 
+// ─── Timeline ───
+const DROP_START = 30;
+const INDEX_START = 65;
+const READY_START = 120;
+const TYPING_START = 165;
+const ANSWER_START = 255;
+const ANSWER_REVEAL = 290;
+const EVIDENCE_START = 410;
+
 export const Scene4_ProductDemo: React.FC = () => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
 
-  // Phase 1: UI Reveal (0-60)
+  // Phase 1: UI Reveal (0-25)
   const windowScale = spring({ frame, fps, config: SPRING_CONFIG });
   const windowTransform = interpolate(windowScale, [0, 1], [0.9, 1]);
 
@@ -30,11 +39,11 @@ export const Scene4_ProductDemo: React.FC = () => {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
   });
-  const sidebarOpacity = interpolate(frame, [20, 35], [0, 1], {
+  const sidebarOpacity = interpolate(frame, [15, 30], [0, 1], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
   });
-  const panelOpacity = interpolate(frame, [30, 45], [0, 1], {
+  const panelOpacity = interpolate(frame, [20, 35], [0, 1], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
   });
@@ -68,14 +77,18 @@ export const Scene4_ProductDemo: React.FC = () => {
             </div>
             <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
               <div style={{ opacity: sidebarOpacity, alignSelf: "stretch" }}>
-                <DemoSidebar showFrom={35} />
+                <DemoSidebar
+                  dropStart={DROP_START}
+                  indexStart={INDEX_START}
+                  readyStart={READY_START}
+                />
               </div>
               <div style={{ opacity: panelOpacity, flex: 1, display: "flex" }}>
                 <DemoQueryPanel
-                  typingStart={60}
-                  answerStart={150}
-                  answerRevealStart={185}
-                  evidenceStart={300}
+                  typingStart={TYPING_START}
+                  answerStart={ANSWER_START}
+                  answerRevealStart={ANSWER_REVEAL}
+                  evidenceStart={EVIDENCE_START}
                 />
               </div>
             </div>

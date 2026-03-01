@@ -1,5 +1,10 @@
 import React from "react";
-import { useCurrentFrame, useVideoConfig, spring, interpolate } from "remotion";
+import {
+  useCurrentFrame,
+  useVideoConfig,
+  spring,
+  interpolate,
+} from "remotion";
 import { COLORS, SPRING_CONFIG } from "../../lib/constants";
 
 const FILES = [
@@ -10,13 +15,40 @@ const FILES = [
   "Board-Deck-Q1.pdf",
 ];
 
+const DROP_STAGGER = 7;
+const READY_STAGGER = 5;
+
 interface DemoSidebarProps {
-  showFrom: number;
+  dropStart: number;
+  indexStart: number;
+  readyStart: number;
 }
 
-export const DemoSidebar: React.FC<DemoSidebarProps> = ({ showFrom }) => {
+export const DemoSidebar: React.FC<DemoSidebarProps> = ({
+  dropStart,
+  indexStart,
+  readyStart,
+}) => {
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
+
+  // Drop zone fades out as files land
+  const lastDropFrame = dropStart + (FILES.length - 1) * DROP_STAGGER;
+  const dropZoneOpacity = interpolate(
+    frame,
+    [dropStart - 5, lastDropFrame + 10],
+    [1, 0],
+    { extrapolateLeft: "clamp", extrapolateRight: "clamp" },
+  );
+
+  // File count — increments as each file drops
+  const visibleCount =
+    frame >= dropStart
+      ? Math.min(
+          FILES.length,
+          Math.floor((frame - dropStart) / DROP_STAGGER) + 1,
+        )
+      : 0;
 
   return (
     <div
@@ -84,37 +116,136 @@ export const DemoSidebar: React.FC<DemoSidebarProps> = ({ showFrom }) => {
           flexDirection: "column",
           gap: 2,
           flex: 1,
+          position: "relative",
         }}
       >
+        {/* Drop zone overlay */}
+        {dropZoneOpacity > 0.01 && (
+          <div
+            style={{
+              position: "absolute",
+              inset: 0,
+              border: "1.5px dashed rgba(255,255,255,0.18)",
+              display: "flex",
+              flexDirection: "column",
+              alignItems: "center",
+              justifyContent: "center",
+              gap: 10,
+              opacity: dropZoneOpacity,
+              pointerEvents: "none" as const,
+            }}
+          >
+            <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
+              <path
+                d="M12 4v12M8 8l4-4 4 4"
+                stroke="rgba(255,255,255,0.25)"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+              <path
+                d="M4 17v3h16v-3"
+                stroke="rgba(255,255,255,0.25)"
+                strokeWidth="1.5"
+                strokeLinecap="round"
+                strokeLinejoin="round"
+              />
+            </svg>
+            <span style={{ fontSize: 12, color: "rgba(255,255,255,0.25)" }}>
+              Drop PDFs here
+            </span>
+          </div>
+        )}
+
+        {/* File items */}
         {FILES.map((file, i) => {
-          const stagger = showFrom + i * 5;
-          const progress = spring({
-            frame: frame - stagger,
+          const fileDropFrame = dropStart + i * DROP_STAGGER;
+          const fileReadyFrame = readyStart + i * READY_STAGGER;
+
+          // Drop entrance — spring from the right with slight rotation
+          const dropP = spring({
+            frame: frame - fileDropFrame,
             fps,
             config: SPRING_CONFIG,
           });
-          const x = interpolate(progress, [0, 1], [-20, 0]);
+          const dropX = interpolate(dropP, [0, 1], [40, 0]);
+          const dropRot = interpolate(dropP, [0, 1], [3, 0]);
+
+          // Status phases
+          const isIndexing = frame >= indexStart && frame < fileReadyFrame;
+          const isReady = frame >= fileReadyFrame;
+
+          // Ready badge entrance
+          const readyP = spring({
+            frame: frame - fileReadyFrame,
+            fps,
+            config: SPRING_CONFIG,
+          });
+          const readyScale = interpolate(readyP, [0, 1], [0.6, 1]);
+
+          // Indexing dots cycle
+          const dotCount = isIndexing
+            ? (Math.floor((frame - indexStart) / 8) % 3) + 1
+            : 0;
+
+          // Indexing pulse
+          const indexAlpha = isIndexing
+            ? interpolate(Math.sin(frame * 0.15), [-1, 1], [0.5, 1])
+            : 0;
+
           return (
             <div
               key={file}
               style={{
-                opacity: progress,
-                transform: `translateX(${x}px)`,
+                opacity: dropP,
+                transform: `translateX(${dropX}px) rotate(${dropRot}deg)`,
                 display: "flex",
                 alignItems: "center",
                 gap: 8,
                 padding: "8px 4px",
               }}
             >
-              {/* Checkbox */}
-              <div
-                style={{
-                  width: 15,
-                  height: 15,
-                  border: `1px solid ${COLORS.line}`,
-                  flexShrink: 0,
-                }}
-              />
+              {/* Checkbox — filled when ready */}
+              {isReady ? (
+                <svg
+                  width="15"
+                  height="15"
+                  viewBox="0 0 15 15"
+                  style={{
+                    flexShrink: 0,
+                    opacity: readyP,
+                    transform: `scale(${readyScale})`,
+                  }}
+                >
+                  <rect
+                    x="0.5"
+                    y="0.5"
+                    width="14"
+                    height="14"
+                    fill="rgba(74, 222, 128, 0.12)"
+                    stroke="#4ade80"
+                    strokeWidth="1"
+                  />
+                  <path
+                    d="M 3.5,7.5 L 6,10.5 L 11.5,4.5"
+                    stroke="#4ade80"
+                    strokeWidth="1.5"
+                    fill="none"
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                  />
+                </svg>
+              ) : (
+                <div
+                  style={{
+                    width: 15,
+                    height: 15,
+                    border: `1px solid ${COLORS.line}`,
+                    flexShrink: 0,
+                  }}
+                />
+              )}
+
               {/* File icon */}
               <svg
                 width="14"
@@ -156,6 +287,7 @@ export const DemoSidebar: React.FC<DemoSidebarProps> = ({ showFrom }) => {
                   strokeWidth="0.7"
                 />
               </svg>
+
               {/* Filename */}
               <span
                 style={{
@@ -169,17 +301,34 @@ export const DemoSidebar: React.FC<DemoSidebarProps> = ({ showFrom }) => {
               >
                 {file}
               </span>
-              {/* Ready badge */}
-              <span
-                style={{
-                  fontSize: 11,
-                  color: "#4ade80",
-                  fontWeight: 700,
-                  flexShrink: 0,
-                }}
-              >
-                Ready
-              </span>
+
+              {/* Status badge */}
+              {isReady ? (
+                <span
+                  style={{
+                    fontSize: 11,
+                    color: "#4ade80",
+                    fontWeight: 700,
+                    flexShrink: 0,
+                    transform: `scale(${readyScale})`,
+                    display: "inline-block",
+                  }}
+                >
+                  Ready
+                </span>
+              ) : isIndexing ? (
+                <span
+                  style={{
+                    fontSize: 11,
+                    color: "#fbbf24",
+                    fontWeight: 700,
+                    flexShrink: 0,
+                    opacity: indexAlpha,
+                  }}
+                >
+                  Indexing{".".repeat(dotCount)}
+                </span>
+              ) : null}
             </div>
           );
         })}
@@ -201,7 +350,7 @@ export const DemoSidebar: React.FC<DemoSidebarProps> = ({ showFrom }) => {
             color: COLORS.seaInkSoft,
           }}
         >
-          {FILES.length} files total
+          {visibleCount} file{visibleCount !== 1 ? "s" : ""} total
         </div>
         <div
           style={{
