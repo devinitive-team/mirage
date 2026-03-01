@@ -7,7 +7,10 @@ This file specifies the user-facing interface behavior. Update it as UI features
 Frontend is split across two apps:
 
 - `web/`: React 19, TanStack (Router, Query, Form, Table), Vite, Tailwind CSS, Biome (lint + format).
-- `marketing/`: Astro 5 for the public landing site.
+- `marketing/`: Astro 5 + Tailwind CSS for the public landing site.
+
+For the `web/` app, Tailwind CSS is the default styling system for UI components and layout.
+For the `marketing/` app, Tailwind CSS is the default styling system for page and component styling. Do not use global.css.
 
 ## Product App Controls (`web/`)
 

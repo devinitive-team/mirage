@@ -36,8 +36,8 @@ React 19 + TanStack (Router, Query, Form, Table) + Vite + Tailwind CSS + Biome.
 
 ### `marketing/` — Astro marketing site
 
+- `marketing/src` — Astro + Tailwind CSS marketing app.
 - `marketing/src/pages` — Route entrypoints for public marketing pages.
-- `marketing/src/styles` — Global and page-level marketing styling.
 
 ## Invariants
 
