@@ -1,22 +1,22 @@
-# Mirage Video (Remotion)
+# Mirage Video Project (`video`)
 
 Remotion project for rendering Mirage video assets.
 
-## Current state
+## Current State
 
-- Registers a single composition:
+- Registers one composition:
   - `id`: `promo`
   - `size`: `1280x720`
   - `fps`: `30`
   - `duration`: `60` frames
-- `src/Composition.tsx` currently returns `null`, so the rendered output is a blank composition until content is added.
+- `src/Composition.tsx` currently returns `null`, so rendered output is blank until composition content is implemented.
 
-## Requirements
+## Prerequisites
 
 - Node.js 22+
 - npm
 
-## Local development
+## Quick Start
 
 ```bash
 cd video
@@ -26,17 +26,9 @@ npm run dev
 
 This opens Remotion Studio.
 
-## Render
-
-```bash
-cd video
-mkdir -p out
-npx remotion render --port=3041 src/index.ts promo out/promo.mp4
-```
-
-Default artifact path: `video/out/promo.mp4`.
-
 ## Commands
+
+NPM scripts:
 
 ```bash
 npm run dev     # remotion studio
@@ -45,9 +37,15 @@ npm run lint    # eslint src && tsc
 npm run upgrade # remotion upgrade
 ```
 
-## Task shortcuts
+Manual render:
 
-From repo root:
+```bash
+cd video
+mkdir -p out
+npx remotion render --port=3041 src/index.ts promo out/promo.mp4
+```
+
+Taskfile shortcuts from repo root:
 
 ```bash
 task video:install
@@ -60,7 +58,7 @@ task video:validate
 task render
 ```
 
-From `video/`:
+Taskfile shortcuts from `video/`:
 
 ```bash
 task install
@@ -70,3 +68,13 @@ task lint
 task compositions
 task render
 ```
+
+## Output
+
+- Default render artifact: `video/out/promo.mp4`
+
+## Related Docs
+
+- Root overview: [`../README.md`](../README.md)
+- Docs index: [`../docs/README.md`](../docs/README.md)
+- Frontend contract: [`../docs/FRONTEND.md`](../docs/FRONTEND.md)

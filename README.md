@@ -1,55 +1,132 @@
 # Mirage
 
-Universal, relevance search over your PDF documents at any scale. Unbounded by the limits of LLMs context window.
+Built during the **Mistral Worldwide Hackathon 2026**, Mirage is an AI-powered document search system for PDF-heavy workflows.
 
-Mirage is an AI-powered document search system using page-index algorithm.
+Mirage lets you upload PDFs, ask questions in plain language, and get answers with page-level evidence so results are reviewable and traceable.
 
-It helps teams find answers inside large sets of PDFs without manually tagging or keyword tuning. You upload documents, Mirage indexes them, and you ask questions in plain language. The system returns answers with page-level evidence so results are verifiable.
+Mirage uses **PageIndex: Document Index for Vectorless, Reasoning-based RAG**.
 
-In this repository, Mirage is a monorepo with:
+## Founders
 
-- `srv/`: Go backend API for ingestion, OCR/indexing, retrieval, and history.
-- `web/`: React app for upload, search, and evidence review.
-- `marketing/`: Astro marketing site.
-- `video/`: Remotion project for product videos.
+- [Łukasz Gut](https://github.com/Blinkuu)
+- [Kacper Kapuściak](https://github.com/kacperkapusciak)
+- [Mateusz Kutyna](https://github.com/KutynaMateusz)
 
-## Getting Started
+## What Mirage Does
+
+- Ingests PDF documents through a REST API.
+- Processes documents asynchronously (OCR + hierarchical indexing).
+- Answers natural-language questions against indexed documents.
+- Returns evidence references with deterministic page ranges.
+- Supports evidence preview flows in the web UI, including query history.
+
+## Repository Layout
+
+- `srv/` - Go backend API and indexing/retrieval pipeline.
+- `web/` - React app for upload, query, and evidence review.
+- `marketing/` - Astro marketing site.
+- `video/` - Remotion project for video assets.
+- `docs/` - system-of-record documentation.
+
+Project-specific READMEs:
+
+- [`srv/README.md`](srv/README.md)
+- [`web/README.md`](web/README.md)
+- [`marketing/README.md`](marketing/README.md)
+- [`video/README.md`](video/README.md)
+
+## Quick Start
+
+### Prerequisites
+
+- [Go](https://go.dev/) 1.24+
+- [Node.js](https://nodejs.org/) 22+
+- [Task](https://taskfile.dev/)
+- A [Mistral](https://mistral.ai/) API key
+
+### 1. Configure backend env
 
 ```bash
-cp srv/.env.example srv/.env   # fill in your API key
-task setup                     # install dependencies
-task run                       # start server and frontend
+cp srv/.env.example srv/.env
 ```
 
-The server starts on `:2137` by default (`LISTEN_ADDR`) and the frontend on `:3000`.
+Set at minimum:
 
-If the frontend is served from a different origin than the API, configure CORS in `srv/.env`:
+```env
+MISTRAL_API_KEY=your_key_here
+```
+
+### 2. Install dependencies
+
+```bash
+task setup
+```
+
+### 3. Run app stack (API + web)
+
+```bash
+task run
+```
+
+Default local endpoints:
+
+- Web app: `http://localhost:3000`
+- API health: `http://localhost:2137/health`
+
+If your web app is served from a different origin, configure CORS in `srv/.env`, for example:
 
 ```env
 CORS_ALLOWED_ORIGINS=http://localhost:3000
 ```
 
-## Video Project (Remotion)
+## Running Sub-Projects
 
-A dedicated `video/` project is available for generating videos with Remotion.
-
-Get started by running:
+### Marketing site
 
 ```bash
-cd video
-npm i
-npm run dev
+task marketing:install
+task marketing:dev
 ```
 
-To render a video, run:
+Runs on `http://localhost:4321` in development.
+
+### Video project
 
 ```bash
-npx remotion render
+task video:install
+task video:dev
 ```
 
-## Dependencies
+Render artifact:
 
-- [Go](https://go.dev/) 1.24+
-- [Node.js](https://nodejs.org/) 22+
-- [Task](https://taskfile.dev/) (task runner)
-- A [Mistral](https://mistral.ai/) API key
+```bash
+task video:render
+```
+
+## Developer Commands
+
+```bash
+task build
+task format
+task lint
+task typecheck
+task test
+```
+
+OpenAPI/Type generation:
+
+```bash
+task codegen
+```
+
+## Current Scope and Limitations
+
+- PDF ingestion is implemented; other file types are not part of the current backend ingest API.
+- Designed as a single-user/trusted-network MVP (no authentication yet).
+- Files are stored on local filesystem storage (no encryption at rest in current implementation).
+- CORS is opt-in via environment configuration.
+- Evidence ranges are deterministic section/page ranges, not mention-level text spans.
+
+## Documentation
+
+Start with [`docs/README.md`](docs/README.md) for the canonical docs index.

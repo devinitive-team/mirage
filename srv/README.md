@@ -2,20 +2,20 @@
 
 Go backend for document ingestion, indexing, query answering, and query history.
 
-## What this project does
+## What This Service Does
 
-- Accepts PDF uploads.
-- Runs OCR + indexing asynchronously in a worker pool.
-- Stores document metadata, source PDF, extracted pages, index tree, and query history on local filesystem storage.
-- Answers natural-language queries with evidence references.
-- Exposes OpenAPI for API type generation used by the web app.
+- Accepts PDF uploads through the REST API.
+- Runs OCR + PageIndex building asynchronously in a worker pool.
+- Stores document metadata, source PDF, pages, tree index, and query history on local filesystem storage.
+- Answers natural-language questions with evidence references.
+- Exposes OpenAPI used by the web app for generated TypeScript types.
 
-## Requirements
+## Prerequisites
 
 - Go 1.24+
-- A Mistral API key
+- Mistral API key
 
-## Local development
+## Quick Start
 
 ```bash
 cd srv
@@ -26,16 +26,18 @@ task install
 task run
 ```
 
-Server default listen address: `:2137`.
+Default listen address: `:2137`.
 
-## CLI commands
+## Commands
+
+CLI:
 
 ```bash
 go run ./cmd/mirage run      # start HTTP server
 go run ./cmd/mirage openapi  # print OpenAPI JSON to stdout
 ```
 
-## Task commands
+Taskfile:
 
 ```bash
 task install  # go mod download
@@ -47,7 +49,7 @@ task lint     # go vet ./...
 task clean    # remove data/
 ```
 
-## API endpoints
+## API Endpoints
 
 - `GET /health`
 - `POST /api/v1/documents`
@@ -62,7 +64,7 @@ task clean    # remove data/
 
 ## Configuration
 
-Loaded from environment variables (see `.env.example` for baseline):
+Environment variables (see `.env.example`):
 
 - `LISTEN_ADDR` (default `:2137`)
 - `MISTRAL_API_KEY` (required)
@@ -81,7 +83,7 @@ Loaded from environment variables (see `.env.example` for baseline):
 - `CORS_MAX_AGE` (default `300`)
 - `HISTORY_MAX_ENTRIES` (default `10`)
 
-## Storage layout
+## Storage Layout
 
 Under `DATA_DIR`:
 
@@ -91,12 +93,23 @@ Under `DATA_DIR`:
 - `documents/<doc-id>/tree.json`
 - `history.json`
 
-Writes are performed atomically (temp file + rename).
+Writes are atomic (temp file + rename).
 
-## Testing and validation
+## Current Scope
+
+- Upload flow is PDF-focused in current API implementation.
+- Single-user / trusted-network MVP (no auth yet).
+
+## Validation
 
 ```bash
 cd srv
 task test
 task lint
 ```
+
+## Related Docs
+
+- Root overview: [`../README.md`](../README.md)
+- Docs index: [`../docs/README.md`](../docs/README.md)
+- Architecture: [`../docs/ARCHITECTURE.md`](../docs/ARCHITECTURE.md)
