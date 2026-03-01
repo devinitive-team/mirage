@@ -1,8 +1,10 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from "react";
+import { X } from "lucide-react";
 
 import type { ReferenceListItemData } from "#/components/ReferenceListItem";
 import {
 	Dialog,
+	DialogClose,
 	DialogContent,
 	DialogDescription,
 	DialogHeader,
@@ -64,7 +66,10 @@ export function PreviewDialog({
 
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
-			<DialogContent className="flex h-[85vh] max-h-[85vh] w-[70vw] max-w-[70vw] flex-col overflow-hidden p-0 sm:max-w-[70vw]">
+			<DialogContent
+				showCloseButton={false}
+				className="flex h-[85vh] max-h-[85vh] w-[70vw] max-w-[70vw] flex-col overflow-hidden p-0 sm:max-w-[70vw]"
+			>
 				<div className="relative flex h-full min-h-0 w-full flex-col">
 					{reference && (
 						<DialogHeader className="shrink-0 border-b border-[var(--line)] px-6 pt-6 pb-3">
@@ -75,33 +80,44 @@ export function PreviewDialog({
 									</DialogTitle>
 									<DialogDescription>{contextLabel}</DialogDescription>
 								</div>
-								<fieldset className="inline-flex items-center gap-1 rounded-md border border-[var(--line)] bg-[var(--sand)] p-1">
-									<legend className="sr-only">Preview page mode</legend>
-									<button
-										type="button"
-										className={`rounded px-2.5 py-1 text-xs font-medium transition ${
-											mode === "evidence"
-												? "bg-[var(--lagoon)] text-white"
-												: "text-[var(--sea-ink)] hover:bg-white"
-										}`}
-										aria-pressed={mode === "evidence"}
-										onClick={() => setMode("evidence")}
-									>
-										Evidence pages
-									</button>
-									<button
-										type="button"
-										className={`rounded px-2.5 py-1 text-xs font-medium transition ${
-											mode === "document"
-												? "bg-[var(--lagoon)] text-white"
-												: "text-[var(--sea-ink)] hover:bg-white"
-										}`}
-										aria-pressed={mode === "document"}
-										onClick={() => setMode("document")}
-									>
-										Whole document
-									</button>
-								</fieldset>
+								<div className="flex items-center gap-2 self-start">
+									<fieldset className="inline-flex items-center gap-1 rounded-md border border-[var(--line)] bg-[var(--sand)] p-1">
+										<legend className="sr-only">Preview page mode</legend>
+										<button
+											type="button"
+											className={`rounded border px-2.5 py-1 text-xs font-medium transition-colors ${
+												mode === "evidence"
+													? "border-[var(--lagoon)] bg-[var(--lagoon)] text-[var(--sand)]"
+													: "border-transparent text-[var(--sea-ink)] hover:bg-[var(--surface)]"
+											}`}
+											aria-pressed={mode === "evidence"}
+											onClick={() => setMode("evidence")}
+										>
+											Evidence pages
+										</button>
+										<button
+											type="button"
+											className={`rounded border px-2.5 py-1 text-xs font-medium transition-colors ${
+												mode === "document"
+													? "border-[var(--lagoon)] bg-[var(--lagoon)] text-[var(--sand)]"
+													: "border-transparent text-[var(--sea-ink)] hover:bg-[var(--surface)]"
+											}`}
+											aria-pressed={mode === "document"}
+											onClick={() => setMode("document")}
+										>
+											Whole document
+										</button>
+									</fieldset>
+									<div className="inline-flex items-center rounded-md border border-[var(--line)] bg-[var(--sand)] p-1">
+										<DialogClose
+											className="inline-flex items-center justify-center rounded border border-transparent px-2.5 py-1 text-xs font-medium text-[var(--sea-ink-soft)] transition-colors hover:border-[var(--line)] hover:bg-[var(--surface)] hover:text-[var(--sea-ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lagoon)] focus-visible:ring-offset-2"
+											aria-label="Close preview"
+										>
+											<X className="h-4 w-4" />
+											<span className="sr-only">Close</span>
+										</DialogClose>
+									</div>
+								</div>
 							</div>
 						</DialogHeader>
 					)}
