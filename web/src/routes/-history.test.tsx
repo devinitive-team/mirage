@@ -9,6 +9,15 @@ import {
 } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+vi.mock("#/lib/pdfjs", () => ({
+	loadPdfJs: vi.fn(async () => ({
+		getDocument: vi.fn(() => ({
+			promise: Promise.reject(new Error("mocked thumbnail load failure")),
+			destroy: vi.fn(async () => undefined),
+		})),
+	})),
+}));
+
 import type { HistoryEntry } from "#/lib/types";
 import { HistoryPage } from "#/routes/history";
 

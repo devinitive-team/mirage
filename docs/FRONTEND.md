@@ -21,7 +21,7 @@ For the `video/` app, use Remotion primitives for timeline-driven visuals and va
   Status labels are user-facing: `Uploaded` (backend `pending`), `Processing`, `Ready`, `Failed`.
 - Upload and delete actions show non-blocking toast notifications for success and error outcomes.
 - Query input: text field for natural-language questions, scoped to selected ready documents (or all ready documents when none are selected).
-- Results: evidence cards grouped by document; each card contains clickable page-range entries (with section title) that open the PDF preview on the selected evidence pages.
+- Results: evidence cards grouped by document; each group renders a responsive grid of clickable preview tiles (scales from one column up to six columns by viewport), each tile showing a page screenshot and, for multi-page evidence, additional rendered PDF pages stacked behind the first one, and opens the PDF preview on the selected evidence pages.
 - Preview dialog modes: `Evidence pages` (render only selected pages) and `Whole document` (render entire PDF), both with page-range highlights.
 - Header navigation: route links for `Dashboard` and `History`.
 - Route transition motion: dashboard/history route changes cross-fade the main content with fade-out/fade-in animation.

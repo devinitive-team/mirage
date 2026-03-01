@@ -2,6 +2,21 @@
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
 import { afterEach, describe, expect, it, vi } from "vitest";
 
+vi.mock("#/lib/api", () => ({
+	getDocumentPdfUrl: vi.fn(
+		(documentId: string) => `/api/v1/documents/${documentId}/pdf`,
+	),
+}));
+
+vi.mock("#/lib/pdfjs", () => ({
+	loadPdfJs: vi.fn(async () => ({
+		getDocument: vi.fn(() => ({
+			promise: Promise.reject(new Error("mocked thumbnail load failure")),
+			destroy: vi.fn(async () => undefined),
+		})),
+	})),
+}));
+
 import {
 	ReferenceListItem,
 	groupReferencesByDocument,
