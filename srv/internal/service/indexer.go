@@ -7,9 +7,11 @@ import (
 	"log/slog"
 	"strconv"
 	"strings"
+	"sync/atomic"
 
 	"github.com/devinitive-team/mirage/internal/domain"
 	"github.com/devinitive-team/mirage/internal/port"
+	"golang.org/x/sync/errgroup"
 )
 
 type Indexer struct {
@@ -34,11 +36,12 @@ func NewIndexer(llm port.LLMProvider, storage indexStore, maxPagesPerNode, maxTo
 
 // tocItem is the flat intermediate produced by all processing modes.
 type tocItem struct {
-	Structure   string // hierarchical label: "1", "1.1", "1.2"
-	Title       string
-	StartPage   int  // physical page index (0-based)
-	EndPage     int  // computed in post-processing
-	AppearStart bool // true if section starts at beginning of its page
+	Structure          string // hierarchical label: "1", "1.1", "1.2"
+	Title              string
+	StartPage          int  // physical page index (0-based)
+	EndPage            int  // computed in post-processing
+	AppearStart        bool // true if section starts at beginning of its page
+	AppearStartChecked bool // true if appear_start was already evaluated
 }
 
 type tocResult struct {
@@ -78,9 +81,11 @@ type tocPagePair struct {
 const (
 	tocDetectPageCount       = 20
 	tocCalibrationPageWindow = 20
-	maxGroupChars           = 80000 // ~20k tokens
-	verifyAccuracyThreshold = 0.6
+	maxGroupChars            = 80000 // ~20k tokens
+	verifyAccuracyThreshold  = 0.6
 	maxFixRetries            = 3
+	itemEvalWorkerLimit      = 3
+	summaryWorkerLimit       = 3
 )
 
 const tocSectionDefsJSONSchema = `
@@ -123,6 +128,9 @@ func (s *Indexer) Build(ctx context.Context, docID string, pages []domain.Page) 
 	}
 	slog.InfoContext(ctx, "structure processed", "item_count", len(items))
 
+	beforeFilter := len(items)
+	items = sanitizeAndFilterItems(items, len(pages))
+	filteredCount := beforeFilter - len(items)
 	items = addPrefaceIfNeeded(items)
 
 	if err := s.checkAppearStart(ctx, items, pages); err != nil {
@@ -131,9 +139,7 @@ func (s *Indexer) Build(ctx context.Context, docID string, pages []domain.Page) 
 	}
 
 	computeEndPages(items, len(pages))
-	beforeFilter := len(items)
-	items = filterInvalidItems(items)
-	slog.InfoContext(ctx, "items finalized", "valid", len(items), "filtered", beforeFilter-len(items))
+	slog.InfoContext(ctx, "items finalized", "valid", len(items), "filtered", filteredCount)
 
 	root := listToTree(items, len(pages))
 	slog.InfoContext(ctx, "tree built", "child_count", len(root.Children))
@@ -173,15 +179,149 @@ func (s *Indexer) Build(ctx context.Context, docID string, pages []domain.Page) 
 // ---------------------------------------------------------------------------
 
 func (s *Indexer) detectTOC(ctx context.Context, pages []domain.Page) (tocResult, error) {
-	n := min(tocDetectPageCount, len(pages))
+	if len(pages) == 0 {
+		return emptyTOCResult(), nil
+	}
+	slog.InfoContext(ctx, "toc detection started", "page_count", len(pages))
+
+	tocPages, err := s.findTOCPages(ctx, pages, 0)
+	if err != nil {
+		return tocResult{}, err
+	}
+	if len(tocPages) == 0 {
+		slog.InfoContext(ctx, "toc detection complete", "reason", "no_toc_pages_found")
+		return emptyTOCResult(), nil
+	}
+
+	result, err := s.detectTOCInPages(ctx, pages, tocPages)
+	if err != nil {
+		return tocResult{}, err
+	}
+	if result.HasPageNumbers {
+		return result, nil
+	}
+	slog.InfoContext(ctx, "toc detected without page numbers; extending search", "toc_end_page", result.TOCEndPage)
+
+	currentStart := tocPages[len(tocPages)-1] + 1
+	for !result.HasPageNumbers && currentStart < len(pages) && currentStart < tocDetectPageCount {
+		additionalPages, err := s.findTOCPages(ctx, pages, currentStart)
+		if err != nil {
+			return tocResult{}, err
+		}
+		if len(additionalPages) == 0 {
+			slog.InfoContext(ctx, "toc extension stopped", "reason", "no_additional_toc_pages", "start_page", currentStart)
+			break
+		}
+
+		additionalResult, err := s.detectTOCInPages(ctx, pages, additionalPages)
+		if err != nil {
+			return tocResult{}, err
+		}
+		if additionalResult.HasPageNumbers {
+			slog.InfoContext(ctx, "toc extension complete", "has_page_numbers", true, "toc_end_page", additionalResult.TOCEndPage)
+			return additionalResult, nil
+		}
+
+		currentStart = additionalPages[len(additionalPages)-1] + 1
+	}
+
+	slog.InfoContext(ctx, "toc detection complete", "has_page_numbers", false, "toc_end_page", result.TOCEndPage)
+	return result, nil
+}
+
+func emptyTOCResult() tocResult {
+	return tocResult{
+		HasTOC:         false,
+		HasPageNumbers: false,
+		TOCEndPage:     -1,
+		Sections:       nil,
+	}
+}
+
+func (s *Indexer) findTOCPages(ctx context.Context, pages []domain.Page, startPage int) ([]int, error) {
+	if startPage < 0 || startPage >= len(pages) {
+		return nil, nil
+	}
+
+	lastPageIsTOC := false
+	tocPages := make([]int, 0)
+	scannedPages := 0
+
+	for i := startPage; i < len(pages); i++ {
+		if i >= tocDetectPageCount && !lastPageIsTOC {
+			break
+		}
+		scannedPages++
+
+		detected, err := s.tocDetectorSinglePage(ctx, pages[i].Markdown)
+		if err != nil {
+			return nil, fmt.Errorf("detect toc single page %d: %w", pages[i].Index, err)
+		}
+
+		if detected {
+			tocPages = append(tocPages, i)
+			lastPageIsTOC = true
+			continue
+		}
+
+		if lastPageIsTOC {
+			break
+		}
+	}
+
+	slog.InfoContext(ctx, "toc page scan complete", "start_page", startPage, "scanned", scannedPages, "toc_pages", len(tocPages))
+	return tocPages, nil
+}
+
+func (s *Indexer) tocDetectorSinglePage(ctx context.Context, pageText string) (bool, error) {
+	messages := []port.ChatMessage{
+		{Role: "system", Content: "You are a document analysis assistant. Determine if the given page contains a table of contents. Abstract, summary, list of figures, list of tables, and notation pages are not table of contents pages."},
+		{Role: "user", Content: fmt.Sprintf("Page text:\n%s\n\nReturn whether this page is part of a table of contents.", pageText)},
+	}
+
+	schema := `{
+		"type": "object",
+		"additionalProperties": false,
+		"properties": {
+			"has_toc": { "type": "boolean" }
+		},
+		"required": ["has_toc"]
+	}`
+
+	var result struct {
+		HasTOC bool `json:"has_toc"`
+	}
+	if err := completeAndDecodeJSON(ctx, s.llm, messages, schema, &result); err != nil {
+		return false, err
+	}
+	return result.HasTOC, nil
+}
+
+func (s *Indexer) detectTOCInPages(ctx context.Context, pages []domain.Page, tocPageIndices []int) (tocResult, error) {
+	if len(tocPageIndices) == 0 {
+		return emptyTOCResult(), nil
+	}
+	slog.InfoContext(ctx, "toc extraction started", "candidate_pages", len(tocPageIndices))
+
+	var subset []domain.Page
+	for _, idx := range tocPageIndices {
+		if idx < 0 || idx >= len(pages) {
+			continue
+		}
+		subset = append(subset, pages[idx])
+	}
+	if len(subset) == 0 {
+		return emptyTOCResult(), nil
+	}
+
 	var sb strings.Builder
-	for _, p := range pages[:n] {
+	for _, p := range subset {
 		fmt.Fprintf(&sb, "<page_%d>\n%s\n</page_%d>\n\n", p.Index, p.Markdown, p.Index)
 	}
 
 	messages := []port.ChatMessage{
-		{Role: "system", Content: "You are a document analysis assistant. Analyze the following pages and determine if they contain a table of contents. Each page is wrapped in <page_N> tags where N is the physical page index. If a TOC is present, extract sections using page labels printed in the TOC itself (not physical tag numbers). Return only integer page labels; if a label is missing or non-numeric, use -1. Also return toc_end_page as the N of the last TOC page in the provided input. If no TOC exists, return has_toc=false, toc_end_page=-1, sections=[]."},
-		{Role: "user", Content: fmt.Sprintf("Analyze these pages for a table of contents. If found, return section title/start_page/end_page/subsections using printed TOC page labels (integers) and return toc_end_page from <page_N> tags.\n\n%s", sb.String())},
+		{Role: "system", Content: "You are a document analysis assistant. Analyze the following TOC candidate pages and extract the table of contents. Return has_toc=true when a TOC is present. Extract sections using page labels printed in the TOC itself (not physical tag numbers). Return integer page labels; if a label is missing or non-numeric, use -1. Set toc_end_page to the physical page index of the last TOC page in the provided input."},
+		{Role: "user", Content: fmt.Sprintf("Analyze these pages for table of contents structure and page labels.\n\n%s", sb.String())},
 	}
 
 	schema := `{
@@ -200,8 +340,8 @@ func (s *Indexer) detectTOC(ctx context.Context, pages []domain.Page) (tocResult
 	if err := completeAndDecodeJSON(ctx, s.llm, messages, schema, &result); err != nil {
 		return tocResult{}, fmt.Errorf("unmarshal toc result: %w", err)
 	}
+	result.TOCEndPage = pages[tocPageIndices[len(tocPageIndices)-1]].Index
 
-	// Infer HasPageNumbers from section data.
 	if result.HasTOC {
 		for _, sec := range result.Sections {
 			if sectionHasPageNumbers(sec) {
@@ -211,6 +351,7 @@ func (s *Indexer) detectTOC(ctx context.Context, pages []domain.Page) (tocResult
 		}
 	}
 
+	slog.InfoContext(ctx, "toc extraction complete", "has_toc", result.HasTOC, "has_page_numbers", result.HasPageNumbers, "section_count", len(result.Sections), "toc_end_page", result.TOCEndPage)
 	return result, nil
 }
 
@@ -233,58 +374,106 @@ func sectionHasPageNumbers(sec tocSection) bool {
 func (s *Indexer) processWithFallback(ctx context.Context, toc tocResult, pages []domain.Page) ([]tocItem, error) {
 	if toc.HasTOC && toc.HasPageNumbers {
 		slog.InfoContext(ctx, "trying mode 1: toc with page numbers")
-		items, err := s.processTOCWithPageNumbersCalibrated(ctx, toc, pages)
-		if err == nil {
-			accuracy, incorrectIndices, verr := s.verifyItems(ctx, items, pages)
-			if verr == nil {
-				slog.InfoContext(ctx, "mode 1 verified", "accuracy", accuracy, "incorrect", len(incorrectIndices), "total", len(items))
-				if accuracy == 1.0 {
-					return items, nil
-				}
-				if accuracy >= verifyAccuracyThreshold {
-					if ferr := s.fixIncorrectItems(ctx, items, incorrectIndices, pages); ferr == nil {
-						return items, nil
-					}
-					slog.WarnContext(ctx, "mode 1 fix failed, falling through")
-				} else {
-					slog.WarnContext(ctx, "mode 1 accuracy too low, falling through", "accuracy", accuracy)
-				}
-			} else {
-				slog.WarnContext(ctx, "mode 1 verification failed, falling through", "error", verr)
-			}
-		} else {
-			slog.WarnContext(ctx, "mode 1 processing failed, falling through", "error", err)
+		if items, ok := s.runModeWithVerification(ctx, "mode 1", pages, func(ctx context.Context) ([]tocItem, error) {
+			return s.processTOCWithPageNumbersCalibrated(ctx, toc, pages)
+		}); ok {
+			return items, nil
+		}
+		slog.InfoContext(ctx, "trying mode 2: toc without page numbers (fallback from mode 1)")
+		if items, ok := s.runModeWithVerification(ctx, "mode 2", pages, func(ctx context.Context) ([]tocItem, error) {
+			return s.processTOCNoPageNumbers(ctx, toc, pages)
+		}); ok {
+			return items, nil
+		}
+	} else if toc.HasTOC {
+		// Upstream behavior: when TOC has no page numbers, start directly from
+		// no-TOC mode.
+		slog.InfoContext(ctx, "toc without page numbers: starting from mode 3")
+	}
+
+	slog.InfoContext(ctx, "trying mode 3: no toc (chunked incremental)")
+	if items, ok := s.runModeWithVerification(ctx, "mode 3", pages, func(ctx context.Context) ([]tocItem, error) {
+		return s.processNoTOC(ctx, pages)
+	}); ok {
+		return items, nil
+	}
+
+	return nil, fmt.Errorf("all indexing modes failed verification")
+}
+
+func (s *Indexer) runModeWithVerification(
+	ctx context.Context,
+	modeName string,
+	pages []domain.Page,
+	run func(context.Context) ([]tocItem, error),
+) ([]tocItem, bool) {
+	items, err := run(ctx)
+	if err != nil {
+		slog.WarnContext(ctx, modeName+" processing failed", "error", err)
+		return nil, false
+	}
+
+	items = sanitizeAndFilterItems(items, len(pages))
+	if len(items) == 0 {
+		slog.WarnContext(ctx, modeName+" produced no valid items")
+		return nil, false
+	}
+
+	accuracy, incorrectIndices, err := s.verifyItems(ctx, items, pages)
+	if err != nil {
+		slog.WarnContext(ctx, modeName+" verification failed", "error", err)
+		return nil, false
+	}
+	slog.InfoContext(ctx, modeName+" verified", "accuracy", accuracy, "incorrect", len(incorrectIndices), "total", len(items))
+
+	if accuracy == 1.0 {
+		return items, true
+	}
+	if accuracy < verifyAccuracyThreshold {
+		slog.WarnContext(ctx, modeName+" accuracy too low", "accuracy", accuracy)
+		return nil, false
+	}
+
+	if err := s.fixIncorrectItems(ctx, items, incorrectIndices, pages); err != nil {
+		slog.WarnContext(ctx, modeName+" fix failed", "error", err)
+		return nil, false
+	}
+
+	items = sanitizeAndFilterItems(items, len(pages))
+	if len(items) == 0 {
+		slog.WarnContext(ctx, modeName+" has no items after fixing")
+		return nil, false
+	}
+
+	accuracy, incorrectIndices, err = s.verifyItems(ctx, items, pages)
+	if err != nil {
+		slog.WarnContext(ctx, modeName+" re-verification failed", "error", err)
+		return nil, false
+	}
+	slog.InfoContext(ctx, modeName+" re-verified", "accuracy", accuracy, "incorrect", len(incorrectIndices), "total", len(items))
+	if accuracy < verifyAccuracyThreshold {
+		slog.WarnContext(ctx, modeName+" re-verified accuracy too low", "accuracy", accuracy)
+		return nil, false
+	}
+
+	return items, true
+}
+
+func sanitizeAndFilterItems(items []tocItem, pageCount int) []tocItem {
+	if pageCount <= 0 {
+		return nil
+	}
+
+	maxPage := pageCount - 1
+	for i := range items {
+		if items[i].StartPage < 0 || items[i].StartPage > maxPage {
+			items[i].StartPage = -1
+			items[i].AppearStart = false
+			items[i].AppearStartChecked = false
 		}
 	}
 
-	if toc.HasTOC {
-		slog.InfoContext(ctx, "trying mode 2: toc without page numbers")
-		items, err := s.processTOCNoPageNumbers(ctx, toc, pages)
-		if err == nil {
-			accuracy, incorrectIndices, verr := s.verifyItems(ctx, items, pages)
-			if verr == nil {
-				slog.InfoContext(ctx, "mode 2 verified", "accuracy", accuracy, "incorrect", len(incorrectIndices), "total", len(items))
-				if accuracy == 1.0 {
-					return items, nil
-				}
-				if accuracy >= verifyAccuracyThreshold {
-					if ferr := s.fixIncorrectItems(ctx, items, incorrectIndices, pages); ferr == nil {
-						return items, nil
-					}
-					slog.WarnContext(ctx, "mode 2 fix failed, falling through")
-				} else {
-					slog.WarnContext(ctx, "mode 2 accuracy too low, falling through", "accuracy", accuracy)
-				}
-			} else {
-				slog.WarnContext(ctx, "mode 2 verification failed, falling through", "error", verr)
-			}
-		} else {
-			slog.WarnContext(ctx, "mode 2 processing failed, falling through", "error", err)
-		}
-	}
-
-	slog.InfoContext(ctx, "using mode 3: no toc (chunked incremental)")
-	return s.processNoTOC(ctx, pages)
+	return filterInvalidItems(items)
 }
 
 // ---------------------------------------------------------------------------
@@ -293,30 +482,52 @@ func (s *Indexer) processWithFallback(ctx context.Context, toc tocResult, pages 
 
 func (s *Indexer) processTOCWithPageNumbersCalibrated(ctx context.Context, toc tocResult, pages []domain.Page) ([]tocItem, error) {
 	calibrated := s.calibrateTOCPageOffset(ctx, toc, pages)
-	return flattenToItems(calibrated), nil
+	items := flattenToItems(calibrated)
+
+	var missing []int
+	for i := range items {
+		if items[i].StartPage < 0 {
+			missing = append(missing, i)
+		}
+	}
+	if len(missing) > 0 {
+		// Upstream parity: try to repair items that still miss physical indices
+		// after page-offset calibration.
+		if err := s.fixIncorrectItems(ctx, items, missing, pages); err != nil {
+			slog.WarnContext(ctx, "mode 1 missing-index repair failed", "missing", len(missing), "error", err)
+		}
+	}
+
+	return items, nil
 }
 
 // flattenToItems converts nested tocSections into a flat []tocItem with
 // structure labels generated during the recursive walk.
 func flattenToItems(sections []tocSection) []tocItem {
 	var items []tocItem
+	walkTOCSections(sections, func(label string, sec tocSection) {
+		items = append(items, tocItem{
+			Structure: label,
+			Title:     sec.Title,
+			StartPage: sec.StartPage,
+			EndPage:   sec.EndPage,
+		})
+	})
+	return items
+}
+
+func walkTOCSections(sections []tocSection, visit func(label string, sec tocSection)) {
 	var walk func(secs []tocSection, prefix string)
 	walk = func(secs []tocSection, prefix string) {
 		for i, sec := range secs {
 			label := fmt.Sprintf("%s%d", prefix, i+1)
-			items = append(items, tocItem{
-				Structure: label,
-				Title:     sec.Title,
-				StartPage: sec.StartPage,
-				EndPage:   sec.EndPage,
-			})
+			visit(label, sec)
 			if len(sec.Subsections) > 0 {
 				walk(sec.Subsections, label+".")
 			}
 		}
 	}
 	walk(sections, "")
-	return items
 }
 
 // ---------------------------------------------------------------------------
@@ -330,17 +541,9 @@ func (s *Indexer) processTOCNoPageNumbers(ctx context.Context, toc tocResult, pa
 		Title     string `json:"title"`
 	}
 	var titles []titleEntry
-	var walk func(secs []tocSection, prefix string)
-	walk = func(secs []tocSection, prefix string) {
-		for i, sec := range secs {
-			label := fmt.Sprintf("%s%d", prefix, i+1)
-			titles = append(titles, titleEntry{Structure: label, Title: sec.Title})
-			if len(sec.Subsections) > 0 {
-				walk(sec.Subsections, label+".")
-			}
-		}
-	}
-	walk(toc.Sections, "")
+	walkTOCSections(toc.Sections, func(label string, sec tocSection) {
+		titles = append(titles, titleEntry{Structure: label, Title: sec.Title})
+	})
 
 	titlesJSON, err := json.Marshal(titles)
 	if err != nil {
@@ -461,6 +664,24 @@ type tocInitResult struct {
 	} `json:"sections"`
 }
 
+func (s *Indexer) decodeTOCItems(ctx context.Context, messages []port.ChatMessage) ([]tocItem, error) {
+	var result tocInitResult
+	if err := completeAndDecodeJSON(ctx, s.llm, messages, tocItemsJSONSchema, &result); err != nil {
+		return nil, err
+	}
+
+	items := make([]tocItem, len(result.Sections))
+	for i, sec := range result.Sections {
+		items[i] = tocItem{
+			Structure: sec.Structure,
+			Title:     sec.Title,
+			StartPage: sec.StartPage,
+		}
+	}
+
+	return items, nil
+}
+
 const tocItemsJSONSchema = `{
 	"type": "object",
 	"additionalProperties": false,
@@ -488,20 +709,7 @@ func (s *Indexer) generateTOCInit(ctx context.Context, groupText string) ([]tocI
 		{Role: "user", Content: fmt.Sprintf("Group these pages into logical sections. Return structure, title, and start_page for each.\n\n%s", groupText)},
 	}
 
-	var result tocInitResult
-	if err := completeAndDecodeJSON(ctx, s.llm, messages, tocItemsJSONSchema, &result); err != nil {
-		return nil, err
-	}
-
-	items := make([]tocItem, len(result.Sections))
-	for i, sec := range result.Sections {
-		items[i] = tocItem{
-			Structure: sec.Structure,
-			Title:     sec.Title,
-			StartPage: sec.StartPage,
-		}
-	}
-	return items, nil
+	return s.decodeTOCItems(ctx, messages)
 }
 
 func (s *Indexer) generateTOCContinue(ctx context.Context, groupText string, existing []tocItem) ([]tocItem, error) {
@@ -515,25 +723,97 @@ func (s *Indexer) generateTOCContinue(ctx context.Context, groupText string, exi
 		{Role: "user", Content: fmt.Sprintf("Existing sections:\n%s\n\nNew pages:\n%s\n\nReturn only new sections found in these pages.", string(existingJSON), groupText)},
 	}
 
-	var result tocInitResult
-	if err := completeAndDecodeJSON(ctx, s.llm, messages, tocItemsJSONSchema, &result); err != nil {
-		return nil, err
-	}
-
-	items := make([]tocItem, len(result.Sections))
-	for i, sec := range result.Sections {
-		items[i] = tocItem{
-			Structure: sec.Structure,
-			Title:     sec.Title,
-			StartPage: sec.StartPage,
-		}
-	}
-	return items, nil
+	return s.decodeTOCItems(ctx, messages)
 }
 
 // ---------------------------------------------------------------------------
 // appear_start detection
 // ---------------------------------------------------------------------------
+
+type itemEvaluation struct {
+	Evaluated   bool
+	TitleFound  bool
+	AppearStart bool
+}
+
+func runBoundedParallel(ctx context.Context, limit, total int, fn func(context.Context, int) error) error {
+	if total <= 0 {
+		return nil
+	}
+
+	g, gctx := errgroup.WithContext(ctx)
+	g.SetLimit(limit)
+	for i := 0; i < total; i++ {
+		i := i
+		g.Go(func() error {
+			return fn(gctx, i)
+		})
+	}
+
+	return g.Wait()
+}
+
+func (s *Indexer) evaluateTitleAndAppearStart(ctx context.Context, title, pageText string) (bool, bool, error) {
+	messages := []port.ChatMessage{
+		{Role: "system", Content: "You are a document analysis assistant. Determine two things: (1) whether the given section title appears anywhere on the page, and (2) whether the section title appears at the beginning of the page text with no substantial content before it."},
+		{Role: "user", Content: fmt.Sprintf("Section title: %q\n\nPage text:\n%s\n\nReturn title_found and appear_start.", title, pageText)},
+	}
+
+	schema := `{
+		"type": "object",
+		"additionalProperties": false,
+		"properties": {
+			"title_found": { "type": "boolean" },
+			"appear_start": { "type": "boolean" }
+		},
+		"required": ["title_found", "appear_start"]
+	}`
+
+	var result struct {
+		TitleFound  bool `json:"title_found"`
+		AppearStart bool `json:"appear_start"`
+	}
+	if err := completeAndDecodeJSON(ctx, s.llm, messages, schema, &result); err != nil {
+		return false, false, err
+	}
+
+	return result.TitleFound, result.AppearStart, nil
+}
+
+func (s *Indexer) evaluateItems(
+	ctx context.Context,
+	items []tocItem,
+	pages []domain.Page,
+	shouldEvaluate func(int, tocItem) bool,
+) []itemEvaluation {
+	pageMap := buildPageMap(pages)
+	evals := make([]itemEvaluation, len(items))
+
+	_ = runBoundedParallel(ctx, itemEvalWorkerLimit, len(items), func(gctx context.Context, i int) error {
+		item := items[i]
+		if item.StartPage < 0 || !shouldEvaluate(i, item) {
+			return nil
+		}
+		pageText, ok := pageMap[item.StartPage]
+		if !ok {
+			return nil
+		}
+
+		titleFound, appearStart, err := s.evaluateTitleAndAppearStart(gctx, item.Title, pageText)
+		if err != nil {
+			return nil
+		}
+
+		evals[i] = itemEvaluation{
+			Evaluated:   true,
+			TitleFound:  titleFound,
+			AppearStart: appearStart,
+		}
+		return nil
+	})
+
+	return evals
+}
 
 func (s *Indexer) checkAppearStart(ctx context.Context, items []tocItem, pages []domain.Page) error {
 	eligible := 0
@@ -544,43 +824,20 @@ func (s *Indexer) checkAppearStart(ctx context.Context, items []tocItem, pages [
 	}
 	slog.InfoContext(ctx, "checking appear_start", "eligible", eligible, "total", len(items))
 
-	pageMap := make(map[int]string, len(pages))
-	for _, p := range pages {
-		pageMap[p.Index] = p.Markdown
-	}
-
-	schema := `{
-		"type": "object",
-		"additionalProperties": false,
-		"properties": {
-			"appear_start": { "type": "boolean" }
-		},
-		"required": ["appear_start"]
-	}`
+	evals := s.evaluateItems(ctx, items, pages, func(_ int, item tocItem) bool {
+		return !item.AppearStartChecked
+	})
 
 	appearCount := 0
 	for i := range items {
 		if items[i].StartPage < 0 {
 			continue
 		}
-		pageText, ok := pageMap[items[i].StartPage]
-		if !ok {
-			continue
+		if evals[i].Evaluated {
+			items[i].AppearStart = evals[i].AppearStart
+			items[i].AppearStartChecked = true
 		}
-
-		messages := []port.ChatMessage{
-			{Role: "system", Content: "You are a document analysis assistant. Determine if the given section title appears at the very beginning of the page text, or if there is other content before it."},
-			{Role: "user", Content: fmt.Sprintf("Section title: %q\n\nPage text:\n%s\n\nDoes this section title appear at the start of the page?", items[i].Title, pageText)},
-		}
-
-		var result struct {
-			AppearStart bool `json:"appear_start"`
-		}
-		if err := completeAndDecodeJSON(ctx, s.llm, messages, schema, &result); err != nil {
-			continue // non-fatal: default is false
-		}
-		items[i].AppearStart = result.AppearStart
-		if result.AppearStart {
+		if items[i].AppearStart {
 			appearCount++
 		}
 	}
@@ -635,47 +892,22 @@ func (s *Indexer) verifyItems(ctx context.Context, items []tocItem, pages []doma
 		return 0, all, nil
 	}
 
-	pageMap := make(map[int]string, len(pages))
-	for _, p := range pages {
-		pageMap[p.Index] = p.Markdown
-	}
-
-	schema := `{
-		"type": "object",
-		"additionalProperties": false,
-		"properties": {
-			"title_found": { "type": "boolean" }
-		},
-		"required": ["title_found"]
-	}`
-
 	correct := 0
 	var incorrectIndices []int
+	evals := s.evaluateItems(ctx, items, pages, func(_ int, _ tocItem) bool { return true })
 
 	for i := range items {
 		if items[i].StartPage < 0 {
 			incorrectIndices = append(incorrectIndices, i)
 			continue
 		}
-		pageText, ok := pageMap[items[i].StartPage]
-		if !ok {
+		if !evals[i].Evaluated {
 			incorrectIndices = append(incorrectIndices, i)
 			continue
 		}
-
-		messages := []port.ChatMessage{
-			{Role: "system", Content: "You are a document analysis assistant. Determine if the given section title appears on the given page."},
-			{Role: "user", Content: fmt.Sprintf("Section title: %q\n\nPage text:\n%s\n\nDoes this title appear on this page?", items[i].Title, pageText)},
-		}
-
-		var result struct {
-			TitleFound bool `json:"title_found"`
-		}
-		if err := completeAndDecodeJSON(ctx, s.llm, messages, schema, &result); err != nil {
-			incorrectIndices = append(incorrectIndices, i)
-			continue
-		}
-		if result.TitleFound {
+		items[i].AppearStart = evals[i].AppearStart
+		items[i].AppearStartChecked = true
+		if evals[i].TitleFound {
 			correct++
 		} else {
 			incorrectIndices = append(incorrectIndices, i)
@@ -693,10 +925,7 @@ func (s *Indexer) verifyItems(ctx context.Context, items []tocItem, pages []doma
 func (s *Indexer) fixIncorrectItems(ctx context.Context, items []tocItem, incorrectIndices []int, pages []domain.Page) error {
 	slog.InfoContext(ctx, "fixing incorrect items", "incorrect", len(incorrectIndices), "total", len(items))
 
-	pageMap := make(map[int]string, len(pages))
-	for _, p := range pages {
-		pageMap[p.Index] = p.Markdown
-	}
+	pageMap := buildPageMap(pages)
 
 	schema := `{
 		"type": "object",
@@ -731,17 +960,11 @@ func (s *Indexer) fixIncorrectItems(ctx context.Context, items []tocItem, incorr
 				}
 			}
 
-			// Build page text for the search range.
-			var sb strings.Builder
-			for _, p := range pages {
-				if p.Index >= searchStart && p.Index <= searchEnd {
-					fmt.Fprintf(&sb, "<page_%d>\n%s\n</page_%d>\n\n", p.Index, p.Markdown, p.Index)
-				}
-			}
+			rangeText := renderTaggedPagesInRange(pages, searchStart, searchEnd)
 
 			messages := []port.ChatMessage{
 				{Role: "system", Content: "You are a document analysis assistant. Find the physical page where the given section starts within the provided pages."},
-				{Role: "user", Content: fmt.Sprintf("Section title: %q\n\nPages:\n%s\n\nReturn the physical start_page where this section begins.", items[idx].Title, sb.String())},
+				{Role: "user", Content: fmt.Sprintf("Section title: %q\n\nPages:\n%s\n\nReturn the physical start_page where this section begins.", items[idx].Title, rangeText)},
 			}
 
 			var result struct {
@@ -791,6 +1014,14 @@ func containsInt(slice []int, val int) bool {
 	return false
 }
 
+func buildPageMap(pages []domain.Page) map[int]string {
+	pageMap := make(map[int]string, len(pages))
+	for _, p := range pages {
+		pageMap[p.Index] = p.Markdown
+	}
+	return pageMap
+}
+
 // ---------------------------------------------------------------------------
 // Preface insertion
 // ---------------------------------------------------------------------------
@@ -798,9 +1029,11 @@ func containsInt(slice []int, val int) bool {
 func addPrefaceIfNeeded(items []tocItem) []tocItem {
 	if len(items) > 0 && items[0].StartPage > 0 {
 		preface := tocItem{
-			Structure: "0",
-			Title:     "Preface",
-			StartPage: 0,
+			Structure:          "0",
+			Title:              "Preface",
+			StartPage:          0,
+			AppearStart:        true,
+			AppearStartChecked: true,
 		}
 		items = append([]tocItem{preface}, items...)
 	}
@@ -932,72 +1165,46 @@ func (s *Indexer) splitLargeNodes(ctx context.Context, root *domain.TreeNode, pa
 }
 
 func (s *Indexer) splitNodeRecursive(ctx context.Context, node *domain.TreeNode, pages []domain.Page) error {
-	// Process children first (may add grandchildren).
-	for i := range node.Children {
-		if err := s.splitNodeRecursive(ctx, &node.Children[i], pages); err != nil {
-			return err
-		}
-	}
-
-	// Only split leaf nodes that are too large.
-	if len(node.Children) > 0 {
-		return nil
-	}
-
 	pageSpan := node.EndPage - node.StartPage + 1
-	if pageSpan <= s.maxPagesPerNode {
-		return nil
-	}
+	if pageSpan > s.maxPagesPerNode {
+		// Check character count.
+		charCount := 0
+		var nodePages []domain.Page
+		for _, p := range pages {
+			if p.Index >= node.StartPage && p.Index <= node.EndPage {
+				charCount += len(p.Markdown)
+				nodePages = append(nodePages, p)
+			}
+		}
 
-	// Check character count.
-	charCount := 0
-	var nodePages []domain.Page
-	for _, p := range pages {
-		if p.Index >= node.StartPage && p.Index <= node.EndPage {
-			charCount += len(p.Markdown)
-			nodePages = append(nodePages, p)
+		if charCount > s.maxTokensPerNode*4 {
+			slog.InfoContext(ctx, "splitting large node", "title", node.Title, "pages", pageSpan, "chars", charCount)
+
+			subItems, err := s.processNoTOC(ctx, nodePages)
+			if err == nil && len(subItems) > 1 {
+				subItems = sanitizeAndFilterItems(subItems, len(pages))
+				if len(subItems) > 1 {
+					if err := s.checkAppearStart(ctx, subItems, nodePages); err == nil {
+						computeEndPages(subItems, node.EndPage+1)
+
+						// Skip first sub-item if it repeats the parent title and
+						// shrink parent end range to first real child.
+						if len(subItems) > 0 && subItems[0].Title == node.Title {
+							subItems = subItems[1:]
+						}
+						if len(subItems) > 0 {
+							node.EndPage = subItems[0].StartPage
+							subTree := listToTree(subItems, node.EndPage+1)
+							node.Children = subTree.Children
+							slog.InfoContext(ctx, "node split complete", "title", node.Title, "children", len(node.Children))
+						}
+					}
+				}
+			}
 		}
 	}
-	if charCount <= s.maxTokensPerNode*4 {
-		return nil
-	}
 
-	slog.InfoContext(ctx, "splitting large node", "title", node.Title, "pages", pageSpan, "chars", charCount)
-
-	// Split using processNoTOC.
-	subItems, err := s.processNoTOC(ctx, nodePages)
-	if err != nil || len(subItems) <= 1 {
-		return nil // can't split further
-	}
-
-	if err := s.checkAppearStart(ctx, subItems, nodePages); err != nil {
-		return nil
-	}
-	computeEndPages(subItems, node.EndPage+1)
-
-	// Skip first sub-item if its title matches the parent, and shrink the
-	// parent's EndPage to just before the first child (upstream behavior).
-	if len(subItems) > 0 && subItems[0].Title == node.Title {
-		subItems = subItems[1:]
-		if len(subItems) > 0 {
-			node.EndPage = subItems[0].StartPage
-		}
-	} else if len(subItems) > 0 {
-		node.EndPage = subItems[0].StartPage
-	}
-
-	// Convert to child nodes.
-	node.Children = make([]domain.TreeNode, len(subItems))
-	for i, item := range subItems {
-		node.Children[i] = domain.TreeNode{
-			Title:     item.Title,
-			StartPage: item.StartPage,
-			EndPage:   item.EndPage,
-		}
-	}
-	slog.InfoContext(ctx, "node split complete", "title", node.Title, "children", len(node.Children))
-
-	// Recurse into new children.
+	// Recurse into children (existing or newly split).
 	for i := range node.Children {
 		if err := s.splitNodeRecursive(ctx, &node.Children[i], pages); err != nil {
 			return err
@@ -1016,7 +1223,10 @@ func (s *Indexer) generateSummaries(ctx context.Context, root *domain.TreeNode, 
 	collectNodes(root, &nodes)
 	slog.InfoContext(ctx, "generating summaries", "node_count", len(nodes))
 
-	for i, n := range nodes {
+	var done atomic.Int32
+	if err := runBoundedParallel(ctx, summaryWorkerLimit, len(nodes), func(gctx context.Context, i int) error {
+		n := nodes[i]
+
 		var sb strings.Builder
 		for _, p := range pages {
 			if p.Index >= n.StartPage && p.Index <= n.EndPage {
@@ -1029,12 +1239,16 @@ func (s *Indexer) generateSummaries(ctx context.Context, root *domain.TreeNode, 
 			{Role: "user", Content: fmt.Sprintf("Summarize the following section titled %q:\n\n%s", n.Title, sb.String())},
 		}
 
-		summary, err := s.llm.Complete(ctx, messages)
+		summary, err := s.llm.Complete(gctx, messages)
 		if err != nil {
 			return fmt.Errorf("summarize node %s: %w", n.NodeID, err)
 		}
 		n.Summary = summary
-		slog.InfoContext(ctx, "summary generated", "node", n.NodeID, "progress", fmt.Sprintf("%d/%d", i+1, len(nodes)))
+		progress := done.Add(1)
+		slog.InfoContext(ctx, "summary generated", "node", n.NodeID, "progress", fmt.Sprintf("%d/%d", progress, len(nodes)))
+		return nil
+	}); err != nil {
+		return err
 	}
 
 	return nil
@@ -1045,6 +1259,21 @@ func collectNodes(node *domain.TreeNode, nodes *[]*domain.TreeNode) {
 	for i := range node.Children {
 		collectNodes(&node.Children[i], nodes)
 	}
+}
+
+func renderTaggedPagesInRange(pages []domain.Page, start, end int) string {
+	if len(pages) == 0 || start > end {
+		return ""
+	}
+
+	var sb strings.Builder
+	for _, p := range pages {
+		if p.Index < start || p.Index > end {
+			continue
+		}
+		fmt.Fprintf(&sb, "<page_%d>\n%s\n</page_%d>\n\n", p.Index, p.Markdown, p.Index)
+	}
+	return sb.String()
 }
 
 // ---------------------------------------------------------------------------
@@ -1102,10 +1331,7 @@ func (s *Indexer) calibrateTOCPageOffset(ctx context.Context, toc tocResult, pag
 	}
 
 	endPage := min(startPage+tocCalibrationPageWindow, len(pages))
-	var pagesSB strings.Builder
-	for _, p := range pages[startPage:endPage] {
-		fmt.Fprintf(&pagesSB, "<page_%d>\n%s\n</page_%d>\n\n", p.Index, p.Markdown, p.Index)
-	}
+	pagesText := renderTaggedPagesInRange(pages, startPage, endPage-1)
 
 	labelsJSON, err := json.Marshal(labels)
 	if err != nil {
@@ -1114,7 +1340,7 @@ func (s *Indexer) calibrateTOCPageOffset(ctx context.Context, toc tocResult, pag
 
 	messages := []port.ChatMessage{
 		{Role: "system", Content: "You map TOC section titles to physical start pages. Document pages are wrapped in <page_N> tags where N is the physical page index. Return matches only for sections that start in the provided pages."},
-		{Role: "user", Content: fmt.Sprintf("TOC sections with logical page labels:\n%s\n\nDocument pages:\n%s\n\nReturn matched sections with title and physical_start_page.", string(labelsJSON), pagesSB.String())},
+		{Role: "user", Content: fmt.Sprintf("TOC sections with logical page labels:\n%s\n\nDocument pages:\n%s\n\nReturn matched sections with title and physical_start_page.", string(labelsJSON), pagesText)},
 	}
 
 	schema := `{
@@ -1167,19 +1393,12 @@ func cloneTOCSections(sections []tocSection) []tocSection {
 
 func flattenTOCPageLabels(sections []tocSection) []tocPageLabel {
 	labels := make([]tocPageLabel, 0, len(sections))
-	var walk func(items []tocSection)
-	walk = func(items []tocSection) {
-		for _, item := range items {
-			labels = append(labels, tocPageLabel{
-				Title: item.Title,
-				Page:  item.StartPage,
-			})
-			if len(item.Subsections) > 0 {
-				walk(item.Subsections)
-			}
-		}
-	}
-	walk(sections)
+	walkTOCSections(sections, func(_ string, sec tocSection) {
+		labels = append(labels, tocPageLabel{
+			Title: sec.Title,
+			Page:  sec.StartPage,
+		})
+	})
 	return labels
 }
 

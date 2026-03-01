@@ -561,6 +561,7 @@ func TestDetectTOC_SetsHasPageNumbers(t *testing.T) {
 	}
 	llm := &mockLLM{
 		responses: []string{
+			`{"has_toc":true}`,
 			`{"has_toc":true,"toc_end_page":0,"sections":[{"title":"Intro","start_page":1,"end_page":4,"subsections":[]},{"title":"Methods","start_page":5,"end_page":10,"subsections":[]}]}`,
 		},
 	}
@@ -581,6 +582,7 @@ func TestDetectTOC_NoPageNumbers(t *testing.T) {
 	}
 	llm := &mockLLM{
 		responses: []string{
+			`{"has_toc":true}`,
 			`{"has_toc":true,"toc_end_page":0,"sections":[{"title":"Intro","start_page":-1,"end_page":-1,"subsections":[]},{"title":"Methods","start_page":-1,"end_page":-1,"subsections":[]}]}`,
 		},
 	}
@@ -592,6 +594,74 @@ func TestDetectTOC_NoPageNumbers(t *testing.T) {
 	}
 	if result.HasPageNumbers {
 		t.Error("expected HasPageNumbers = false")
+	}
+}
+
+func TestDetectTOC_AdditionalScanFindsPageNumbers(t *testing.T) {
+	pages := []domain.Page{
+		{Index: 0, Markdown: "Table of Contents\n1 Intro"},
+		{Index: 1, Markdown: "Body page"},
+		{Index: 2, Markdown: "Table of Contents\n1 Intro .... 4"},
+		{Index: 3, Markdown: "Body page"},
+	}
+	llm := &mockLLM{
+		responses: []string{
+			// first scan from page 0
+			`{"has_toc":true}`,
+			`{"has_toc":false}`,
+			// first TOC extraction: no page numbers
+			`{"has_toc":true,"toc_end_page":0,"sections":[{"title":"Intro","start_page":-1,"end_page":-1,"subsections":[]}]}`,
+			// second scan from page 1
+			`{"has_toc":false}`,
+			`{"has_toc":true}`,
+			`{"has_toc":false}`,
+			// second TOC extraction: has page numbers
+			`{"has_toc":true,"toc_end_page":2,"sections":[{"title":"Intro","start_page":4,"end_page":6,"subsections":[]}]}`,
+		},
+	}
+
+	s := &Indexer{llm: llm}
+	result, err := s.detectTOC(context.Background(), pages)
+	if err != nil {
+		t.Fatalf("detectTOC error: %v", err)
+	}
+	if !result.HasTOC {
+		t.Fatal("expected HasTOC = true")
+	}
+	if !result.HasPageNumbers {
+		t.Fatal("expected HasPageNumbers = true from additional TOC scan")
+	}
+	if result.TOCEndPage != 2 {
+		t.Fatalf("TOCEndPage = %d, want 2", result.TOCEndPage)
+	}
+}
+
+func TestDetectTOC_StopsAfterTOCEnd(t *testing.T) {
+	pages := []domain.Page{
+		{Index: 0, Markdown: "TOC page 1"},
+		{Index: 1, Markdown: "TOC page 2"},
+		{Index: 2, Markdown: "Body page"},
+		{Index: 3, Markdown: "Body page"},
+	}
+	llm := &mockLLM{
+		responses: []string{
+			`{"has_toc":true}`,
+			`{"has_toc":true}`,
+			`{"has_toc":false}`,
+			`{"has_toc":true,"toc_end_page":1,"sections":[{"title":"Intro","start_page":1,"end_page":2,"subsections":[]}]}`,
+		},
+	}
+
+	s := &Indexer{llm: llm}
+	result, err := s.detectTOC(context.Background(), pages)
+	if err != nil {
+		t.Fatalf("detectTOC error: %v", err)
+	}
+	if !result.HasTOC {
+		t.Fatal("expected HasTOC = true")
+	}
+	if llm.idx != 4 {
+		t.Fatalf("llm calls = %d, want 4", llm.idx)
 	}
 }
 
@@ -608,10 +678,16 @@ func TestBuild_NoTOCMode(t *testing.T) {
 
 	llm := &mockLLM{
 		responses: []string{
-			// detectTOC: no TOC found
-			`{"has_toc":false,"toc_end_page":-1,"sections":[]}`,
+			// detectTOC page scan: no TOC found on all pages
+			`{"has_toc":false}`,
+			`{"has_toc":false}`,
+			`{"has_toc":false}`,
 			// processNoTOC → generateTOCInit
 			`{"sections":[{"structure":"1","title":"Introduction","start_page":0},{"structure":"2","title":"Analysis","start_page":1},{"structure":"3","title":"Conclusion","start_page":2}]}`,
+			// mode 3 verification: 3 calls
+			`{"title_found":true,"appear_start":true}`,
+			`{"title_found":true,"appear_start":true}`,
+			`{"title_found":true,"appear_start":true}`,
 			// checkAppearStart: 3 calls
 			`{"appear_start":true}`,
 			`{"appear_start":true}`,
@@ -637,6 +713,49 @@ func TestBuild_NoTOCMode(t *testing.T) {
 	}
 }
 
+func TestBuild_TOCWithoutPageNumbers_StartsInNoTOCMode(t *testing.T) {
+	pages := []domain.Page{
+		{Index: 0, Markdown: "Table of Contents\n1 Intro"},
+		{Index: 1, Markdown: "Chapter 1 content"},
+		{Index: 2, Markdown: "Chapter 2 content"},
+	}
+
+	llm := &mockLLM{
+		responses: []string{
+			// detectTOC page scan
+			`{"has_toc":true}`,
+			`{"has_toc":false}`,
+			// detectTOC extraction: no page numbers
+			`{"has_toc":true,"toc_end_page":0,"sections":[{"title":"Intro","start_page":-1,"end_page":-1,"subsections":[]}]}`,
+			// second TOC scan from next page: no more TOC pages
+			`{"has_toc":false}`,
+			`{"has_toc":false}`,
+			// mode 3 generation
+			`{"sections":[{"structure":"1","title":"Chapter 1","start_page":1},{"structure":"2","title":"Chapter 2","start_page":2}]}`,
+			// mode 3 verification
+			`{"title_found":true,"appear_start":true}`,
+			`{"title_found":true,"appear_start":true}`,
+			// appear_start checks
+			`{"appear_start":true}`,
+			`{"appear_start":true}`,
+		},
+	}
+
+	storage := &mockStorage{}
+	s := NewIndexer(llm, storage, 50, 50000)
+	tree, err := s.Build(context.Background(), "doc-1", pages)
+	if err != nil {
+		t.Fatalf("Build error: %v", err)
+	}
+
+	if len(tree.Root.Children) != 3 {
+		t.Fatalf("root.Children = %d, want 3 (preface + 2 sections)", len(tree.Root.Children))
+	}
+	if llm.idx != 8 {
+		t.Fatalf("llm idx = %d, want 8 (single combined verify+appear pass)", llm.idx)
+	}
+}
+
 func TestBuild_TOCWithPageNumbers(t *testing.T) {
 	pages := make([]domain.Page, 15)
 	for i := range pages {
@@ -645,14 +764,19 @@ func TestBuild_TOCWithPageNumbers(t *testing.T) {
 
 	llm := &mockLLM{
 		responses: []string{
-			// detectTOC: has TOC with page numbers
+			// detectTOC page scan
+			`{"has_toc":true}`,
+			`{"has_toc":true}`,
+			`{"has_toc":false}`,
+			// detectTOC extraction: has TOC with page numbers
 			`{"has_toc":true,"toc_end_page":1,"sections":[{"title":"Intro","start_page":1,"end_page":5,"subsections":[]},{"title":"Methods","start_page":6,"end_page":10,"subsections":[]}]}`,
 			// calibrateTOCPageOffset LLM call
 			`{"sections":[{"title":"Intro","physical_start_page":3},{"title":"Methods","physical_start_page":8}]}`,
 			// verifyItems: 2 calls
-			`{"title_found":true}`,
-			`{"title_found":true}`,
-			// checkAppearStart: 2 calls
+			`{"title_found":true,"appear_start":true}`,
+			`{"title_found":true,"appear_start":true}`,
+			// checkAppearStart: preface + 2 section calls
+			`{"appear_start":true}`,
 			`{"appear_start":true}`,
 			`{"appear_start":true}`,
 		},
@@ -682,20 +806,24 @@ func TestBuild_CascadeFallback(t *testing.T) {
 
 	llm := &mockLLM{
 		responses: []string{
-			// detectTOC: has TOC with page numbers
-			`{"has_toc":true,"toc_end_page":0,"sections":[{"title":"Chapter 1","start_page":1,"end_page":5,"subsections":[]}]}`,
+			// detectTOC page scan
+			`{"has_toc":true}`,
+			`{"has_toc":false}`,
+			// detectTOC extraction: has TOC with page numbers
+			`{"has_toc":true,"toc_end_page":0,"sections":[{"title":"Chapter 1","start_page":8,"end_page":9,"subsections":[]}]}`,
 			// calibrateTOCPageOffset
-			`{"sections":[{"title":"Chapter 1","physical_start_page":2}]}`,
+			`{"sections":[{"title":"Chapter 1","physical_start_page":8}]}`,
 			// verifyItems for Mode 1: title NOT found → accuracy < 1.0
-			`{"title_found":false}`,
+			`{"title_found":false,"appear_start":false}`,
 			// accuracy < 0.6 (0/1 = 0.0), so fall through to Mode 2
 
 			// processTOCNoPageNumbers: locate sections in pages
-			`{"sections":[{"structure":"1","title":"Chapter 1","start_page":2}]}`,
+			`{"sections":[{"structure":"1","title":"Chapter 1","start_page":8}]}`,
 			// verifyItems for Mode 2: found
-			`{"title_found":true}`,
+			`{"title_found":true,"appear_start":true}`,
 
-			// checkAppearStart
+			// checkAppearStart: preface + chapter
+			`{"appear_start":true}`,
 			`{"appear_start":true}`,
 		},
 	}
@@ -709,5 +837,45 @@ func TestBuild_CascadeFallback(t *testing.T) {
 
 	if tree.Root.Title != "Root" {
 		t.Errorf("root.Title = %q", tree.Root.Title)
+	}
+	if len(tree.Root.Children) == 0 {
+		t.Fatalf("root.Children = %d, want > 0", len(tree.Root.Children))
+	}
+}
+
+func TestProcessNoTOC_MultipleGroupsUsesContinue(t *testing.T) {
+	long := make([]byte, 50000)
+	for i := range long {
+		long[i] = 'a'
+	}
+	longText := string(long)
+
+	pages := []domain.Page{
+		{Index: 0, Markdown: longText},
+		{Index: 1, Markdown: longText},
+		{Index: 2, Markdown: longText},
+	}
+
+	llm := &mockLLM{
+		responses: []string{
+			`{"sections":[{"structure":"1","title":"A","start_page":0}]}`,
+			`{"sections":[{"structure":"2","title":"B","start_page":1}]}`,
+			`{"sections":[{"structure":"3","title":"C","start_page":2}]}`,
+		},
+	}
+
+	s := &Indexer{llm: llm}
+	items, err := s.processNoTOC(context.Background(), pages)
+	if err != nil {
+		t.Fatalf("processNoTOC error: %v", err)
+	}
+	if len(items) != 3 {
+		t.Fatalf("items = %d, want 3", len(items))
+	}
+	if items[0].Title != "A" || items[1].Title != "B" || items[2].Title != "C" {
+		t.Fatalf("unexpected titles: %+v", items)
+	}
+	if llm.idx != 3 {
+		t.Fatalf("llm idx = %d, want 3 (init + 2 continue)", llm.idx)
 	}
 }

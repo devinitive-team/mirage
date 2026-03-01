@@ -12,3 +12,5 @@ require (
 	github.com/go-chi/cors v1.2.2
 	github.com/urfave/cli/v3 v3.6.2
 )
+
+require golang.org/x/sync v0.19.0 // indirect
