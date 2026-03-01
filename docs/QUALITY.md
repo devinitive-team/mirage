@@ -21,6 +21,20 @@ For `marketing/` page work, iterate with this loop while implementing:
 4. Before handoff, run a production build:
    `cd marketing && npm run build` (or `task marketing:build`)
 
+For `video/` work, iterate with this closed loop while implementing:
+
+1. Start Remotion Studio in watch mode:
+   `cd video && npm run dev` (or `task video:studio`).
+2. Validate the current change in Studio timeline playback and composition controls.
+3. Render the current state to a deterministic artifact:
+   `task video:render` (outputs `video/out/promo.mp4`).
+4. Evaluate the rendered file end-to-end in a media player (timing, transitions, text readability, motion continuity).
+5. Repeat the Studio + render + evaluation cycle until output is correct.
+
+Before handoff on `video/` changes, run:
+
+- `task video:validate` (runs `task video:lint`, `task video:build`, and `task video:render`)
+
 For any UI or behavior change, also run interactive validation by driving the app in a browser:
 
 1. Start the app: `task run` (server on `:2137`, `web` on `:3000`, `marketing` on `:4321`).

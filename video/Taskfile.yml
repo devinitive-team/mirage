@@ -21,7 +21,13 @@ tasks:
     cmds:
       - npm run lint
 
-  render:
-    desc: Render video with Remotion
+  compositions:
+    desc: List available Remotion compositions
     cmds:
-      - npx remotion render
+      - npx remotion compositions src/index.ts --port=3041
+
+  render:
+    desc: Render default composition to out/promo.mp4
+    cmds:
+      - mkdir -p out
+      - npx remotion render --port=3041 src/index.ts promo out/promo.mp4

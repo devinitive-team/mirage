@@ -66,3 +66,15 @@ tasks:
     desc: Render the Remotion video project
     cmds:
       - task: video:render
+
+  video:studio:
+    desc: Start Remotion Studio (video/)
+    cmds:
+      - task: video:dev
+
+  video:validate:
+    desc: Validate Remotion output with lint, build, and render
+    cmds:
+      - task: video:lint
+      - task: video:build
+      - task: video:render

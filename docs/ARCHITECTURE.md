@@ -44,7 +44,7 @@ React 19 + TanStack (Router, Query, Form, Table) + Vite + Tailwind CSS + Biome.
 - `video/src` — Remotion compositions and root registration.
 - `video/public` — Static assets for preview and render.
 - `video/remotion.config.ts` — Render and bundling configuration.
-- `video/Taskfile.yml` — Project tasks for install, dev, build, lint, and render.
+- `video/Taskfile.yml` — Project tasks for install, dev, build, lint, composition inspection, and render.
 
 ## Invariants
 
