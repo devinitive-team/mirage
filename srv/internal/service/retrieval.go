@@ -80,11 +80,14 @@ func (s *Retrieval) Answer(ctx context.Context, query domain.Query) (domain.Quer
 		return domain.QueryResult{}, err
 	}
 
+	slog.InfoContext(ctx, "retrieval started", "question_len", len(query.Question), "document_count", len(query.DocumentIDs))
+
 	trees, docs, err := s.loadQueryContext(ctx, query.DocumentIDs)
 	if err != nil {
 		slog.ErrorContext(ctx, "retrieval failed", "stage", "load_query_context", "error", err, "document_count", len(query.DocumentIDs))
 		return domain.QueryResult{}, err
 	}
+	slog.InfoContext(ctx, "query context loaded", "tree_count", len(trees), "doc_count", len(docs))
 
 	nodeMap := buildNodeMap(trees)
 	if len(nodeMap) == 0 {
@@ -92,9 +95,11 @@ func (s *Retrieval) Answer(ctx context.Context, query domain.Query) (domain.Quer
 		slog.ErrorContext(ctx, "retrieval failed", "stage", "build_node_map", "error", err)
 		return domain.QueryResult{}, err
 	}
+	slog.InfoContext(ctx, "node map built", "candidate_count", len(nodeMap))
 
 	searchTrees := buildSearchTrees(trees, docs)
 
+	slog.InfoContext(ctx, "searching tree", "search_tree_count", len(searchTrees))
 	selection, err := s.searchTree(ctx, query.Question, searchTrees)
 	if err != nil {
 		slog.ErrorContext(ctx, "retrieval failed", "stage", "search_tree", "error", err)
@@ -108,15 +113,19 @@ func (s *Retrieval) Answer(ctx context.Context, query domain.Query) (domain.Quer
 		slog.ErrorContext(ctx, "retrieval failed", "stage", "resolve_node_refs", "error", err, "raw_count", len(selection.NodeList))
 		return domain.QueryResult{}, err
 	}
+	slog.InfoContext(ctx, "nodes resolved", "resolved", len(entries), "requested", len(selection.NodeList))
 
 	content, err := s.collectContent(ctx, entries)
 	if err != nil {
 		slog.ErrorContext(ctx, "retrieval failed", "stage", "collect_content", "error", err)
 		return domain.QueryResult{}, err
 	}
+	slog.InfoContext(ctx, "content collected", "content_len", len(content))
 
 	evidence := buildEvidence(entries, docs)
+	slog.InfoContext(ctx, "evidence built", "evidence_count", len(evidence))
 
+	slog.InfoContext(ctx, "generating answer")
 	answer, err := s.generateAnswer(ctx, query.Question, content)
 	if err != nil {
 		slog.ErrorContext(ctx, "retrieval failed", "stage", "generate_answer", "error", err)
@@ -129,6 +138,7 @@ func (s *Retrieval) Answer(ctx context.Context, query domain.Query) (domain.Quer
 		return domain.QueryResult{}, err
 	}
 
+	slog.InfoContext(ctx, "retrieval complete", "answer_len", len(answer), "evidence_count", len(evidence))
 	return domain.QueryResult{
 		Answer:   answer,
 		Evidence: evidence,
