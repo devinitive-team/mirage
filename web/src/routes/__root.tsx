@@ -35,10 +35,6 @@ export const Route = createRootRouteWithContext<MyRouterContext>()({
 				href: "/favicon.svg",
 			},
 			{
-				rel: "shortcut icon",
-				href: "/favicon.ico",
-			},
-			{
 				rel: "stylesheet",
 				href: appCss,
 			},
