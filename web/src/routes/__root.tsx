@@ -1,16 +1,12 @@
-import { TanStackDevtools } from "@tanstack/react-devtools";
 import type { QueryClient } from "@tanstack/react-query";
 import {
 	createRootRouteWithContext,
 	HeadContent,
 	Scripts,
 } from "@tanstack/react-router";
-import { TanStackRouterDevtoolsPanel } from "@tanstack/react-router-devtools";
 import Header from "../components/Header";
 import { Toaster } from "../components/ui/sonner";
 import PostHogProvider from "../integrations/posthog/provider";
-
-import TanStackQueryDevtools from "../integrations/tanstack-query/devtools";
 import TanStackQueryProvider from "../integrations/tanstack-query/root-provider";
 import appCss from "../styles.css?url";
 
@@ -65,18 +61,6 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 						<main className="route-transition-surface flex-1 min-h-0 overflow-hidden">
 							{children}
 						</main>
-						<TanStackDevtools
-							config={{
-								position: "bottom-right",
-							}}
-							plugins={[
-								{
-									name: "Tanstack Router",
-									render: <TanStackRouterDevtoolsPanel />,
-								},
-								TanStackQueryDevtools,
-							]}
-						/>
 						<Toaster position="bottom-right" />
 					</TanStackQueryProvider>
 				</PostHogProvider>
