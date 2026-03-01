@@ -832,35 +832,40 @@ function Dashboard() {
 			/>
 
 			<aside className="w-72 shrink-0 flex flex-col island-shell rounded-2xl overflow-hidden">
-				<div className="p-4 border-b border-[var(--line)] shrink-0">
-					<p className="island-kicker mb-3">Uploaded Files</p>
-					<div className="relative">
-						<Input
-							value={searchQuery}
-							onChange={(event) => setSearchQuery(event.target.value)}
-							placeholder="Search files..."
-							className="pr-8 text-sm"
-						/>
-						{searchQuery && (
-							<button
-								type="button"
-								onClick={() => setSearchQuery("")}
-								className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1 text-[var(--sea-ink-soft)] transition-colors hover:bg-[var(--sea-ink)]/8 hover:text-[var(--sea-ink)]"
-							>
-								<X className="w-3.5 h-3.5" />
-							</button>
-						)}
+				<div className="p-4 border-b border-[var(--line)] shrink-0 space-y-3">
+					<div>
+						<p className="island-kicker">Uploaded Files</p>
+						<p aria-hidden="true" className="mt-1 text-xs invisible">
+							Scope: All ready files (1)
+						</p>
 					</div>
-					{documents.length > 0 && (
-						<div className="mt-3 flex items-center justify-end">
+					<div className="flex items-center gap-2">
+						<div className="relative flex-1">
+							<Input
+								value={searchQuery}
+								onChange={(event) => setSearchQuery(event.target.value)}
+								placeholder="Search files..."
+								className="pr-8 text-sm"
+							/>
+							{searchQuery && (
+								<button
+									type="button"
+									onClick={() => setSearchQuery("")}
+									className="absolute right-2 top-1/2 -translate-y-1/2 rounded-md p-1 text-[var(--sea-ink-soft)] transition-colors hover:bg-[var(--sea-ink)]/8 hover:text-[var(--sea-ink)]"
+								>
+									<X className="w-3.5 h-3.5" />
+								</button>
+							)}
+						</div>
+						{documents.length > 0 && (
 							<DropdownMenu>
 								<DropdownMenuTrigger asChild>
 									<button
 										type="button"
-										className="inline-flex items-center gap-1 rounded-lg border border-[var(--line)] px-2 py-1 text-xs font-medium text-[var(--sea-ink)] hover:bg-[var(--sea-ink)]/5"
+										aria-label="File actions"
+										className="h-9 w-9 shrink-0 inline-flex items-center justify-center rounded-lg border border-[var(--line)] text-[var(--sea-ink)] hover:bg-[var(--sea-ink)]/5"
 									>
 										<MoreHorizontal className="h-4 w-4" />
-										Actions
 									</button>
 								</DropdownMenuTrigger>
 								<DropdownMenuContent align="end" className="w-56">
@@ -904,8 +909,8 @@ function Dashboard() {
 									</DropdownMenuItem>
 								</DropdownMenuContent>
 							</DropdownMenu>
-						</div>
-					)}
+						)}
+					</div>
 				</div>
 
 				<div className="flex-1 min-h-0 overflow-y-auto p-2 space-y-1">
