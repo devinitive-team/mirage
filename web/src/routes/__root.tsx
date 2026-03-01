@@ -62,7 +62,9 @@ function RootDocument({ children }: { children: React.ReactNode }) {
 				<PostHogProvider>
 					<TanStackQueryProvider>
 						<Header />
-						<main className="flex-1 min-h-0 overflow-hidden">{children}</main>
+						<main className="route-transition-surface flex-1 min-h-0 overflow-hidden">
+							{children}
+						</main>
 						<TanStackDevtools
 							config={{
 								position: "bottom-right",

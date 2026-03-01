@@ -390,6 +390,43 @@ button:not(:disabled) {
   background: color-mix(in oklab, var(--header-bg) 84%, transparent 16%);
 }
 
+.route-transition-surface {
+  view-transition-name: route-content;
+}
+
+::view-transition-old(route-content) {
+  animation: route-fade-out 260ms ease both;
+}
+
+::view-transition-new(route-content) {
+  animation: route-fade-in 320ms ease both;
+}
+
+@keyframes route-fade-out {
+  from {
+    opacity: 1;
+  }
+  to {
+    opacity: 0;
+  }
+}
+
+@keyframes route-fade-in {
+  from {
+    opacity: 0;
+  }
+  to {
+    opacity: 1;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  ::view-transition-old(route-content),
+  ::view-transition-new(route-content) {
+    animation-duration: 1ms;
+  }
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
