@@ -16,11 +16,11 @@ Mirage uses **PageIndex: Document Index for Vectorless, Reasoning-based RAG**.
 
 ## What Mirage Does
 
-- Ingests PDF documents through a REST API.
-- Processes documents asynchronously (OCR + hierarchical indexing).
-- Answers natural-language questions against indexed documents.
-- Returns evidence references with deterministic page ranges.
-- Supports evidence preview flows in the web UI, including query history.
+- Lets you upload PDFs directly from the dashboard.
+- Processes uploaded documents asynchronously (OCR + hierarchical indexing).
+- Lets you ask natural-language questions against ready documents in the dashboard.
+- Returns answers with deterministic evidence page ranges.
+- Supports evidence preview and query history in the web UI.
 
 ## Repository Layout
 
