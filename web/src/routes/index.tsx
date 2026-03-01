@@ -50,7 +50,12 @@ import {
 } from "#/lib/evidence";
 import { isPdfFile } from "#/lib/pdfFiles";
 
-export const Route = createFileRoute("/")({ component: Dashboard });
+export const Route = createFileRoute("/")({
+	head: () => ({
+		meta: [{ title: "Mirage | Dashboard" }],
+	}),
+	component: Dashboard,
+});
 
 const REFERENCE_ROW_HEIGHT = REFERENCE_LIST_ITEM_HEIGHT + 8;
 

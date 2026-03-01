@@ -17,6 +17,9 @@ import { useClearHistory, useHistory } from "#/hooks/history";
 import { evidenceListToReferences } from "#/lib/evidence";
 
 export const Route = createFileRoute("/history")({
+	head: () => ({
+		meta: [{ title: "Mirage | History" }],
+	}),
 	component: HistoryPage,
 });
 
