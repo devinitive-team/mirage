@@ -32,15 +32,6 @@ export const DemoSidebar: React.FC<DemoSidebarProps> = ({
   const frame = useCurrentFrame();
   const { fps } = useVideoConfig();
 
-  // Drop zone fades out as files land
-  const lastDropFrame = dropStart + (FILES.length - 1) * DROP_STAGGER;
-  const dropZoneOpacity = interpolate(
-    frame,
-    [dropStart - 5, lastDropFrame + 10],
-    [1, 0],
-    { extrapolateLeft: "clamp", extrapolateRight: "clamp" },
-  );
-
   // File count — increments as each file drops
   const visibleCount =
     frame >= dropStart
@@ -119,44 +110,6 @@ export const DemoSidebar: React.FC<DemoSidebarProps> = ({
           position: "relative",
         }}
       >
-        {/* Drop zone overlay */}
-        {dropZoneOpacity > 0.01 && (
-          <div
-            style={{
-              position: "absolute",
-              inset: 0,
-              border: "1.5px dashed rgba(255,255,255,0.18)",
-              display: "flex",
-              flexDirection: "column",
-              alignItems: "center",
-              justifyContent: "center",
-              gap: 10,
-              opacity: dropZoneOpacity,
-              pointerEvents: "none" as const,
-            }}
-          >
-            <svg width="28" height="28" viewBox="0 0 24 24" fill="none">
-              <path
-                d="M12 4v12M8 8l4-4 4 4"
-                stroke="rgba(255,255,255,0.25)"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-              <path
-                d="M4 17v3h16v-3"
-                stroke="rgba(255,255,255,0.25)"
-                strokeWidth="1.5"
-                strokeLinecap="round"
-                strokeLinejoin="round"
-              />
-            </svg>
-            <span style={{ fontSize: 12, color: "rgba(255,255,255,0.25)" }}>
-              Drop PDFs here
-            </span>
-          </div>
-        )}
-
         {/* File items */}
         {FILES.map((file, i) => {
           const fileDropFrame = dropStart + i * DROP_STAGGER;
@@ -171,8 +124,9 @@ export const DemoSidebar: React.FC<DemoSidebarProps> = ({
           const dropX = interpolate(dropP, [0, 1], [40, 0]);
           const dropRot = interpolate(dropP, [0, 1], [3, 0]);
 
-          // Status phases
-          const isIndexing = frame >= indexStart && frame < fileReadyFrame;
+          // Status phases — indexing starts as soon as the file lands
+          const isVisible = dropP > 0.5;
+          const isIndexing = isVisible && frame < fileReadyFrame;
           const isReady = frame >= fileReadyFrame;
 
           // Ready badge entrance
@@ -183,14 +137,9 @@ export const DemoSidebar: React.FC<DemoSidebarProps> = ({
           });
           const readyScale = interpolate(readyP, [0, 1], [0.6, 1]);
 
-          // Indexing dots cycle
-          const dotCount = isIndexing
-            ? (Math.floor((frame - indexStart) / 8) % 3) + 1
-            : 0;
-
-          // Indexing pulse
+          // Indexing subtle pulse
           const indexAlpha = isIndexing
-            ? interpolate(Math.sin(frame * 0.15), [-1, 1], [0.5, 1])
+            ? interpolate(Math.sin(frame * 0.12), [-1, 1], [0.45, 0.9])
             : 0;
 
           return (
@@ -222,13 +171,13 @@ export const DemoSidebar: React.FC<DemoSidebarProps> = ({
                     y="0.5"
                     width="14"
                     height="14"
-                    fill="rgba(74, 222, 128, 0.12)"
-                    stroke="#4ade80"
+                    fill="rgba(34, 197, 94, 0.12)"
+                    stroke="#22C55E"
                     strokeWidth="1"
                   />
                   <path
                     d="M 3.5,7.5 L 6,10.5 L 11.5,4.5"
-                    stroke="#4ade80"
+                    stroke="#22C55E"
                     strokeWidth="1.5"
                     fill="none"
                     strokeLinecap="round"
@@ -307,7 +256,7 @@ export const DemoSidebar: React.FC<DemoSidebarProps> = ({
                 <span
                   style={{
                     fontSize: 11,
-                    color: "#4ade80",
+                    color: "#22C55E",
                     fontWeight: 700,
                     flexShrink: 0,
                     transform: `scale(${readyScale})`,
@@ -320,13 +269,13 @@ export const DemoSidebar: React.FC<DemoSidebarProps> = ({
                 <span
                   style={{
                     fontSize: 11,
-                    color: "#fbbf24",
+                    color: "#3B82F6",
                     fontWeight: 700,
                     flexShrink: 0,
                     opacity: indexAlpha,
                   }}
                 >
-                  Indexing{".".repeat(dotCount)}
+                  Indexing
                 </span>
               ) : null}
             </div>

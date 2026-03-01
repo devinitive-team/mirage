@@ -748,16 +748,14 @@ export const Scene2_PdfStack: React.FC = () => {
 
         const localFrame = frame - step.enter;
 
-        const isLast = i === 2;
-
         const illustrationEl = (
           <div
             style={{
-              width: isLast ? 310 : 260,
+              width: 310,
               display: "flex",
               justifyContent: "center",
               alignItems: "center",
-              transform: isLast ? "scale(1.3)" : undefined,
+              transform: "scale(1.3)",
             }}
           >
             <Illustration localFrame={localFrame} fps={fps} />
@@ -769,8 +767,8 @@ export const Scene2_PdfStack: React.FC = () => {
             style={{
               display: "flex",
               flexDirection: "column",
-              gap: isLast ? 16 : 14,
-              maxWidth: isLast ? 480 : 420,
+              gap: 16,
+              maxWidth: 480,
             }}
           >
             {/* Badge */}
@@ -784,14 +782,14 @@ export const Scene2_PdfStack: React.FC = () => {
             >
               <div
                 style={{
-                  width: isLast ? 12 : 10,
-                  height: isLast ? 12 : 10,
+                  width: 12,
+                  height: 12,
                   backgroundColor: step.color,
                 }}
               />
               <span
                 style={{
-                  fontSize: isLast ? 15 : 13,
+                  fontSize: 15,
                   color: COLORS.seaInkSoft,
                   letterSpacing: 1.5,
                 }}
@@ -803,7 +801,7 @@ export const Scene2_PdfStack: React.FC = () => {
             {/* Title */}
             <h2
               style={{
-                fontSize: isLast ? 34 : 28,
+                fontSize: 34,
                 fontWeight: 700,
                 color: COLORS.seaInk,
                 margin: 0,
@@ -826,7 +824,7 @@ export const Scene2_PdfStack: React.FC = () => {
             {/* Description */}
             <p
               style={{
-                fontSize: isLast ? 18 : 15,
+                fontSize: 18,
                 lineHeight: 1.6,
                 color: COLORS.seaInkSoft,
                 margin: 0,
