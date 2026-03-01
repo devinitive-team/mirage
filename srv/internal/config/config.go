@@ -8,22 +8,22 @@ import (
 )
 
 type Config struct {
-	ListenAddr             string
-	MistralAPIKey          string
-	MistralBaseURL         string
-	MistralLLMModel        string
-	MistralOCRModel        string
-	DataDir                string
-	WorkerCount            int
-	MaxPagesPerNode        int
-	MaxTokensPerNode       int
-	CORSAllowedOrigins []string
-	CORSAllowedMethods     []string
-	CORSAllowedHeaders     []string
-	CORSExposedHeaders     []string
-	CORSAllowCredentials   bool
-	CORSMaxAge             int
-	HistoryMaxEntries      int
+	ListenAddr           string
+	MistralAPIKey        string
+	MistralBaseURL       string
+	MistralLLMModel      string
+	MistralOCRModel      string
+	DataDir              string
+	WorkerCount          int
+	MaxPagesPerNode      int
+	MaxTokensPerNode     int
+	CORSAllowedOrigins   []string
+	CORSAllowedMethods   []string
+	CORSAllowedHeaders   []string
+	CORSExposedHeaders   []string
+	CORSAllowCredentials bool
+	CORSMaxAge           int
+	HistoryMaxEntries    int
 }
 
 func Load() (Config, error) {
@@ -53,16 +53,16 @@ func Load() (Config, error) {
 	}
 
 	c := Config{
-		ListenAddr:             envOr("LISTEN_ADDR", ":2137"),
-		MistralAPIKey:          os.Getenv("MISTRAL_API_KEY"),
-		MistralBaseURL:         envOr("MISTRAL_BASE_URL", "https://api.mistral.ai"),
-		MistralLLMModel:        envOr("MISTRAL_LLM_MODEL", "mistral-large-latest"),
-		MistralOCRModel:        envOr("MISTRAL_OCR_MODEL", "mistral-ocr-latest"),
-		DataDir:                envOr("DATA_DIR", "./data"),
-		WorkerCount:            workerCount,
-		MaxPagesPerNode:        maxPagesPerNode,
-		MaxTokensPerNode:       maxTokensPerNode,
-		CORSAllowedOrigins:     envCSV("CORS_ALLOWED_ORIGINS", nil),
+		ListenAddr:         envOr("LISTEN_ADDR", ":2137"),
+		MistralAPIKey:      os.Getenv("MISTRAL_API_KEY"),
+		MistralBaseURL:     envOr("MISTRAL_BASE_URL", "https://api.mistral.ai"),
+		MistralLLMModel:    envOr("MISTRAL_LLM_MODEL", "mistral-large-latest"),
+		MistralOCRModel:    envOr("MISTRAL_OCR_MODEL", "mistral-ocr-latest"),
+		DataDir:            envOr("DATA_DIR", "./data"),
+		WorkerCount:        workerCount,
+		MaxPagesPerNode:    maxPagesPerNode,
+		MaxTokensPerNode:   maxTokensPerNode,
+		CORSAllowedOrigins: envCSV("CORS_ALLOWED_ORIGINS", []string{"http://localhost:3000"}),
 		CORSAllowedMethods: envCSV("CORS_ALLOWED_METHODS", []string{
 			"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS",
 		}),
