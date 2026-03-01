@@ -6,7 +6,10 @@ import (
 	"encoding/json"
 	"fmt"
 	"io"
+	"log/slog"
 	"net/http"
+	"strconv"
+	"time"
 )
 
 type Client struct {
@@ -45,21 +48,51 @@ func (c *Client) do(ctx context.Context, method, path string, body any) (*http.R
 	return resp, nil
 }
 
+const maxRetries = 5
+
 func (c *Client) doJSON(ctx context.Context, method, path, operation string, request, out any) error {
-	resp, err := c.do(ctx, method, path, request)
-	if err != nil {
-		return fmt.Errorf("%s: %w", operation, err)
-	}
-	defer resp.Body.Close()
+	backoff := time.Second
 
-	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
-		return fmt.Errorf("%s returned %d: %s", operation, resp.StatusCode, body)
+	for attempt := range maxRetries {
+		resp, err := c.do(ctx, method, path, request)
+		if err != nil {
+			return fmt.Errorf("%s: %w", operation, err)
+		}
+
+		if resp.StatusCode == http.StatusTooManyRequests {
+			resp.Body.Close()
+			if attempt == maxRetries-1 {
+				return fmt.Errorf("%s: rate limited after %d retries", operation, maxRetries)
+			}
+			wait := backoff
+			if ra := resp.Header.Get("Retry-After"); ra != "" {
+				if secs, err := strconv.Atoi(ra); err == nil && secs > 0 {
+					wait = time.Duration(secs) * time.Second
+				}
+			}
+			slog.WarnContext(ctx, "rate limited, retrying", "operation", operation, "attempt", attempt+1, "wait", wait)
+			select {
+			case <-ctx.Done():
+				return ctx.Err()
+			case <-time.After(wait):
+			}
+			backoff *= 2
+			continue
+		}
+
+		defer resp.Body.Close()
+
+		if resp.StatusCode != http.StatusOK {
+			body, _ := io.ReadAll(resp.Body)
+			return fmt.Errorf("%s returned %d: %s", operation, resp.StatusCode, body)
+		}
+
+		if err := json.NewDecoder(resp.Body).Decode(out); err != nil {
+			return fmt.Errorf("decode %s response: %w", operation, err)
+		}
+
+		return nil
 	}
 
-	if err := json.NewDecoder(resp.Body).Decode(out); err != nil {
-		return fmt.Errorf("decode %s response: %w", operation, err)
-	}
-
-	return nil
+	return fmt.Errorf("%s: exhausted retries", operation)
 }

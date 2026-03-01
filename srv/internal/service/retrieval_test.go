@@ -14,13 +14,20 @@ import (
 )
 
 type mockLLM struct {
-	responses []string
-	errors    map[int]error
-	idx       int
+	responses         []string // for CompleteJSON
+	completeResponses []string // for Complete
+	errors            map[int]error
+	idx               int
+	completeIdx       int
 }
 
 func (m *mockLLM) Complete(_ context.Context, _ []port.ChatMessage) (string, error) {
-	return "", nil
+	if m.completeIdx >= len(m.completeResponses) {
+		return "Summary of the section.", nil // safe default
+	}
+	resp := m.completeResponses[m.completeIdx]
+	m.completeIdx++
+	return resp, nil
 }
 
 func (m *mockLLM) CompleteJSON(_ context.Context, _ []port.ChatMessage, _ string) (string, error) {

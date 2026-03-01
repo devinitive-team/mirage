@@ -7,132 +7,316 @@ import (
 	"github.com/devinitive-team/mirage/internal/domain"
 )
 
-func TestVerifyTree_CorrectPageUnchanged(t *testing.T) {
-	pages := []domain.Page{
-		{Index: 0, Markdown: "Introduction to the report"},
-		{Index: 1, Markdown: "SolarWinds analysis and details"},
-		{Index: 2, Markdown: "Conclusion of the report"},
+// ---------------------------------------------------------------------------
+// computeEndPages
+// ---------------------------------------------------------------------------
+
+func TestComputeEndPages_Basic(t *testing.T) {
+	items := []tocItem{
+		{Title: "A", StartPage: 0, AppearStart: true},
+		{Title: "B", StartPage: 3, AppearStart: true},
+		{Title: "C", StartPage: 7, AppearStart: false},
 	}
+	computeEndPages(items, 10)
 
-	node := domain.TreeNode{
-		Title:     "SolarWinds",
-		StartPage: 1,
-		EndPage:   1,
+	if items[0].EndPage != 2 {
+		t.Errorf("A.EndPage = %d, want 2", items[0].EndPage)
 	}
-
-	s := &Indexer{}
-	s.verifyTree(&node, pages)
-
-	if node.StartPage != 1 || node.EndPage != 1 {
-		t.Errorf("expected pages 1-1, got %d-%d", node.StartPage, node.EndPage)
+	// C.AppearStart is false, so B shares page 7 with C.
+	if items[1].EndPage != 7 {
+		t.Errorf("B.EndPage = %d, want 7", items[1].EndPage)
 	}
-}
-
-func TestVerifyTree_ShiftsToCorrectPage(t *testing.T) {
-	pages := []domain.Page{
-		{Index: 0, Markdown: "Introduction"},
-		{Index: 1, Markdown: "Riverbed details"},
-		{Index: 2, Markdown: "More Riverbed content"},
-		{Index: 3, Markdown: "SolarWinds analysis begins here"},
-		{Index: 4, Markdown: "SolarWinds continued"},
-	}
-
-	// LLM incorrectly assigned SolarWinds to pages 1-2
-	node := domain.TreeNode{
-		Title:     "SolarWinds",
-		StartPage: 1,
-		EndPage:   2,
-	}
-
-	s := &Indexer{}
-	s.verifyTree(&node, pages)
-
-	if node.StartPage != 3 || node.EndPage != 4 {
-		t.Errorf("expected pages 3-4, got %d-%d", node.StartPage, node.EndPage)
+	if items[2].EndPage != 9 {
+		t.Errorf("C.EndPage = %d, want 9", items[2].EndPage)
 	}
 }
 
-func TestVerifyTree_SkipsParentNodes(t *testing.T) {
+func TestComputeEndPages_AppearStartFalse(t *testing.T) {
+	items := []tocItem{
+		{Title: "A", StartPage: 0},
+		{Title: "B", StartPage: 5, AppearStart: false},
+	}
+	computeEndPages(items, 10)
+
+	// When next item's AppearStart is false, EndPage = next.StartPage (shared page).
+	if items[0].EndPage != 5 {
+		t.Errorf("A.EndPage = %d, want 5", items[0].EndPage)
+	}
+	if items[1].EndPage != 9 {
+		t.Errorf("B.EndPage = %d, want 9", items[1].EndPage)
+	}
+}
+
+func TestComputeEndPages_SingleItem(t *testing.T) {
+	items := []tocItem{
+		{Title: "Only", StartPage: 0},
+	}
+	computeEndPages(items, 5)
+
+	if items[0].EndPage != 4 {
+		t.Errorf("Only.EndPage = %d, want 4", items[0].EndPage)
+	}
+}
+
+// ---------------------------------------------------------------------------
+// addPrefaceIfNeeded
+// ---------------------------------------------------------------------------
+
+func TestAddPrefaceIfNeeded_PrependWhenFirstPageNonZero(t *testing.T) {
+	items := []tocItem{
+		{Structure: "1", Title: "Chapter 1", StartPage: 3},
+	}
+	result := addPrefaceIfNeeded(items)
+
+	if len(result) != 2 {
+		t.Fatalf("len = %d, want 2", len(result))
+	}
+	if result[0].Title != "Preface" || result[0].StartPage != 0 || result[0].Structure != "0" {
+		t.Errorf("preface = %+v", result[0])
+	}
+}
+
+func TestAddPrefaceIfNeeded_NoPrefaceWhenStartsAtZero(t *testing.T) {
+	items := []tocItem{
+		{Structure: "1", Title: "Intro", StartPage: 0},
+	}
+	result := addPrefaceIfNeeded(items)
+
+	if len(result) != 1 {
+		t.Fatalf("len = %d, want 1", len(result))
+	}
+}
+
+func TestAddPrefaceIfNeeded_EmptyItems(t *testing.T) {
+	result := addPrefaceIfNeeded(nil)
+	if len(result) != 0 {
+		t.Fatalf("len = %d, want 0", len(result))
+	}
+}
+
+// ---------------------------------------------------------------------------
+// listToTree
+// ---------------------------------------------------------------------------
+
+func TestListToTree_FlatStructure(t *testing.T) {
+	items := []tocItem{
+		{Structure: "1", Title: "A", StartPage: 0, EndPage: 2},
+		{Structure: "2", Title: "B", StartPage: 3, EndPage: 5},
+		{Structure: "3", Title: "C", StartPage: 6, EndPage: 9},
+	}
+	root := listToTree(items, 10)
+
+	if root.Title != "Root" {
+		t.Errorf("root.Title = %q, want Root", root.Title)
+	}
+	if len(root.Children) != 3 {
+		t.Fatalf("root.Children = %d, want 3", len(root.Children))
+	}
+	if root.Children[0].Title != "A" || root.Children[1].Title != "B" || root.Children[2].Title != "C" {
+		t.Errorf("children = %v", root.Children)
+	}
+}
+
+func TestListToTree_NestedStructure(t *testing.T) {
+	items := []tocItem{
+		{Structure: "1", Title: "Chapter 1", StartPage: 0, EndPage: 4},
+		{Structure: "1.1", Title: "Section 1.1", StartPage: 0, EndPage: 2},
+		{Structure: "1.2", Title: "Section 1.2", StartPage: 3, EndPage: 4},
+		{Structure: "2", Title: "Chapter 2", StartPage: 5, EndPage: 9},
+	}
+	root := listToTree(items, 10)
+
+	if len(root.Children) != 2 {
+		t.Fatalf("root.Children = %d, want 2", len(root.Children))
+	}
+	ch1 := root.Children[0]
+	if ch1.Title != "Chapter 1" {
+		t.Errorf("ch1.Title = %q", ch1.Title)
+	}
+	if len(ch1.Children) != 2 {
+		t.Fatalf("ch1.Children = %d, want 2", len(ch1.Children))
+	}
+	if ch1.Children[0].Title != "Section 1.1" {
+		t.Errorf("ch1.Children[0].Title = %q", ch1.Children[0].Title)
+	}
+}
+
+func TestListToTree_InvalidStructureFallback(t *testing.T) {
+	items := []tocItem{
+		{Structure: "abc", Title: "A", StartPage: 0, EndPage: 2},
+		{Structure: "def", Title: "B", StartPage: 3, EndPage: 5},
+	}
+	root := listToTree(items, 6)
+
+	if len(root.Children) != 2 {
+		t.Fatalf("root.Children = %d, want 2", len(root.Children))
+	}
+}
+
+func TestListToTree_EmptyItems(t *testing.T) {
+	root := listToTree(nil, 10)
+	if root.Title != "Root" {
+		t.Errorf("root.Title = %q", root.Title)
+	}
+	if len(root.Children) != 0 {
+		t.Errorf("root.Children = %d, want 0", len(root.Children))
+	}
+}
+
+// ---------------------------------------------------------------------------
+// pageListToGroups
+// ---------------------------------------------------------------------------
+
+func TestPageListToGroups_SingleGroup(t *testing.T) {
 	pages := []domain.Page{
-		{Index: 0, Markdown: "Content about something else"},
+		{Index: 0, Markdown: "short"},
+		{Index: 1, Markdown: "also short"},
+	}
+	groups := pageListToGroups(pages, 1000)
+	if len(groups) != 1 {
+		t.Fatalf("groups = %d, want 1", len(groups))
+	}
+}
+
+func TestPageListToGroups_MultipleGroups(t *testing.T) {
+	pages := make([]domain.Page, 10)
+	for i := range pages {
+		// ~30 chars per page entry + tags
+		pages[i] = domain.Page{Index: i, Markdown: "content that takes some space here"}
+	}
+	groups := pageListToGroups(pages, 200)
+	if len(groups) < 2 {
+		t.Fatalf("groups = %d, want >= 2", len(groups))
+	}
+}
+
+func TestPageListToGroups_EmptyPages(t *testing.T) {
+	groups := pageListToGroups(nil, 1000)
+	if len(groups) != 0 {
+		t.Fatalf("groups = %d, want 0", len(groups))
+	}
+}
+
+// ---------------------------------------------------------------------------
+// flattenToItems
+// ---------------------------------------------------------------------------
+
+func TestFlattenToItems_NestedSections(t *testing.T) {
+	sections := []tocSection{
+		{
+			Title:     "Chapter 1",
+			StartPage: 0,
+			EndPage:   10,
+			Subsections: []tocSection{
+				{Title: "Section 1.1", StartPage: 0, EndPage: 5},
+				{Title: "Section 1.2", StartPage: 6, EndPage: 10},
+			},
+		},
+		{Title: "Chapter 2", StartPage: 11, EndPage: 20},
 	}
 
-	node := domain.TreeNode{
-		Title:     "Parent",
-		StartPage: 0,
-		EndPage:   0,
-		Children: []domain.TreeNode{
-			{Title: "Child", StartPage: 0, EndPage: 0},
+	items := flattenToItems(sections)
+	if len(items) != 4 {
+		t.Fatalf("len = %d, want 4", len(items))
+	}
+
+	expected := []struct {
+		structure string
+		title     string
+	}{
+		{"1", "Chapter 1"},
+		{"1.1", "Section 1.1"},
+		{"1.2", "Section 1.2"},
+		{"2", "Chapter 2"},
+	}
+	for i, e := range expected {
+		if items[i].Structure != e.structure || items[i].Title != e.title {
+			t.Errorf("items[%d] = {%s, %s}, want {%s, %s}",
+				i, items[i].Structure, items[i].Title, e.structure, e.title)
+		}
+	}
+}
+
+// ---------------------------------------------------------------------------
+// filterInvalidItems
+// ---------------------------------------------------------------------------
+
+func TestFilterInvalidItems(t *testing.T) {
+	items := []tocItem{
+		{Title: "A", StartPage: 0},
+		{Title: "B", StartPage: -1},
+		{Title: "C", StartPage: 5},
+	}
+	result := filterInvalidItems(items)
+	if len(result) != 2 {
+		t.Fatalf("len = %d, want 2", len(result))
+	}
+	if result[0].Title != "A" || result[1].Title != "C" {
+		t.Errorf("result = %+v", result)
+	}
+}
+
+// ---------------------------------------------------------------------------
+// sectionHasPageNumbers
+// ---------------------------------------------------------------------------
+
+func TestSectionHasPageNumbers_DirectMatch(t *testing.T) {
+	sec := tocSection{StartPage: 5}
+	if !sectionHasPageNumbers(sec) {
+		t.Error("expected true for StartPage >= 0")
+	}
+}
+
+func TestSectionHasPageNumbers_NestedMatch(t *testing.T) {
+	sec := tocSection{
+		StartPage: -1,
+		Subsections: []tocSection{
+			{StartPage: 3},
 		},
 	}
-
-	s := &Indexer{}
-	s.verifyTree(&node, pages)
-
-	// Parent should not be modified even though title not found
-	if node.StartPage != 0 || node.EndPage != 0 {
-		t.Errorf("parent should be unchanged, got %d-%d", node.StartPage, node.EndPage)
+	if !sectionHasPageNumbers(sec) {
+		t.Error("expected true for nested StartPage >= 0")
 	}
 }
 
-func TestVerifyTree_SkipsEmptyTitle(t *testing.T) {
-	pages := []domain.Page{
-		{Index: 0, Markdown: "Some content"},
-	}
-
-	node := domain.TreeNode{
-		Title:     "",
-		StartPage: 0,
-		EndPage:   0,
-	}
-
-	s := &Indexer{}
-	s.verifyTree(&node, pages)
-
-	if node.StartPage != 0 || node.EndPage != 0 {
-		t.Errorf("empty title node should be unchanged, got %d-%d", node.StartPage, node.EndPage)
+func TestSectionHasPageNumbers_NoMatch(t *testing.T) {
+	sec := tocSection{StartPage: -1}
+	if sectionHasPageNumbers(sec) {
+		t.Error("expected false for StartPage -1")
 	}
 }
 
-func TestVerifyTree_CaseInsensitive(t *testing.T) {
-	pages := []domain.Page{
-		{Index: 0, Markdown: "Introduction"},
-		{Index: 1, Markdown: "SOLARWINDS ANALYSIS"},
+// ---------------------------------------------------------------------------
+// parseStructure
+// ---------------------------------------------------------------------------
+
+func TestParseStructure_Valid(t *testing.T) {
+	parts, err := parseStructure("1.2.3")
+	if err != nil {
+		t.Fatalf("unexpected error: %v", err)
 	}
-
-	node := domain.TreeNode{
-		Title:     "SolarWinds Analysis",
-		StartPage: 0,
-		EndPage:   0,
-	}
-
-	s := &Indexer{}
-	s.verifyTree(&node, pages)
-
-	if node.StartPage != 1 || node.EndPage != 1 {
-		t.Errorf("expected pages 1-1, got %d-%d", node.StartPage, node.EndPage)
+	if len(parts) != 3 || parts[0] != 1 || parts[1] != 2 || parts[2] != 3 {
+		t.Errorf("parts = %v", parts)
 	}
 }
 
-func TestVerifyTree_NoMatchLeavesUnchanged(t *testing.T) {
-	pages := []domain.Page{
-		{Index: 0, Markdown: "Introduction"},
-		{Index: 1, Markdown: "Other content"},
-	}
-
-	node := domain.TreeNode{
-		Title:     "NonexistentSection",
-		StartPage: 0,
-		EndPage:   0,
-	}
-
-	s := &Indexer{}
-	s.verifyTree(&node, pages)
-
-	if node.StartPage != 0 || node.EndPage != 0 {
-		t.Errorf("expected unchanged pages 0-0, got %d-%d", node.StartPage, node.EndPage)
+func TestParseStructure_Invalid(t *testing.T) {
+	_, err := parseStructure("abc")
+	if err == nil {
+		t.Fatal("expected error for non-numeric structure")
 	}
 }
+
+func TestParseStructure_Empty(t *testing.T) {
+	_, err := parseStructure("")
+	if err == nil {
+		t.Fatal("expected error for empty structure")
+	}
+}
+
+// ---------------------------------------------------------------------------
+// Preserved tests: clampPageRanges
+// ---------------------------------------------------------------------------
 
 func TestClampPageRanges_ClampsNegativeStart(t *testing.T) {
 	node := domain.TreeNode{StartPage: -2, EndPage: 3}
@@ -185,6 +369,10 @@ func TestClampPageRanges_ValidRangeUnchanged(t *testing.T) {
 		t.Errorf("expected 2-7, got %d-%d", node.StartPage, node.EndPage)
 	}
 }
+
+// ---------------------------------------------------------------------------
+// Preserved tests: TOC calibration
+// ---------------------------------------------------------------------------
 
 func TestExtractMatchingTOCPagePairs_FiltersByStartPageAndUnknownLabels(t *testing.T) {
 	labels := []tocPageLabel{
@@ -337,22 +525,6 @@ func TestDetectTOCRejectsFencedJSON(t *testing.T) {
 	}
 }
 
-func TestInferStructureRejectsInvalidJSON(t *testing.T) {
-	pages := []domain.Page{
-		{Index: 0, Markdown: "Page zero"},
-	}
-	llm := &mockLLM{
-		responses: []string{
-			`not-json`,
-		},
-	}
-
-	s := &Indexer{llm: llm}
-	if _, err := s.inferStructure(context.Background(), pages); err == nil {
-		t.Fatal("inferStructure error = nil, want invalid json error")
-	}
-}
-
 func TestCalibrateTOCPageOffsetInvalidJSONFallsBackUnchanged(t *testing.T) {
 	pages := make([]domain.Page, 10)
 	for i := range pages {
@@ -376,5 +548,166 @@ func TestCalibrateTOCPageOffsetInvalidJSONFallsBackUnchanged(t *testing.T) {
 	calibrated := s.calibrateTOCPageOffset(context.Background(), toc, pages)
 	if calibrated[0].StartPage != 1 || calibrated[0].EndPage != 2 {
 		t.Fatalf("calibrated range = %d-%d, want 1-2", calibrated[0].StartPage, calibrated[0].EndPage)
+	}
+}
+
+// ---------------------------------------------------------------------------
+// detectTOC HasPageNumbers inference
+// ---------------------------------------------------------------------------
+
+func TestDetectTOC_SetsHasPageNumbers(t *testing.T) {
+	pages := []domain.Page{
+		{Index: 0, Markdown: "Table of Contents\n1. Intro ... 1\n2. Methods ... 5"},
+	}
+	llm := &mockLLM{
+		responses: []string{
+			`{"has_toc":true,"toc_end_page":0,"sections":[{"title":"Intro","start_page":1,"end_page":4,"subsections":[]},{"title":"Methods","start_page":5,"end_page":10,"subsections":[]}]}`,
+		},
+	}
+
+	s := &Indexer{llm: llm}
+	result, err := s.detectTOC(context.Background(), pages)
+	if err != nil {
+		t.Fatalf("detectTOC error: %v", err)
+	}
+	if !result.HasPageNumbers {
+		t.Error("expected HasPageNumbers = true")
+	}
+}
+
+func TestDetectTOC_NoPageNumbers(t *testing.T) {
+	pages := []domain.Page{
+		{Index: 0, Markdown: "Table of Contents\n1. Intro\n2. Methods"},
+	}
+	llm := &mockLLM{
+		responses: []string{
+			`{"has_toc":true,"toc_end_page":0,"sections":[{"title":"Intro","start_page":-1,"end_page":-1,"subsections":[]},{"title":"Methods","start_page":-1,"end_page":-1,"subsections":[]}]}`,
+		},
+	}
+
+	s := &Indexer{llm: llm}
+	result, err := s.detectTOC(context.Background(), pages)
+	if err != nil {
+		t.Fatalf("detectTOC error: %v", err)
+	}
+	if result.HasPageNumbers {
+		t.Error("expected HasPageNumbers = false")
+	}
+}
+
+// ---------------------------------------------------------------------------
+// Build integration tests
+// ---------------------------------------------------------------------------
+
+func TestBuild_NoTOCMode(t *testing.T) {
+	pages := []domain.Page{
+		{Index: 0, Markdown: "Introduction to the report"},
+		{Index: 1, Markdown: "Chapter 1: Analysis details"},
+		{Index: 2, Markdown: "Chapter 2: Conclusion"},
+	}
+
+	llm := &mockLLM{
+		responses: []string{
+			// detectTOC: no TOC found
+			`{"has_toc":false,"toc_end_page":-1,"sections":[]}`,
+			// processNoTOC → generateTOCInit
+			`{"sections":[{"structure":"1","title":"Introduction","start_page":0},{"structure":"2","title":"Analysis","start_page":1},{"structure":"3","title":"Conclusion","start_page":2}]}`,
+			// checkAppearStart: 3 calls
+			`{"appear_start":true}`,
+			`{"appear_start":true}`,
+			`{"appear_start":true}`,
+		},
+	}
+
+	storage := &mockStorage{}
+	s := NewIndexer(llm, storage, 50, 50000)
+	tree, err := s.Build(context.Background(), "doc-1", pages)
+	if err != nil {
+		t.Fatalf("Build error: %v", err)
+	}
+
+	if tree.Root.Title != "Root" {
+		t.Errorf("root.Title = %q", tree.Root.Title)
+	}
+	if len(tree.Root.Children) != 3 {
+		t.Fatalf("root.Children = %d, want 3", len(tree.Root.Children))
+	}
+	if tree.Root.Children[0].Title != "Introduction" {
+		t.Errorf("child[0].Title = %q", tree.Root.Children[0].Title)
+	}
+}
+
+func TestBuild_TOCWithPageNumbers(t *testing.T) {
+	pages := make([]domain.Page, 15)
+	for i := range pages {
+		pages[i] = domain.Page{Index: i, Markdown: "Page content"}
+	}
+
+	llm := &mockLLM{
+		responses: []string{
+			// detectTOC: has TOC with page numbers
+			`{"has_toc":true,"toc_end_page":1,"sections":[{"title":"Intro","start_page":1,"end_page":5,"subsections":[]},{"title":"Methods","start_page":6,"end_page":10,"subsections":[]}]}`,
+			// calibrateTOCPageOffset LLM call
+			`{"sections":[{"title":"Intro","physical_start_page":3},{"title":"Methods","physical_start_page":8}]}`,
+			// verifyItems: 2 calls
+			`{"title_found":true}`,
+			`{"title_found":true}`,
+			// checkAppearStart: 2 calls
+			`{"appear_start":true}`,
+			`{"appear_start":true}`,
+		},
+	}
+
+	storage := &mockStorage{}
+	s := NewIndexer(llm, storage, 50, 50000)
+	tree, err := s.Build(context.Background(), "doc-1", pages)
+	if err != nil {
+		t.Fatalf("Build error: %v", err)
+	}
+
+	if tree.Root.Title != "Root" {
+		t.Errorf("root.Title = %q", tree.Root.Title)
+	}
+	// Should have 2 sections + preface (since calibrated Intro starts at page 3)
+	if len(tree.Root.Children) < 2 {
+		t.Fatalf("root.Children = %d, want >= 2", len(tree.Root.Children))
+	}
+}
+
+func TestBuild_CascadeFallback(t *testing.T) {
+	pages := make([]domain.Page, 10)
+	for i := range pages {
+		pages[i] = domain.Page{Index: i, Markdown: "Page content"}
+	}
+
+	llm := &mockLLM{
+		responses: []string{
+			// detectTOC: has TOC with page numbers
+			`{"has_toc":true,"toc_end_page":0,"sections":[{"title":"Chapter 1","start_page":1,"end_page":5,"subsections":[]}]}`,
+			// calibrateTOCPageOffset
+			`{"sections":[{"title":"Chapter 1","physical_start_page":2}]}`,
+			// verifyItems for Mode 1: title NOT found → accuracy < 1.0
+			`{"title_found":false}`,
+			// accuracy < 0.6 (0/1 = 0.0), so fall through to Mode 2
+
+			// processTOCNoPageNumbers: locate sections in pages
+			`{"sections":[{"structure":"1","title":"Chapter 1","start_page":2}]}`,
+			// verifyItems for Mode 2: found
+			`{"title_found":true}`,
+
+			// checkAppearStart
+			`{"appear_start":true}`,
+		},
+	}
+
+	storage := &mockStorage{}
+	s := NewIndexer(llm, storage, 50, 50000)
+	tree, err := s.Build(context.Background(), "doc-1", pages)
+	if err != nil {
+		t.Fatalf("Build error: %v", err)
+	}
+
+	if tree.Root.Title != "Root" {
+		t.Errorf("root.Title = %q", tree.Root.Title)
 	}
 }
