@@ -38,7 +38,7 @@ export const Scene5_CTA: React.FC = () => {
     config: SPRING_CONFIG,
   });
 
-  const fadeOut = interpolate(frame, [120, 150], [1, 0], {
+  const fadeOut = interpolate(frame, [98, 122], [1, 0], {
     extrapolateLeft: "clamp",
     extrapolateRight: "clamp",
   });

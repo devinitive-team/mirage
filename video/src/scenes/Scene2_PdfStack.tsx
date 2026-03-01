@@ -34,8 +34,8 @@ const STEPS: StepDef[] = [
     description:
       "Drop in PDFs and let background processing extract document structure while your team keeps moving.",
     color: "#3B82F6",
-    enter: 10,
-    exit: 85,
+    enter: 8,
+    exit: 68,
   },
   {
     num: "02",
@@ -44,8 +44,8 @@ const STEPS: StepDef[] = [
     description:
       "Mirage organizes content by meaning, so questions are matched to relevant sections instead of loose keyword hits.",
     color: "#EF4444",
-    enter: 95,
-    exit: 175,
+    enter: 76,
+    exit: 141,
   },
   {
     num: "03",
@@ -54,7 +54,7 @@ const STEPS: StepDef[] = [
     description:
       "Every answer includes page-linked evidence so reviewers can validate context in seconds.",
     color: "#22C55E",
-    enter: 185,
+    enter: 149,
     exit: Infinity,
   },
 ];

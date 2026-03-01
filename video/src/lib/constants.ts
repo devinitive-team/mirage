@@ -32,8 +32,8 @@ export const SPRING_CONFIG = {
 export const TRANSITION_DURATION = 15;
 
 export const SCENE_DURATIONS = {
-  scene1: 90,
-  scene2: 270,
-  scene3: 664,
-  scene4: 150,
+  scene1: 72,
+  scene2: 217,
+  scene3: 457,
+  scene4: 122,
 } as const;

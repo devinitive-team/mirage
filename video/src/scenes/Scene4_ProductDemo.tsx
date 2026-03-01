@@ -19,13 +19,13 @@ const { fontFamily } = loadFont("normal", {
 });
 
 // ─── Timeline ───
-const DROP_START = 30;
-const INDEX_START = 65;
-const READY_START = 120;
-const TYPING_START = 165;
-const ANSWER_START = 255;
-const ANSWER_REVEAL = 334;
-const EVIDENCE_START = 454;
+const DROP_START = 24;
+const INDEX_START = 52;
+const READY_START = 96;
+const TYPING_START = 133;
+const ANSWER_START = 205;
+const ANSWER_REVEAL = 269;
+const EVIDENCE_START = 365;
 
 export const Scene4_ProductDemo: React.FC = () => {
   const frame = useCurrentFrame();
