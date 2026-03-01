@@ -17,8 +17,7 @@ type Config struct {
 	WorkerCount            int
 	MaxPagesPerNode        int
 	MaxTokensPerNode       int
-	MaxRetrievalIterations int
-	CORSAllowedOrigins     []string
+	CORSAllowedOrigins []string
 	CORSAllowedMethods     []string
 	CORSAllowedHeaders     []string
 	CORSExposedHeaders     []string
@@ -37,10 +36,6 @@ func Load() (Config, error) {
 		return Config{}, err
 	}
 	maxTokensPerNode, err := envInt("MAX_TOKENS_PER_NODE", 20000)
-	if err != nil {
-		return Config{}, err
-	}
-	maxRetrievalIterations, err := envInt("MAX_RETRIEVAL_ITERATIONS", 5)
 	if err != nil {
 		return Config{}, err
 	}
@@ -67,7 +62,6 @@ func Load() (Config, error) {
 		WorkerCount:            workerCount,
 		MaxPagesPerNode:        maxPagesPerNode,
 		MaxTokensPerNode:       maxTokensPerNode,
-		MaxRetrievalIterations: maxRetrievalIterations,
 		CORSAllowedOrigins:     envCSV("CORS_ALLOWED_ORIGINS", nil),
 		CORSAllowedMethods: envCSV("CORS_ALLOWED_METHODS", []string{
 			"GET", "POST", "PUT", "PATCH", "DELETE", "OPTIONS",
@@ -162,9 +156,6 @@ func (c Config) Validate() error {
 	}
 	if c.MaxTokensPerNode < 1 {
 		return fmt.Errorf("MAX_TOKENS_PER_NODE must be greater than 0")
-	}
-	if c.MaxRetrievalIterations < 1 {
-		return fmt.Errorf("MAX_RETRIEVAL_ITERATIONS must be greater than 0")
 	}
 	if c.CORSMaxAge < 0 {
 		return fmt.Errorf("CORS_MAX_AGE must be greater than or equal to 0")

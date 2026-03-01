@@ -105,7 +105,6 @@ All settings via environment variables. See `srv/.env.example` for defaults.
 | `WORKER_COUNT` | `2` | Background worker pool size |
 | `MAX_PAGES_PER_NODE` | `10` | Max pages per tree node |
 | `MAX_TOKENS_PER_NODE` | `20000` | Max tokens per tree node |
-| `MAX_RETRIEVAL_ITERATIONS` | `5` | Max LLM reasoning iterations per query |
 | `CORS_ALLOWED_ORIGINS` | *(empty = disabled)* | Comma-separated allowed origins |
 | `CORS_ALLOWED_METHODS` | `GET,POST,PUT,PATCH,DELETE,OPTIONS` | Allowed HTTP methods |
 | `CORS_ALLOWED_HEADERS` | `Accept,Authorization,Content-Type` | Allowed request headers |

@@ -176,7 +176,7 @@ func TestAnswerBuildsEvidenceFromVisitedLeafPages(t *testing.T) {
 		},
 	}
 
-	svc := NewRetrieval(llm, storage, 3)
+	svc := NewRetrieval(llm, storage)
 	result, err := svc.Answer(context.Background(), domain.Query{
 		Question:    "How did financial performance change?",
 		DocumentIDs: []string{"doc-1"},
@@ -206,11 +206,10 @@ func TestAnswerBuildsEvidenceFromVisitedLeafPages(t *testing.T) {
 	}
 }
 
-func TestAnswerEvidenceIncludesOnlyLeafNodes(t *testing.T) {
+func TestAnswerFetchesParentPageRange(t *testing.T) {
 	llm := &mockLLM{
 		responses: []string{
-			`{"node_list":["doc-1:parent"],"thinking":"drill down"}`,
-			`{"node_list":["doc-1:leaf"],"thinking":"exact section"}`,
+			`{"node_list":["doc-1:parent"],"thinking":"parent has the answer"}`,
 			`{"answer":"The policy changed in Q2."}`,
 		},
 	}
@@ -250,7 +249,7 @@ func TestAnswerEvidenceIncludesOnlyLeafNodes(t *testing.T) {
 		},
 	}
 
-	svc := NewRetrieval(llm, storage, 5)
+	svc := NewRetrieval(llm, storage)
 	result, err := svc.Answer(context.Background(), domain.Query{
 		Question:    "When did policy change?",
 		DocumentIDs: []string{"doc-1"},
@@ -262,15 +261,19 @@ func TestAnswerEvidenceIncludesOnlyLeafNodes(t *testing.T) {
 	if len(result.Evidence) != 1 {
 		t.Fatalf("len(evidence) = %d, want 1", len(result.Evidence))
 	}
-	if result.Evidence[0].NodeID != "leaf" {
-		t.Fatalf("node_id = %q, want leaf", result.Evidence[0].NodeID)
+	ev := result.Evidence[0]
+	if ev.NodeID != "parent" {
+		t.Fatalf("node_id = %q, want parent", ev.NodeID)
+	}
+	if ev.PageStart != 0 || ev.PageEnd != 1 {
+		t.Fatalf("page range = %d-%d, want 0-1", ev.PageStart, ev.PageEnd)
 	}
 }
 
-func TestAnswerDeduplicatesEvidenceByLeafKey(t *testing.T) {
+func TestAnswerDeduplicatesEvidenceByNodeRef(t *testing.T) {
 	llm := &mockLLM{
 		responses: []string{
-			`{"node_list":["doc-1:dup"],"thinking":"matches"}`,
+			`{"node_list":["doc-1:dup","doc-1:dup"],"thinking":"matches"}`,
 			`{"answer":"Duplicated branches were handled."}`,
 		},
 	}
@@ -290,12 +293,6 @@ func TestAnswerDeduplicatesEvidenceByLeafKey(t *testing.T) {
 							StartPage: 0,
 							EndPage:   0,
 						},
-						{
-							NodeID:    "dup",
-							Title:     "Second Duplicate",
-							StartPage: 0,
-							EndPage:   0,
-						},
 					},
 				},
 			},
@@ -307,7 +304,7 @@ func TestAnswerDeduplicatesEvidenceByLeafKey(t *testing.T) {
 		},
 	}
 
-	svc := NewRetrieval(llm, storage, 2)
+	svc := NewRetrieval(llm, storage)
 	result, err := svc.Answer(context.Background(), domain.Query{
 		Question:    "Is duplicate evidence deduped?",
 		DocumentIDs: []string{"doc-1"},
@@ -355,7 +352,7 @@ func TestAnswerAcceptsObjectWrappedAnswerText(t *testing.T) {
 		},
 	}
 
-	svc := NewRetrieval(llm, storage, 3)
+	svc := NewRetrieval(llm, storage)
 	result, err := svc.Answer(context.Background(), domain.Query{
 		Question:    "How did financial performance change?",
 		DocumentIDs: []string{"doc-1"},
@@ -369,20 +366,20 @@ func TestAnswerAcceptsObjectWrappedAnswerText(t *testing.T) {
 	}
 }
 
-func TestAnswerReturnsErrorWhenSelectResponseIsMalformed(t *testing.T) {
+func TestAnswerReturnsErrorWhenSearchResponseIsMalformed(t *testing.T) {
 	llm := &mockLLM{
 		responses: []string{
 			`not-json`,
 		},
 	}
 
-	svc := NewRetrieval(llm, makeSingleLeafStorage(), 3)
+	svc := NewRetrieval(llm, makeSingleLeafStorage())
 	_, err := svc.Answer(context.Background(), domain.Query{
 		Question:    "What happened to revenue?",
 		DocumentIDs: []string{"doc-1"},
 	})
 	if err == nil {
-		t.Fatalf("expected error when selection payload is malformed")
+		t.Fatalf("expected error when search payload is malformed")
 	}
 }
 
@@ -396,7 +393,7 @@ func TestAnswerReturnsErrorWhenAnswerCallFails(t *testing.T) {
 		},
 	}
 
-	svc := NewRetrieval(llm, makeSingleLeafStorage(), 3)
+	svc := NewRetrieval(llm, makeSingleLeafStorage())
 	_, err := svc.Answer(context.Background(), domain.Query{
 		Question:    "What happened to revenue?",
 		DocumentIDs: []string{"doc-1"},
@@ -414,7 +411,7 @@ func TestAnswerRejectsFencedJSONAndTrailingCommas(t *testing.T) {
 		},
 	}
 
-	svc := NewRetrieval(llm, makeSingleLeafStorage(), 3)
+	svc := NewRetrieval(llm, makeSingleLeafStorage())
 	_, err := svc.Answer(context.Background(), domain.Query{
 		Question:    "What happened to revenue?",
 		DocumentIDs: []string{"doc-1"},
@@ -468,7 +465,7 @@ func TestAnswerAvoidsCrossDocumentNodeIDCollisions(t *testing.T) {
 		},
 	}
 
-	svc := NewRetrieval(llm, storage, 3)
+	svc := NewRetrieval(llm, storage)
 	result, err := svc.Answer(context.Background(), domain.Query{
 		Question:    "Which document was selected?",
 		DocumentIDs: []string{"doc-1", "doc-2"},
@@ -485,48 +482,27 @@ func TestAnswerAvoidsCrossDocumentNodeIDCollisions(t *testing.T) {
 	}
 }
 
-func TestAnswerNormalizesNonPositiveMaxIterations(t *testing.T) {
-	llm := &mockLLM{
-		responses: []string{
-			`{"node_list":["doc-1:leaf-1"],"thinking":"relevant"}`,
-			`{"answer":"Normalization worked."}`,
-		},
-	}
-
-	svc := NewRetrieval(llm, makeSingleLeafStorage(), 0)
-	result, err := svc.Answer(context.Background(), domain.Query{
-		Question:    "What happened to revenue?",
-		DocumentIDs: []string{"doc-1"},
-	})
-	if err != nil {
-		t.Fatalf("Answer returned error: %v", err)
-	}
-	if result.Answer != "Normalization worked." {
-		t.Fatalf("answer = %q", result.Answer)
-	}
-}
-
-func TestAnswerErrorsWhenSelectionNormalizesToEmpty(t *testing.T) {
+func TestAnswerErrorsWhenNodeListMatchesNothing(t *testing.T) {
 	llm := &mockLLM{
 		responses: []string{
 			`{"node_list":["doc-1:missing"],"thinking":"mismatch"}`,
 		},
 	}
 
-	svc := NewRetrieval(llm, makeSingleLeafStorage(), 1)
+	svc := NewRetrieval(llm, makeSingleLeafStorage())
 	_, err := svc.Answer(context.Background(), domain.Query{
 		Question:    "What happened to revenue?",
 		DocumentIDs: []string{"doc-1"},
 	})
 	if err == nil {
-		t.Fatal("expected error when normalized selection is empty")
+		t.Fatal("expected error when node_list matches nothing")
 	}
 	if !strings.Contains(err.Error(), "node_list") {
 		t.Fatalf("error = %q, want node_list mismatch", err.Error())
 	}
 }
 
-func TestAnswerReturnsErrorWhenLeafPageLoadFails(t *testing.T) {
+func TestAnswerReturnsErrorWhenPageLoadFails(t *testing.T) {
 	llm := &mockLLM{
 		responses: []string{
 			`{"node_list":["doc-1:leaf-1"],"thinking":"relevant"}`,
@@ -537,7 +513,7 @@ func TestAnswerReturnsErrorWhenLeafPageLoadFails(t *testing.T) {
 		"doc-1": fmt.Errorf("page load failed"),
 	}
 
-	svc := NewRetrieval(llm, storage, 2)
+	svc := NewRetrieval(llm, storage)
 	_, err := svc.Answer(context.Background(), domain.Query{
 		Question:    "What happened to revenue?",
 		DocumentIDs: []string{"doc-1"},
@@ -567,7 +543,7 @@ func TestAnswerStopsAtMaxEvidenceItems(t *testing.T) {
 		pages = append(pages, domain.Page{Index: i, Markdown: fmt.Sprintf("content %d", i)})
 		selected = append(selected, fmt.Sprintf("doc-1:%s", nodeID))
 	}
-	selectionPayload, err := json.Marshal(branchSelection{
+	selectionPayload, err := json.Marshal(searchResponse{
 		NodeList: selected,
 		Thinking: "select all",
 	})
@@ -601,7 +577,7 @@ func TestAnswerStopsAtMaxEvidenceItems(t *testing.T) {
 		},
 	}
 
-	svc := NewRetrieval(llm, storage, 1)
+	svc := NewRetrieval(llm, storage)
 	result, err := svc.Answer(context.Background(), domain.Query{
 		Question:    "Summarize all sections",
 		DocumentIDs: []string{"doc-1"},

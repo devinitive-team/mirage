@@ -13,15 +13,13 @@ import (
 )
 
 const (
-	defaultMaxRetrievalIterations = 3
-	maxCollectedContentChars      = 120000
-	maxEvidenceItems              = 32
+	maxCollectedContentChars = 120000
+	maxEvidenceItems         = 32
 )
 
 type Retrieval struct {
-	llm           port.LLMProvider
-	storage       retrievalStore
-	maxIterations int
+	llm     port.LLMProvider
+	storage retrievalStore
 }
 
 type retrievalStore interface {
@@ -30,35 +28,49 @@ type retrievalStore interface {
 	GetPageRange(ctx context.Context, docID string, start, end int) ([]domain.Page, error)
 }
 
-func NewRetrieval(llm port.LLMProvider, storage retrievalStore, maxIterations int) *Retrieval {
+func NewRetrieval(llm port.LLMProvider, storage retrievalStore) *Retrieval {
 	return &Retrieval{
-		llm:           llm,
-		storage:       storage,
-		maxIterations: maxIterations,
+		llm:     llm,
+		storage: storage,
 	}
 }
 
-type branchSelection struct {
+// nodeEntry is a flat lookup entry for a tree node, keyed by "doc-id:node-id".
+type nodeEntry struct {
+	DocumentID string
+	NodeID     string
+	Title      string
+	StartPage  int
+	EndPage    int
+}
+
+func (e nodeEntry) ref() string {
+	return fmt.Sprintf("%s:%s", e.DocumentID, e.NodeID)
+}
+
+// searchTreeDoc is the LLM-facing JSON for a document's tree.
+type searchTreeDoc struct {
+	DocumentID string           `json:"document_id"`
+	Title      string           `json:"title"`
+	Children   []searchTreeNode `json:"children"`
+}
+
+// searchTreeNode is the LLM-facing JSON for a single tree node.
+type searchTreeNode struct {
+	NodeRef   string           `json:"node_ref"`
+	Title     string           `json:"title"`
+	Summary   string           `json:"summary"`
+	PageIndex int              `json:"page_index"`
+	Children  []searchTreeNode `json:"children,omitempty"`
+}
+
+type searchResponse struct {
 	NodeList []string `json:"node_list"`
 	Thinking string   `json:"thinking"`
 }
 
 type answerResponse struct {
 	Answer json.RawMessage `json:"answer"`
-}
-
-type candidateNode struct {
-	DocumentID string
-	NodeID     string
-	Title      string
-	Summary    string
-	StartPage  int
-	EndPage    int
-	Children   []candidateNode
-}
-
-func (c candidateNode) nodeRef() string {
-	return fmt.Sprintf("%s:%s", c.DocumentID, c.NodeID)
 }
 
 func (s *Retrieval) Answer(ctx context.Context, query domain.Query) (domain.QueryResult, error) {
@@ -70,160 +82,42 @@ func (s *Retrieval) Answer(ctx context.Context, query domain.Query) (domain.Quer
 
 	trees, docs, err := s.loadQueryContext(ctx, query.DocumentIDs)
 	if err != nil {
-		slog.ErrorContext(
-			ctx,
-			"retrieval failed",
-			"stage",
-			"load_query_context",
-			"error",
-			err,
-			"document_count",
-			len(query.DocumentIDs),
-		)
+		slog.ErrorContext(ctx, "retrieval failed", "stage", "load_query_context", "error", err, "document_count", len(query.DocumentIDs))
 		return domain.QueryResult{}, err
 	}
 
-	frontier := s.initialCandidates(trees)
-	if len(frontier) == 0 {
+	nodeMap := buildNodeMap(trees)
+	if len(nodeMap) == 0 {
 		err := fmt.Errorf("no retrieval candidates available")
-		slog.ErrorContext(ctx, "retrieval failed", "stage", "initialize_frontier", "error", err)
-		return domain.QueryResult{}, err
-	}
-	maxIterations := normalizeMaxIterations(s.maxIterations)
-
-	var collectedContent strings.Builder
-	evidence := make([]domain.Evidence, 0)
-	evidenceByKey := make(map[string]struct{})
-
-	for iteration := 0; iteration < maxIterations && len(frontier) > 0; iteration++ {
-		slog.InfoContext(ctx, "retrieval frontier", "iteration", iteration, "frontier_size", len(frontier))
-
-		selection, err := s.selectBranches(ctx, query.Question, frontier, iteration)
-		if err != nil {
-			slog.ErrorContext(
-				ctx,
-				"retrieval failed",
-				"stage",
-				"select_branches",
-				"iteration",
-				iteration,
-				"error",
-				err,
-			)
-			return domain.QueryResult{}, err
-		}
-		slog.InfoContext(ctx, "retrieval branch selection", "iteration", iteration, "node_count", len(selection.NodeList))
-
-		selected := normalizeSelectedCandidates(frontier, selection.NodeList)
-		slog.InfoContext(ctx, "retrieval candidates matched", "iteration", iteration, "selected", len(selected))
-		if len(selected) == 0 {
-			err := fmt.Errorf("node_list did not match available candidates")
-			slog.ErrorContext(
-				ctx,
-				"retrieval failed",
-				"stage",
-				"validate_branch_selection",
-				"iteration",
-				iteration,
-				"error",
-				err,
-				"available_candidates",
-				len(frontier),
-			)
-			return domain.QueryResult{}, err
-		}
-
-		nextFrontier := make([]candidateNode, 0)
-		nextFrontierByKey := make(map[string]struct{})
-
-		for _, cand := range selected {
-			if len(cand.Children) == 0 {
-				pages, err := s.storage.GetPageRange(ctx, cand.DocumentID, cand.StartPage, cand.EndPage)
-				if err != nil {
-					wrappedErr := fmt.Errorf("get pages %s [%d-%d]: %w", cand.DocumentID, cand.StartPage, cand.EndPage, err)
-					slog.ErrorContext(
-						ctx,
-						"retrieval failed",
-						"stage",
-						"load_leaf_pages",
-						"iteration",
-						iteration,
-						"document_id",
-						cand.DocumentID,
-						"node_id",
-						cand.NodeID,
-						"page_start",
-						cand.StartPage,
-						"page_end",
-						cand.EndPage,
-						"error",
-						wrappedErr,
-					)
-					return domain.QueryResult{}, wrappedErr
-				}
-				appendCollectedContent(&collectedContent, cand, pages)
-
-				key := cand.nodeRef()
-				if _, exists := evidenceByKey[key]; exists {
-					continue
-				}
-
-				docName := ""
-				if doc, ok := docs[cand.DocumentID]; ok {
-					docName = doc.Name
-				}
-
-				evidence = append(evidence, domain.Evidence{
-					DocumentID:   cand.DocumentID,
-					DocumentName: docName,
-					NodeID:       cand.NodeID,
-					NodeTitle:    cand.Title,
-					PageStart:    cand.StartPage,
-					PageEnd:      cand.EndPage,
-				})
-				evidenceByKey[key] = struct{}{}
-				if len(evidence) >= maxEvidenceItems {
-					break
-				}
-				continue
-			}
-
-			for _, child := range cand.Children {
-				key := child.nodeRef()
-				if _, exists := nextFrontierByKey[key]; exists {
-					continue
-				}
-				nextFrontierByKey[key] = struct{}{}
-				nextFrontier = append(nextFrontier, child)
-			}
-		}
-
-		if len(evidence) >= maxEvidenceItems {
-			break
-		}
-		if len(nextFrontier) == 0 {
-			break
-		}
-
-		frontier = nextFrontier
-	}
-
-	if len(evidence) == 0 {
-		err := fmt.Errorf("retrieval completed without evidence")
-		slog.ErrorContext(
-			ctx,
-			"retrieval failed",
-			"stage",
-			"finalize_evidence",
-			"error",
-			err,
-			"max_iterations",
-			maxIterations,
-		)
+		slog.ErrorContext(ctx, "retrieval failed", "stage", "build_node_map", "error", err)
 		return domain.QueryResult{}, err
 	}
 
-	answer, err := s.generateAnswer(ctx, query.Question, collectedContent.String())
+	searchTrees := buildSearchTrees(trees, docs)
+
+	selection, err := s.searchTree(ctx, query.Question, searchTrees)
+	if err != nil {
+		slog.ErrorContext(ctx, "retrieval failed", "stage", "search_tree", "error", err)
+		return domain.QueryResult{}, err
+	}
+	slog.InfoContext(ctx, "retrieval search complete", "node_count", len(selection.NodeList))
+
+	entries := resolveNodeRefs(selection.NodeList, nodeMap)
+	if len(entries) == 0 {
+		err := fmt.Errorf("node_list did not match available candidates")
+		slog.ErrorContext(ctx, "retrieval failed", "stage", "resolve_node_refs", "error", err, "raw_count", len(selection.NodeList))
+		return domain.QueryResult{}, err
+	}
+
+	content, err := s.collectContent(ctx, entries)
+	if err != nil {
+		slog.ErrorContext(ctx, "retrieval failed", "stage", "collect_content", "error", err)
+		return domain.QueryResult{}, err
+	}
+
+	evidence := buildEvidence(entries, docs)
+
+	answer, err := s.generateAnswer(ctx, query.Question, content)
 	if err != nil {
 		slog.ErrorContext(ctx, "retrieval failed", "stage", "generate_answer", "error", err)
 		return domain.QueryResult{}, err
@@ -260,73 +154,90 @@ func (s *Retrieval) loadQueryContext(ctx context.Context, documentIDs []string) 
 	return trees, docs, nil
 }
 
-func normalizeMaxIterations(value int) int {
-	if value < 1 {
-		return defaultMaxRetrievalIterations
+// buildNodeMap walks all trees into a flat map keyed by "doc-id:node-id".
+func buildNodeMap(trees map[string]domain.TreeIndex) map[string]nodeEntry {
+	m := make(map[string]nodeEntry)
+	for docID, tree := range trees {
+		walkNodes(docID, tree.Root.Children, m)
 	}
-	return value
+	return m
 }
 
-func appendCollectedContent(collected *strings.Builder, candidate candidateNode, pages []domain.Page) {
-	for _, page := range pages {
-		chunk := fmt.Sprintf("[Doc:%s Page:%d Node:%s]\n%s\n\n", candidate.DocumentID, page.Index, candidate.NodeID, page.Markdown)
-		if collected.Len()+len(chunk) > maxCollectedContentChars {
-			return
+func walkNodes(docID string, nodes []domain.TreeNode, m map[string]nodeEntry) {
+	for _, node := range nodes {
+		entry := nodeEntry{
+			DocumentID: docID,
+			NodeID:     node.NodeID,
+			Title:      node.Title,
+			StartPage:  node.StartPage,
+			EndPage:    node.EndPage,
 		}
-		collected.WriteString(chunk)
+		m[entry.ref()] = entry
+		walkNodes(docID, node.Children, m)
 	}
 }
 
-func (s *Retrieval) initialCandidates(trees map[string]domain.TreeIndex) []candidateNode {
-	var candidates []candidateNode
+// buildSearchTrees converts trees+docs into the LLM-facing JSON (no page numbers).
+func buildSearchTrees(trees map[string]domain.TreeIndex, docs map[string]domain.Document) []searchTreeDoc {
 	docIDs := make([]string, 0, len(trees))
 	for docID := range trees {
 		docIDs = append(docIDs, docID)
 	}
 	sort.Strings(docIDs)
 
+	result := make([]searchTreeDoc, 0, len(docIDs))
 	for _, docID := range docIDs {
 		tree := trees[docID]
-		for _, child := range tree.Root.Children {
-			candidates = append(candidates, treeNodeToCandidate(docID, child))
+		docName := docID
+		if doc, ok := docs[docID]; ok {
+			docName = doc.Name
 		}
+		result = append(result, searchTreeDoc{
+			DocumentID: docID,
+			Title:      docName,
+			Children:   convertNodes(docID, tree.Root.Children),
+		})
 	}
-	return candidates
+	return result
 }
 
-func treeNodeToCandidate(docID string, node domain.TreeNode) candidateNode {
-	cand := candidateNode{
-		DocumentID: docID,
-		NodeID:     node.NodeID,
-		Title:      node.Title,
-		Summary:    node.Summary,
-		StartPage:  node.StartPage,
-		EndPage:    node.EndPage,
+func convertNodes(docID string, nodes []domain.TreeNode) []searchTreeNode {
+	result := make([]searchTreeNode, 0, len(nodes))
+	for _, node := range nodes {
+		sn := searchTreeNode{
+			NodeRef:   fmt.Sprintf("%s:%s", docID, node.NodeID),
+			Title:     node.Title,
+			Summary:   node.Summary,
+			PageIndex: node.StartPage,
+		}
+		if len(node.Children) > 0 {
+			sn.Children = convertNodes(docID, node.Children)
+		}
+		result = append(result, sn)
 	}
-	for _, child := range node.Children {
-		cand.Children = append(cand.Children, treeNodeToCandidate(docID, child))
-	}
-	return cand
+	return result
 }
 
-func (s *Retrieval) selectBranches(ctx context.Context, question string, candidates []candidateNode, iteration int) (branchSelection, error) {
-	var sb strings.Builder
-	for _, c := range candidates {
-		fmt.Fprintf(&sb, "- [%s] %s (doc %s, pages %d-%d): %s\n", c.nodeRef(), c.Title, c.DocumentID, c.StartPage, c.EndPage, c.Summary)
+// searchTree performs a single LLM call with the full hierarchical tree JSON.
+func (s *Retrieval) searchTree(ctx context.Context, question string, trees []searchTreeDoc) (searchResponse, error) {
+	treeJSON, err := json.Marshal(trees)
+	if err != nil {
+		return searchResponse{}, fmt.Errorf("marshal search trees: %w", err)
 	}
 
 	messages := []port.ChatMessage{
 		{
-			Role:    "system",
-			Content: "Select relevant sections. Return JSON only.",
+			Role: "system",
+			Content: "You are given a question and the tree structures of one or more documents.\n" +
+				"Each node contains a node ref, a title, and a summary.\n" +
+				"Your task is to find all nodes that are likely to contain the answer.",
 		},
 		{
 			Role: "user",
 			Content: fmt.Sprintf(
-				"Question: %s\n\nAvailable sections (iteration %d):\n%s\n\nReturn JSON only with keys \"thinking\" and \"node_list\". node_list must be an array of node refs copied exactly from the bracketed refs in Available sections.",
+				"Question: %s\n\nDocument tree structures:\n%s\n\nReturn JSON with \"thinking\" and \"node_list\" keys.\nnode_list entries must be node refs exactly as they appear in the tree.",
 				question,
-				iteration,
-				sb.String(),
+				string(treeJSON),
 			),
 		},
 	}
@@ -344,49 +255,91 @@ func (s *Retrieval) selectBranches(ctx context.Context, question string, candida
 		"required": ["node_list", "thinking"]
 	}`
 
-	var result branchSelection
+	var result searchResponse
 	if err := completeAndDecodeJSON(ctx, s.llm, messages, schema, &result); err != nil {
-		return branchSelection{}, fmt.Errorf("decode branch selection: %w", err)
+		return searchResponse{}, fmt.Errorf("decode search response: %w", err)
 	}
-
 	return result, nil
 }
 
-func normalizeSelectedCandidates(candidates []candidateNode, nodeList []string) []candidateNode {
-	candidateByNodeRef := make(map[string]candidateNode, len(candidates))
-	for _, cand := range candidates {
-		candidateByNodeRef[cand.nodeRef()] = cand
-	}
-
-	filtered := make([]candidateNode, 0, len(nodeList))
-	seen := make(map[string]struct{}, len(nodeList))
+// resolveNodeRefs looks up the LLM's node_list in the flat map, deduplicating.
+func resolveNodeRefs(nodeList []string, nodeMap map[string]nodeEntry) []nodeEntry {
+	var entries []nodeEntry
+	seen := make(map[string]struct{})
 	for _, raw := range nodeList {
-		nodeRef := strings.TrimSpace(raw)
-		if nodeRef == "" {
+		ref := strings.TrimSpace(raw)
+		if ref == "" {
 			continue
 		}
-
-		cand, ok := candidateByNodeRef[nodeRef]
+		if _, exists := seen[ref]; exists {
+			continue
+		}
+		entry, ok := nodeMap[ref]
 		if !ok {
 			continue
 		}
+		seen[ref] = struct{}{}
+		entries = append(entries, entry)
+	}
+	return entries
+}
 
-		if _, exists := seen[nodeRef]; exists {
+// collectContent fetches pages per entry and concatenates with "\n\n" (no metadata headers).
+func (s *Retrieval) collectContent(ctx context.Context, entries []nodeEntry) (string, error) {
+	var sb strings.Builder
+	for _, entry := range entries {
+		pages, err := s.storage.GetPageRange(ctx, entry.DocumentID, entry.StartPage, entry.EndPage)
+		if err != nil {
+			return "", fmt.Errorf("get pages %s [%d-%d]: %w", entry.DocumentID, entry.StartPage, entry.EndPage, err)
+		}
+		for _, page := range pages {
+			chunk := page.Markdown + "\n\n"
+			if sb.Len()+len(chunk) > maxCollectedContentChars {
+				return sb.String(), nil
+			}
+			sb.WriteString(chunk)
+		}
+	}
+	return sb.String(), nil
+}
+
+// buildEvidence converts entries to domain.Evidence with dedup.
+func buildEvidence(entries []nodeEntry, docs map[string]domain.Document) []domain.Evidence {
+	evidence := make([]domain.Evidence, 0, len(entries))
+	seen := make(map[string]struct{})
+	for _, entry := range entries {
+		key := entry.ref()
+		if _, exists := seen[key]; exists {
 			continue
 		}
-		seen[nodeRef] = struct{}{}
-		filtered = append(filtered, cand)
+		seen[key] = struct{}{}
+
+		docName := ""
+		if doc, ok := docs[entry.DocumentID]; ok {
+			docName = doc.Name
+		}
+		evidence = append(evidence, domain.Evidence{
+			DocumentID:   entry.DocumentID,
+			DocumentName: docName,
+			NodeID:       entry.NodeID,
+			NodeTitle:    entry.Title,
+			PageStart:    entry.StartPage,
+			PageEnd:      entry.EndPage,
+		})
+		if len(evidence) >= maxEvidenceItems {
+			break
+		}
 	}
-	return filtered
+	return evidence
 }
 
 func (s *Retrieval) generateAnswer(ctx context.Context, question, collected string) (string, error) {
 	messages := []port.ChatMessage{
-		{Role: "system", Content: "Answer the question from source content. Return JSON only."},
+		{Role: "system", Content: "Provide a clear, concise answer based only on the context provided. Return JSON only."},
 		{
 			Role: "user",
 			Content: fmt.Sprintf(
-				"Question: %s\n\nSource content:\n%s\n\nReturn {\"answer\": \"...\"} with answer as a plain string.",
+				"Question: %s\n\nContext:\n%s\n\nReturn {\"answer\": \"...\"} with answer as a plain string.",
 				question,
 				collected,
 			),

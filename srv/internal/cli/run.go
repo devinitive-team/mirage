@@ -90,7 +90,7 @@ func buildRuntime(cfg config.Config) appRuntime {
 
 	indexer := service.NewIndexer(llm, storage, cfg.MaxPagesPerNode, cfg.MaxTokensPerNode)
 	ingest := service.NewIngest(storage, ocr, indexer)
-	retrieval := service.NewRetrieval(llm, storage, cfg.MaxRetrievalIterations)
+	retrieval := service.NewRetrieval(llm, storage)
 
 	pool := worker.New(cfg.WorkerCount)
 
