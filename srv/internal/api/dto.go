@@ -109,6 +109,44 @@ type TreeNodeBody struct {
 	Children  []TreeNodeBody `json:"children"`
 }
 
+type HistoryEntryBody struct {
+	ID       string         `json:"id"`
+	Question string         `json:"question"`
+	Answer   string         `json:"answer"`
+	AskedAt  string         `json:"asked_at"`
+	Evidence []EvidenceBody `json:"evidence"`
+}
+
+type ListHistoryOutput struct {
+	Body ListHistoryBody
+}
+
+type ListHistoryBody struct {
+	Items []HistoryEntryBody `json:"items"`
+}
+
+func historyEntryToBody(entry domain.HistoryEntry) HistoryEntryBody {
+	evidence := make([]EvidenceBody, 0, len(entry.Evidence))
+	for _, item := range entry.Evidence {
+		evidence = append(evidence, EvidenceBody{
+			DocumentID:   item.DocumentID,
+			DocumentName: item.DocumentName,
+			NodeID:       item.NodeID,
+			NodeTitle:    item.NodeTitle,
+			PageStart:    item.PageStart + 1,
+			PageEnd:      item.PageEnd + 1,
+		})
+	}
+
+	return HistoryEntryBody{
+		ID:       entry.ID,
+		Question: entry.Question,
+		Answer:   entry.Answer,
+		AskedAt:  entry.AskedAt.Format(time.RFC3339),
+		Evidence: evidence,
+	}
+}
+
 func documentToBody(doc domain.Document) DocumentBody {
 	return DocumentBody{
 		ID:          doc.ID,

@@ -21,3 +21,7 @@ func pagesPath(base, docID string) string {
 func treePath(base, docID string) string {
 	return filepath.Join(docDir(base, docID), "tree.json")
 }
+
+func historyPath(base string) string {
+	return filepath.Join(base, "history.json")
+}

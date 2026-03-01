@@ -22,4 +22,8 @@ type Storage interface {
 
 	SaveTree(ctx context.Context, tree domain.TreeIndex) error
 	GetTree(ctx context.Context, docID string) (domain.TreeIndex, error)
+
+	LoadHistory(ctx context.Context) ([]domain.HistoryEntry, error)
+	SaveHistory(ctx context.Context, entries []domain.HistoryEntry) error
+	ClearHistory(ctx context.Context) error
 }

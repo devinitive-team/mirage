@@ -1,3 +1,4 @@
+import { useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
 import { useVirtualizer } from "@tanstack/react-virtual";
 import {
@@ -40,7 +41,7 @@ import {
 	useDocuments,
 	useUploadDocument,
 } from "#/hooks/documents";
-import { useEvidenceHistoryStore } from "#/hooks/evidenceHistory";
+import { historyQueryKey } from "#/hooks/history";
 import { getDocumentTree, queryDocuments } from "#/lib/api";
 import {
 	buildNodeTitleLookup,
@@ -445,7 +446,7 @@ function Dashboard() {
 	const documents = data?.items ?? [];
 	const upload = useUploadDocument();
 	const removeMany = useDeleteDocuments();
-	const addHistoryEntry = useEvidenceHistoryStore((state) => state.addEntry);
+	const queryClient = useQueryClient();
 
 	const documentsById = useMemo(() => {
 		const map = new Map<string, (typeof documents)[number]>();
@@ -792,11 +793,7 @@ function Dashboard() {
 				mergedTreeTitlesByDocument,
 			);
 			setReferences(nextReferences);
-			addHistoryEntry({
-				question: trimmedQuestion,
-				answer: result.answer,
-				evidence: result.evidence ?? [],
-			});
+			queryClient.invalidateQueries({ queryKey: historyQueryKey });
 			setSelectedReference((current) => {
 				if (!current) return current;
 				return nextReferences.some((reference) => reference.id === current.id)
@@ -807,7 +804,7 @@ function Dashboard() {
 			toast.error("Failed to run query.");
 		}
 		setIsQuerying(false);
-	}, [addHistoryEntry, question, queryableDocumentIDs, treeTitlesByDocument]);
+	}, [queryClient, question, queryableDocumentIDs, treeTitlesByDocument]);
 
 	return (
 		<section

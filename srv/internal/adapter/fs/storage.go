@@ -151,6 +151,28 @@ func (s *Storage) GetTree(_ context.Context, docID string) (domain.TreeIndex, er
 	return tree, nil
 }
 
+func (s *Storage) LoadHistory(_ context.Context) ([]domain.HistoryEntry, error) {
+	var entries []domain.HistoryEntry
+	if err := readJSON(historyPath(s.base), &entries); err != nil {
+		if errors.Is(err, domain.ErrNotFound) {
+			return []domain.HistoryEntry{}, nil
+		}
+		return nil, err
+	}
+	return entries, nil
+}
+
+func (s *Storage) SaveHistory(_ context.Context, entries []domain.HistoryEntry) error {
+	return writeJSON(historyPath(s.base), entries)
+}
+
+func (s *Storage) ClearHistory(_ context.Context) error {
+	if err := os.Remove(historyPath(s.base)); err != nil && !errors.Is(err, os.ErrNotExist) {
+		return fmt.Errorf("remove history file: %w", err)
+	}
+	return nil
+}
+
 func writeJSON(path string, v any) error {
 	data, err := json.MarshalIndent(v, "", "  ")
 	if err != nil {

@@ -1,19 +1,23 @@
 // @vitest-environment jsdom
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
-import { afterEach, beforeEach, describe, expect, it } from "vitest";
-
+import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import {
-	type EvidenceHistoryEntry,
-	useEvidenceHistoryStore,
-} from "#/hooks/evidenceHistory";
+	cleanup,
+	fireEvent,
+	render,
+	screen,
+	waitFor,
+} from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
+
+import type { HistoryEntry } from "#/lib/types";
 import { HistoryPage } from "#/routes/history";
 
-const fixtureEntries: EvidenceHistoryEntry[] = [
+const fixtureEntries: HistoryEntry[] = [
 	{
 		id: "history-1",
 		question: "What changed in Q4 revenue?",
 		answer: "Revenue increased 11% quarter over quarter.",
-		askedAt: "2026-02-28T18:20:00.000Z",
+		asked_at: "2026-02-28T18:20:00.000Z",
 		evidence: [
 			{
 				document_id: "doc-q4",
@@ -29,7 +33,7 @@ const fixtureEntries: EvidenceHistoryEntry[] = [
 		id: "history-2",
 		question: "Which contracts expire in 2026?",
 		answer: "Three vendor agreements expire in 2026.",
-		askedAt: "2026-02-26T12:20:00.000Z",
+		asked_at: "2026-02-26T12:20:00.000Z",
 		evidence: [
 			{
 				document_id: "doc-contracts",
@@ -43,22 +47,37 @@ const fixtureEntries: EvidenceHistoryEntry[] = [
 	},
 ];
 
-describe("HistoryPage", () => {
-	beforeEach(() => {
-		useEvidenceHistoryStore.getState().replaceEntries(fixtureEntries);
+function createWrapper() {
+	const queryClient = new QueryClient({
+		defaultOptions: { queries: { retry: false } },
 	});
+	return ({ children }: { children: React.ReactNode }) => (
+		<QueryClientProvider client={queryClient}>{children}</QueryClientProvider>
+	);
+}
 
+describe("HistoryPage", () => {
 	afterEach(() => {
-		useEvidenceHistoryStore.getState().clearEntries();
+		vi.restoreAllMocks();
 		cleanup();
 	});
 
-	it("shows the selected question answer and switches evidence when another question is selected", () => {
-		render(<HistoryPage />);
+	it("shows the selected question answer and switches evidence when another question is selected", async () => {
+		vi.stubGlobal(
+			"fetch",
+			vi.fn().mockResolvedValue({
+				ok: true,
+				json: () => Promise.resolve({ items: fixtureEntries }),
+			}),
+		);
 
-		expect(
-			screen.getByText("Revenue increased 11% quarter over quarter."),
-		).toBeTruthy();
+		render(<HistoryPage />, { wrapper: createWrapper() });
+
+		await waitFor(() => {
+			expect(
+				screen.getByText("Revenue increased 11% quarter over quarter."),
+			).toBeTruthy();
+		});
 		expect(screen.getByText("Q4_Report.pdf")).toBeTruthy();
 
 		fireEvent.click(

@@ -1,5 +1,15 @@
 package domain
 
+import "time"
+
+type HistoryEntry struct {
+	ID       string     `json:"id"`
+	Question string     `json:"question"`
+	Answer   string     `json:"answer"`
+	AskedAt  time.Time  `json:"asked_at"`
+	Evidence []Evidence `json:"evidence"`
+}
+
 type Query struct {
 	Question    string   `json:"question"`
 	DocumentIDs []string `json:"document_ids"`

@@ -24,6 +24,7 @@ type Config struct {
 	CORSExposedHeaders     []string
 	CORSAllowCredentials   bool
 	CORSMaxAge             int
+	HistoryMaxEntries      int
 }
 
 func Load() (Config, error) {
@@ -51,6 +52,10 @@ func Load() (Config, error) {
 	if err != nil {
 		return Config{}, err
 	}
+	historyMaxEntries, err := envInt("HISTORY_MAX_ENTRIES", 10)
+	if err != nil {
+		return Config{}, err
+	}
 
 	c := Config{
 		ListenAddr:             envOr("LISTEN_ADDR", ":2137"),
@@ -71,6 +76,7 @@ func Load() (Config, error) {
 		CORSExposedHeaders:   envCSV("CORS_EXPOSED_HEADERS", []string{"Link"}),
 		CORSAllowCredentials: corsAllowCredentials,
 		CORSMaxAge:           corsMaxAge,
+		HistoryMaxEntries:    historyMaxEntries,
 	}
 
 	if c.MistralAPIKey == "" {
@@ -162,6 +168,9 @@ func (c Config) Validate() error {
 	}
 	if c.CORSMaxAge < 0 {
 		return fmt.Errorf("CORS_MAX_AGE must be greater than or equal to 0")
+	}
+	if c.HistoryMaxEntries < 1 {
+		return fmt.Errorf("HISTORY_MAX_ENTRIES must be greater than 0")
 	}
 	return nil
 }

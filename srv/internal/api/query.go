@@ -15,10 +15,11 @@ type queryAnswerer interface {
 
 type QueryHandler struct {
 	retrieval queryAnswerer
+	history   *HistoryHandler
 }
 
-func NewQueryHandler(retrieval queryAnswerer) *QueryHandler {
-	return &QueryHandler{retrieval: retrieval}
+func NewQueryHandler(retrieval queryAnswerer, history *HistoryHandler) *QueryHandler {
+	return &QueryHandler{retrieval: retrieval, history: history}
 }
 
 func (h *QueryHandler) RegisterRoutes(api huma.API) {
@@ -43,6 +44,10 @@ func (h *QueryHandler) Query(ctx context.Context, input *QueryInput) (*QueryOutp
 	result, err := h.retrieval.Answer(ctx, query)
 	if err != nil {
 		return nil, fmt.Errorf("query: %w", err)
+	}
+
+	if h.history != nil {
+		h.history.AddEntry(ctx, input.Body.Question, result)
 	}
 
 	return &QueryOutput{Body: queryResultToBody(result)}, nil

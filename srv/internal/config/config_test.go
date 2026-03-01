@@ -103,6 +103,32 @@ func TestLoadRejectsCredentialsWithWildcardOrigin(t *testing.T) {
 	}
 }
 
+func TestLoadHistoryMaxEntriesDefault(t *testing.T) {
+	t.Setenv("MISTRAL_API_KEY", "test-key")
+	t.Setenv("HISTORY_MAX_ENTRIES", "")
+
+	cfg, err := Load()
+	if err != nil {
+		t.Fatalf("Load() error = %v", err)
+	}
+	if cfg.HistoryMaxEntries != 10 {
+		t.Fatalf("HistoryMaxEntries = %d, want 10", cfg.HistoryMaxEntries)
+	}
+}
+
+func TestLoadRejectsInvalidHistoryMaxEntries(t *testing.T) {
+	t.Setenv("MISTRAL_API_KEY", "test-key")
+	t.Setenv("HISTORY_MAX_ENTRIES", "0")
+
+	_, err := Load()
+	if err == nil {
+		t.Fatal("Load() error = nil, want validation error")
+	}
+	if !strings.Contains(err.Error(), "HISTORY_MAX_ENTRIES") {
+		t.Fatalf("Load() error = %q, want HISTORY_MAX_ENTRIES error", err.Error())
+	}
+}
+
 func TestLoadRejectsInvalidIntegerEnv(t *testing.T) {
 	t.Setenv("MISTRAL_API_KEY", "test-key")
 	t.Setenv("WORKER_COUNT", "invalid")

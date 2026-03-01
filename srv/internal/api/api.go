@@ -30,16 +30,16 @@ type CORSConfig struct {
 
 // New creates a new API with all routes registered. Dependencies may be nil
 // when the API is used only for schema introspection (e.g. OpenAPI generation).
-func New(storage port.Storage, ingest *service.Ingest, retrieval *service.Retrieval, pool *worker.Pool, corsConfig CORSConfig) *API {
-	return newAPI(storage, ingest, retrieval, pool, corsConfig)
+func New(storage port.Storage, ingest *service.Ingest, retrieval *service.Retrieval, pool *worker.Pool, corsConfig CORSConfig, historyMaxEntries int) *API {
+	return newAPI(storage, ingest, retrieval, pool, corsConfig, historyMaxEntries)
 }
 
 // NewSchema creates an API instance used only for schema generation.
 func NewSchema() *API {
-	return newAPI(nil, nil, nil, nil, CORSConfig{})
+	return newAPI(nil, nil, nil, nil, CORSConfig{}, 10)
 }
 
-func newAPI(storage port.Storage, ingest *service.Ingest, retrieval *service.Retrieval, pool *worker.Pool, corsConfig CORSConfig) *API {
+func newAPI(storage port.Storage, ingest *service.Ingest, retrieval *service.Retrieval, pool *worker.Pool, corsConfig CORSConfig, historyMaxEntries int) *API {
 	r := chi.NewMux()
 
 	r.Use(Recovery)
@@ -66,7 +66,10 @@ func newAPI(storage port.Storage, ingest *service.Ingest, retrieval *service.Ret
 	docs := NewDocumentHandler(storage, ingest, pool)
 	docs.RegisterRoutes(humaAPI)
 
-	query := NewQueryHandler(retrieval)
+	history := NewHistoryHandler(storage, historyMaxEntries)
+	history.RegisterRoutes(humaAPI)
+
+	query := NewQueryHandler(retrieval, history)
 	query.RegisterRoutes(humaAPI)
 
 	return &API{router: r, humaAPI: humaAPI}

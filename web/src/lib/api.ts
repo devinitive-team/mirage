@@ -2,6 +2,7 @@ import type {
 	Document,
 	DocumentList,
 	DocumentTree,
+	HistoryList,
 	QueryRequest,
 	QueryResult,
 } from "#/lib/types";
@@ -11,6 +12,8 @@ export type {
 	DocumentList,
 	DocumentTree,
 	Evidence,
+	HistoryEntry,
+	HistoryList,
 	QueryRequest,
 	QueryResult,
 } from "#/lib/types";
@@ -67,6 +70,19 @@ export async function getDocumentTree(id: string): Promise<DocumentTree> {
 	if (!res.ok)
 		throw new Error(`Failed to get document tree: ${res.statusText}`);
 	return res.json();
+}
+
+// ─── History ─────────────────────────────────────────────────────────────────
+
+export async function listHistory(): Promise<HistoryList> {
+	const res = await fetch(`${BASE}/history`);
+	if (!res.ok) throw new Error(`Failed to list history: ${res.statusText}`);
+	return res.json();
+}
+
+export async function clearHistory(): Promise<void> {
+	const res = await fetch(`${BASE}/history`, { method: "DELETE" });
+	if (!res.ok) throw new Error(`Failed to clear history: ${res.statusText}`);
 }
 
 // ─── Query ────────────────────────────────────────────────────────────────────

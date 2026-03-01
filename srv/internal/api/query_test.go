@@ -38,7 +38,7 @@ func TestQueryForwardsInputAndReturnsBody(t *testing.T) {
 			},
 		},
 	}
-	handler := NewQueryHandler(retrieval)
+	handler := NewQueryHandler(retrieval, nil)
 
 	resp, err := handler.Query(context.Background(), &QueryInput{
 		Body: QueryBody{
@@ -68,7 +68,7 @@ func TestQueryForwardsInputAndReturnsBody(t *testing.T) {
 }
 
 func TestQueryReturnsErrorWhenRetrievalFails(t *testing.T) {
-	handler := NewQueryHandler(&stubAnswerer{err: errors.New("upstream failure")})
+	handler := NewQueryHandler(&stubAnswerer{err: errors.New("upstream failure")}, nil)
 	_, err := handler.Query(context.Background(), &QueryInput{
 		Body: QueryBody{
 			Question:    "Q",

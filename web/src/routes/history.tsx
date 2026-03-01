@@ -4,13 +4,16 @@ import {
 	FileSearch,
 	FileText,
 	History,
+	Loader2,
 	MessageSquareText,
+	Trash2,
 	X,
 } from "lucide-react";
 import { type CSSProperties, useEffect, useMemo, useState } from "react";
+import { toast } from "sonner";
 
 import { Input } from "#/components/ui/input";
-import { useEvidenceHistoryStore } from "#/hooks/evidenceHistory";
+import { useClearHistory, useHistory } from "#/hooks/history";
 import { evidenceListToReferences } from "#/lib/evidence";
 
 export const Route = createFileRoute("/history")({
@@ -82,7 +85,9 @@ function HistoryEvidenceCard({
 }
 
 export function HistoryPage() {
-	const historyEntries = useEvidenceHistoryStore((state) => state.entries);
+	const { data, isLoading } = useHistory();
+	const clearHistory = useClearHistory();
+	const historyEntries = data?.items ?? [];
 	const [searchQuery, setSearchQuery] = useState("");
 	const [selectedEntryID, setSelectedEntryID] = useState<string | null>(null);
 
@@ -119,7 +124,7 @@ export function HistoryPage() {
 
 	const selectedReferences = useMemo(() => {
 		if (!selectedEntry) return [];
-		return evidenceListToReferences(selectedEntry.evidence, {});
+		return evidenceListToReferences(selectedEntry.evidence ?? [], {});
 	}, [selectedEntry]);
 
 	const selectedDocumentCount = useMemo(
@@ -128,6 +133,12 @@ export function HistoryPage() {
 		[selectedReferences],
 	);
 
+	const handleClearHistory = () => {
+		clearHistory.mutate(undefined, {
+			onError: () => toast.error("Failed to clear history."),
+		});
+	};
+
 	return (
 		<section
 			className="flex h-full gap-3 p-3"
@@ -135,11 +146,24 @@ export function HistoryPage() {
 		>
 			<aside className="w-72 shrink-0 flex flex-col island-shell rounded-2xl overflow-hidden">
 				<div className="p-4 border-b border-[var(--line)] shrink-0 h-[7.75rem] flex flex-col justify-between gap-3">
-					<div>
-						<p className="island-kicker">Asked Questions</p>
-						<p className="mt-1 text-xs text-[var(--sea-ink-soft)]">
-							{historyEntries.length} saved in this session
-						</p>
+					<div className="flex items-center justify-between">
+						<div>
+							<p className="island-kicker">Asked Questions</p>
+							<p className="mt-1 text-xs text-[var(--sea-ink-soft)]">
+								{historyEntries.length} saved
+							</p>
+						</div>
+						{historyEntries.length > 0 && (
+							<button
+								type="button"
+								onClick={handleClearHistory}
+								disabled={clearHistory.isPending}
+								className="rounded-lg p-1.5 text-[var(--sea-ink-soft)] transition-colors hover:bg-red-500/10 hover:text-red-600 disabled:opacity-50"
+								aria-label="Clear all history"
+							>
+								<Trash2 className="w-3.5 h-3.5" />
+							</button>
+						)}
 					</div>
 					<div className="relative">
 						<Input
@@ -163,7 +187,11 @@ export function HistoryPage() {
 				</div>
 
 				<div className="flex-1 min-h-0 overflow-y-auto p-2 space-y-1">
-					{historyEntries.length === 0 ? (
+					{isLoading ? (
+						<div className="flex items-center justify-center h-full py-8">
+							<Loader2 className="w-6 h-6 animate-spin text-[var(--sea-ink-soft)]" />
+						</div>
+					) : historyEntries.length === 0 ? (
 						<div className="h-full flex flex-col items-center justify-center gap-3 px-4 text-center">
 							<History className="w-8 h-8 text-[var(--sea-ink-soft)] opacity-40" />
 							<p className="text-sm text-[var(--sea-ink-soft)]">
@@ -180,7 +208,7 @@ export function HistoryPage() {
 					) : (
 						filteredEntries.map((entry) => {
 							const isSelected = entry.id === selectedEntry?.id;
-							const evidenceCount = entry.evidence.length;
+							const evidenceCount = entry.evidence?.length ?? 0;
 							const evidenceLabel =
 								evidenceCount === 1
 									? "1 evidence reference"
@@ -202,7 +230,7 @@ export function HistoryPage() {
 									<div className="mt-2 flex items-center justify-between gap-2 text-[11px] text-[var(--sea-ink-soft)]">
 										<span className="inline-flex items-center gap-1">
 											<Clock3 className="w-3 h-3" />
-											{formatAskedAt(entry.askedAt)}
+											{formatAskedAt(entry.asked_at)}
 										</span>
 										<span className="truncate">{evidenceLabel}</span>
 									</div>
@@ -222,7 +250,7 @@ export function HistoryPage() {
 								{selectedEntry.question}
 							</p>
 							<p className="text-xs text-[var(--sea-ink-soft)]">
-								Asked {formatAskedAt(selectedEntry.askedAt)} •{" "}
+								Asked {formatAskedAt(selectedEntry.asked_at)} •{" "}
 								{selectedReferences.length} evidence item
 								{selectedReferences.length === 1 ? "" : "s"} across{" "}
 								{selectedDocumentCount} document

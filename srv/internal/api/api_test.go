@@ -14,7 +14,7 @@ func TestCORSPreflightAllowsConfiguredOrigin(t *testing.T) {
 		AllowedHeaders: []string{"Accept", "Content-Type"},
 		ExposedHeaders: []string{"Link"},
 		MaxAge:         300,
-	})
+	}, 10)
 
 	req := httptest.NewRequest(http.MethodOptions, "/health", nil)
 	req.Header.Set("Origin", "http://localhost:3000")
@@ -39,7 +39,7 @@ func TestCORSDoesNotAllowUnknownOrigin(t *testing.T) {
 		AllowedHeaders: []string{"Accept", "Content-Type"},
 		ExposedHeaders: []string{"Link"},
 		MaxAge:         300,
-	})
+	}, 10)
 
 	req := httptest.NewRequest(http.MethodGet, "/health", nil)
 	req.Header.Set("Origin", "http://malicious.example")
@@ -53,7 +53,7 @@ func TestCORSDoesNotAllowUnknownOrigin(t *testing.T) {
 }
 
 func TestCORSDisabledWhenAllowedOriginsEmpty(t *testing.T) {
-	a := New(nil, nil, nil, nil, CORSConfig{})
+	a := New(nil, nil, nil, nil, CORSConfig{}, 10)
 
 	req := httptest.NewRequest(http.MethodGet, "/health", nil)
 	req.Header.Set("Origin", "http://localhost:3000")
@@ -76,7 +76,7 @@ func TestCORSGetIncludesAllowOriginForConfiguredOrigin(t *testing.T) {
 		AllowedHeaders: []string{"Accept", "Content-Type"},
 		ExposedHeaders: []string{"Link"},
 		MaxAge:         300,
-	})
+	}, 10)
 
 	req := httptest.NewRequest(http.MethodGet, "/health", nil)
 	req.Header.Set("Origin", "http://localhost:3000")

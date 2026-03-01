@@ -101,7 +101,7 @@ func buildRuntime(cfg config.Config) appRuntime {
 		ExposedHeaders:   cfg.CORSExposedHeaders,
 		AllowCredentials: cfg.CORSAllowCredentials,
 		MaxAge:           cfg.CORSMaxAge,
-	})
+	}, cfg.HistoryMaxEntries)
 
 	srv := &http.Server{
 		Addr:    cfg.ListenAddr,

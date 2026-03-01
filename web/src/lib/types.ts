@@ -36,3 +36,14 @@ export type QueryRequest = Omit<components["schemas"]["QueryBody"], "$schema">;
 
 export type TreeNode = Omit<components["schemas"]["TreeNodeBody"], "$schema">;
 export type DocumentTree = Omit<components["schemas"]["TreeBody"], "$schema">;
+
+// ─── History ─────────────────────────────────────────────────────────────────
+
+export type HistoryEntry = Omit<
+	components["schemas"]["HistoryEntryBody"],
+	"$schema"
+>;
+
+export type HistoryList = {
+	items: HistoryEntry[];
+};
