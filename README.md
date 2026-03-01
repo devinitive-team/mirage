@@ -20,6 +20,24 @@ If the frontend is served from a different origin than the API, configure CORS i
 CORS_ALLOWED_ORIGINS=http://localhost:3000
 ```
 
+## Video Project (Remotion)
+
+A dedicated `video/` project is available for generating videos with Remotion.
+
+Get started by running:
+
+```bash
+cd video
+npm i
+npm run dev
+```
+
+To render a video, run:
+
+```bash
+npx remotion render
+```
+
 ## Dependencies
 
 - [Go](https://go.dev/) 1.24+

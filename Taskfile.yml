@@ -10,6 +10,9 @@ includes:
   marketing:
     taskfile: marketing/Taskfile.yml
     dir: marketing
+  video:
+    taskfile: video/Taskfile.yml
+    dir: video
 
 tasks:
   setup:
@@ -17,6 +20,7 @@ tasks:
     cmds:
       - task: srv:install
       - task: web:install
+      - task: video:install
 
   build:
     desc: Build all projects
@@ -57,3 +61,8 @@ tasks:
     deps:
       - srv:run
       - web:dev
+
+  render:
+    desc: Render the Remotion video project
+    cmds:
+      - task: video:render

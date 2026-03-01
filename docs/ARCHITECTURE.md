@@ -8,7 +8,7 @@ Mirage is a document search system. Users upload PDFs, the system extracts text 
 
 ## Codemap
 
-Monorepo with three projects:
+Monorepo with four projects:
 
 ### `srv/` — Go backend
 
@@ -39,6 +39,13 @@ React 19 + TanStack (Router, Query, Form, Table) + Vite + Tailwind CSS + Biome.
 - `marketing/src` — Astro + Tailwind CSS marketing app.
 - `marketing/src/pages` — Route entrypoints for public marketing pages.
 
+### `video/` — Remotion video renderer
+
+- `video/src` — Remotion compositions and root registration.
+- `video/public` — Static assets for preview and render.
+- `video/remotion.config.ts` — Render and bundling configuration.
+- `video/Taskfile.yml` — Project tasks for install, dev, build, lint, and render.
+
 ## Invariants
 
 - Hexagonal architecture: services depend on ports, never on adapters.
@@ -64,6 +71,7 @@ React 19 + TanStack (Router, Query, Form, Table) + Vite + Tailwind CSS + Biome.
 - **Configuration**: Add env var to `srv/.env.example`, parse in `srv/internal/config/config.go`
 - **Product frontend features**: `web/src/`
 - **Marketing site features**: `marketing/src/`
+- **Video composition features**: `video/src/`
 
 ## API Reference
 
