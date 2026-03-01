@@ -14,22 +14,28 @@ Snapshot date: 2026-03-01.
 ## Style System
 
 - Styling stack is Tailwind CSS v4 utilities plus shared tokens in `marketing/src/styles/global.css`.
+- Theme system is class-based (`.dark` on `<html>`) with CSS custom properties for light/dark palette switching.
 - Fonts are loaded from Google Fonts:
   - `IBM Plex Sans` (`--font-sans`) for body copy and UI text.
   - `Manrope` (`--font-display`) for headings and primary CTAs.
   - `IBM Plex Mono` (`--font-mono`) for overlines/labels and metric text.
-- Base page defaults:
+- Light theme defaults:
   - Background: `#f4f5f6` (`--bg-0`).
   - Primary text: `#13161c` (`--text-0`).
   - Secondary text: `#3d4651` (`--text-1`).
-  - Body line-height: `1.58`.
-  - Letter spacing: `0.004em`.
+- Dark theme defaults:
+  - Background: `#0b0b0b` (`--bg-0`).
+  - Primary text: `#f4f4f5` (`--text-0`).
+  - Secondary text: `#d4d4d8` (`--text-1`).
+- Body line-height: `1.58`.
+- Letter spacing: `0.004em`.
 
 ## Visual Direction
 
-- Overall aesthetic is light, technical, and restrained:
-  - Neutral grayscale surfaces with dark text.
-  - Frequent 1px separators (`border-black/10`) instead of elevated cards.
+- Overall aesthetic is technical and restrained in both themes:
+  - Light mode uses neutral grayscale surfaces with dark text.
+  - Dark mode uses near-black surfaces with zinc-toned text and separators.
+  - Frequent 1px separators (`border-black/10` with dark-mode `border-white/15`) instead of elevated cards.
   - Minimal corner rounding on most layout blocks; stronger rounding reserved for media/overlays.
 - Accent color appears mostly in small utility markers, chips, and inline diagram elements, not as large surface fills.
 - Visual hierarchy relies on typography scale and spacing, not heavy color contrast blocks.
@@ -46,12 +52,12 @@ Snapshot date: 2026-03-01.
 ### Header
 
 - Sticky header: `sticky top-0 z-40`.
-- Background: semi-transparent white (`bg-white/80`) with `backdrop-blur`.
-- Bottom rule: `border-b border-black/10`.
+- Background: semi-transparent white in light mode (`bg-white/80`) and semi-transparent black in dark mode (`dark:bg-black/85`) with `backdrop-blur`.
+- Bottom rule: `border-b border-black/10` with dark-mode override `dark:border-white/15`.
 - Brand lockup: inline monochrome SVG mark + `Manrope` wordmark.
 - Nav CTA:
   - Label: `Join Waitlist`.
-  - Visual style: dark solid button (`bg-slate-900`, white text) with subtle lift on hover (`hover:-translate-y-0.5`).
+  - Visual style: inverted solid button between themes (dark button in light mode; light button in dark mode) with subtle lift on hover (`hover:-translate-y-0.5`).
 
 ### Hero
 
@@ -64,7 +70,7 @@ Snapshot date: 2026-03-01.
 - Demo media block:
   - Container: rounded 3xl panel with light border and translucent white surface.
   - Animated border sheen via `ShineBorder`.
-  - Thumbnail uses rounded 2xl image with hover scale/brightness shift.
+  - Thumbnail uses rounded 2xl image with hover scale/brightness shift and swaps source by theme (`/hero-light.png` and `/hero-dark.png`).
   - Centered black translucent “Watch Demo” chip with circular white play icon.
 
 ### Proof Strip
@@ -111,6 +117,13 @@ Snapshot date: 2026-03-01.
 - Nav CTA behavior:
   - Clicking the top CTA scrolls/focuses the hero email input (instead of navigating away).
   - Input gets temporary highlighted pulse/ring state through data-attribute utility classes.
+- Theme behavior:
+  - Theme initializes before first paint in `index.astro` via inline script.
+  - Resolution order: `localStorage["mirage-theme"]` (`light`/`dark`) then system preference (`prefers-color-scheme`).
+  - Active theme sets `html.dark`, `data-theme`, and `color-scheme`.
+  - Footer toggle (`data-theme-toggle`) switches themes, persists preference, updates icon/label, and updates `aria-label`/`aria-pressed`.
+  - When no stored preference exists, system theme changes are applied live.
+  - Embedded ConvertKit form controls have dark-theme overrides for input, focus ring, and submit button contrast.
 
 ## Responsive Behavior
 

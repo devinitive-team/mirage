@@ -31,6 +31,7 @@ For the `video/` app, use Remotion primitives for timeline-driven visuals and va
 
 - Public landing page served from Astro at `http://localhost:4321/` in development.
 - Primary conversion CTA label is currently `Join Waitlist`.
+- Landing page supports light and dark themes; initial theme follows `localStorage["mirage-theme"]` or system preference, and the footer toggle persists explicit user choice.
 - Marketing page style choices are documented in `docs/design-docs/marketing-page-styling.md`.
 - Marketing styles are owned in `marketing/src/styles/` and component-local classes/styles in `marketing/src/components/landing/`; they may intentionally differ from `web/` layout while staying brand-aligned.
 - Marketing UI workflow: run `cd marketing && npm run dev`, verify changes with `agent-browser` at `http://localhost:4321`, iterate, then confirm `cd marketing && npm run build` (or `task marketing:build`) passes before handoff.
