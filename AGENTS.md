@@ -40,9 +40,10 @@ Use this iterative workflow for changes:
 - `docs/SECURITY.md`: integration security posture.
 - `docs/QUALITY.md`: quality command baseline.
 - `docs/PLANS.md`: ExecPlan protocol and required structure.
+- `docs/LESSONS.md`: recurring mistake patterns and project-specific rules.
 - `docs/exec-plans/active/README.md`: active plan workspace guidance.
 - `docs/exec-plans/tech-debt-tracker.md`: deferred improvements.
 - `docs/product-specs/`: behavior-level specs.
-- `docs/design-docs/README.md`: design-doc catalog.
-- `docs/generated/README.md`: generated-artifacts boundary.
+- `docs/design-docs/`: deeper design writeups.
+- `docs/generated/`: generated artifacts (ephemeral).
 - `docs/references/`: external source notes.

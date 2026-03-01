@@ -12,6 +12,7 @@ Use this file as the canonical documentation map.
 - `SECURITY.md`: security boundaries and posture.
 - `QUALITY.md`: quality baseline and validation workflow.
 - `PLANS.md`: ExecPlan protocol and required plan structure.
+- `LESSONS.md`: recurring mistake patterns and project-specific rules.
 
 ## Plans
 
@@ -25,6 +26,4 @@ Use this file as the canonical documentation map.
 - `product-specs/`: behavior-focused specifications.
 - `references/`: external source notes.
 - `design-docs/`: deeper design writeups.
-- `design-docs/README.md`: design-doc catalog.
 - `generated/`: generated artifacts only.
-- `generated/README.md`: generated-output boundary and purpose.

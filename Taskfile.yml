@@ -53,7 +53,7 @@ tasks:
       - task: web:codegen
 
   run:
-    desc: Run both server, frontend and marketing site in dev mode
+    desc: Run server and frontend in dev mode
     deps:
       - srv:run
       - web:dev
