@@ -67,7 +67,7 @@ export const MyComposition: React.FC = () => {
   return (
     <>
     {/* Start at 12.83s so the drop at 15s lands on Ingest (abs frame 65) */}
-    <Audio src={staticFile("background.mp3")} volume={bgMusicVolume} startFrom={385} />
+    <Audio src={staticFile("background.mp3")} volume={bgMusicVolume} startFrom={390} />
     <TransitionSeries>
       <TransitionSeries.Sequence
         durationInFrames={SCENE_DURATIONS.scene1}
