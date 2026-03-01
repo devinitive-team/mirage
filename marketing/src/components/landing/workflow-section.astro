@@ -1,25 +1,36 @@
+---
+import { BlurFade } from "@/components/ui/blur-fade";
+---
+
 <section class="mt-16" id="how-it-works" aria-labelledby="flow-title">
   <div class="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-    <p
-      class="inline-flex items-center gap-2 font-mono text-xs uppercase tracking-widest text-slate-600"
-    >
-      <span aria-hidden="true" class="h-px w-2.5 bg-slate-400"></span>
-      Workflow
-      <span aria-hidden="true" class="h-px w-2.5 bg-slate-400"></span>
-    </p>
-    <h2
-      id="flow-title"
-      class="mt-4 max-w-2xl font-display text-3xl leading-tight tracking-tight sm:text-4xl text-balance"
-    >
-      Three steps from upload to a defensible answer
-    </h2>
-    <p class="mt-5 max-w-3xl text-base leading-7 text-slate-600 text-balance">
-      Start with real files, ask a real question, and trace each answer back to the source before
-      anyone acts on it.
-    </p>
+    <BlurFade client:visible direction="up" offset={8} duration={0.45} blur="4px">
+      <p
+        class="inline-flex items-center gap-2 font-mono text-xs uppercase tracking-widest text-slate-600"
+      >
+        <span aria-hidden="true" class="h-px w-2.5 bg-slate-400"></span>
+        Workflow
+        <span aria-hidden="true" class="h-px w-2.5 bg-slate-400"></span>
+      </p>
+    </BlurFade>
+    <BlurFade client:visible direction="up" offset={10} duration={0.5} blur="5px" delay={0.05}>
+      <h2
+        id="flow-title"
+        class="mt-4 max-w-2xl font-display text-3xl leading-tight tracking-tight sm:text-4xl text-balance"
+      >
+        Three steps from upload to a defensible answer
+      </h2>
+    </BlurFade>
+    <BlurFade client:visible direction="up" offset={8} duration={0.45} blur="4px" delay={0.1}>
+      <p class="mt-5 max-w-3xl text-base leading-7 text-slate-600 text-balance">
+        Start with real files, ask a real question, and trace each answer back to the source before
+        anyone acts on it.
+      </p>
+    </BlurFade>
     <ol class="mt-8 space-y-4">
       <li class="border-y border-black/10 px-4 py-4 md:px-5 md:py-5">
-        <div class="grid items-center gap-4 md:grid-cols-2 md:gap-10">
+        <BlurFade client:visible direction="up" offset={10} duration={0.5} blur="5px" delay={0.12}>
+          <div class="grid items-center gap-4 md:grid-cols-2 md:gap-10">
           <div class="min-w-0">
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -157,10 +168,12 @@
               keeps moving.
             </p>
           </div>
-        </div>
+          </div>
+        </BlurFade>
       </li>
       <li class="border-y border-black/10 px-4 py-4 md:px-5 md:py-5">
-        <div class="grid items-center gap-4 md:grid-cols-2 md:gap-10">
+        <BlurFade client:visible direction="up" offset={10} duration={0.5} blur="5px" delay={0.2}>
+          <div class="grid items-center gap-4 md:grid-cols-2 md:gap-10">
           <div class="min-w-0 md:order-2">
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -367,10 +380,12 @@
               instead of loose keyword hits.
             </p>
           </div>
-        </div>
+          </div>
+        </BlurFade>
       </li>
       <li class="border-y border-black/10 px-4 py-4 md:px-5 md:py-5">
-        <div class="grid items-center gap-4 md:grid-cols-2 md:gap-10">
+        <BlurFade client:visible direction="up" offset={10} duration={0.5} blur="5px" delay={0.28}>
+          <div class="grid items-center gap-4 md:grid-cols-2 md:gap-10">
           <div class="min-w-0">
             <svg
               xmlns="http://www.w3.org/2000/svg"
@@ -574,7 +589,8 @@
               seconds.
             </p>
           </div>
-        </div>
+          </div>
+        </BlurFade>
       </li>
     </ol>
   </div>
