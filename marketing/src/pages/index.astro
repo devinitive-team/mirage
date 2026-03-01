@@ -56,6 +56,35 @@ const ctaHref = buildTryForFreeUrl(tryForFreeUrl, Astro.url);
 
     <script is:inline define:vars={{ attributionParams }}>
       (() => {
+        const focusHeroWaitlistInput = () => {
+          const emailInput = document.querySelector('#top input[name="email_address"]');
+          if (!(emailInput instanceof HTMLInputElement)) return false;
+
+          emailInput.scrollIntoView({ behavior: "smooth", block: "center" });
+          emailInput.removeAttribute("data-nav-highlight");
+          // Force restart of the highlight animation for repeated clicks.
+          void emailInput.offsetWidth;
+          emailInput.setAttribute("data-nav-highlight", "true");
+
+          window.setTimeout(() => {
+            emailInput.focus({ preventScroll: true });
+          }, 220);
+
+          window.setTimeout(() => {
+            emailInput.removeAttribute("data-nav-highlight");
+          }, 1800);
+
+          return true;
+        };
+
+        document.querySelectorAll('a[data-cta-location="nav"]').forEach((anchor) => {
+          anchor.addEventListener("click", (event) => {
+            if (focusHeroWaitlistInput()) {
+              event.preventDefault();
+            }
+          });
+        });
+
         const search = new URLSearchParams(window.location.search);
 
         const hasAttribution = attributionParams.some((key) => search.has(key));

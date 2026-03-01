@@ -126,7 +126,7 @@ export function HeroVideoDialog({
             <span className="flex size-9 items-center justify-center rounded-full bg-white text-black sm:size-10">
               <Play className="size-4 fill-current sm:size-5" />
             </span>
-            <span className="font-mono text-xs uppercase tracking-[0.22em] sm:text-sm">
+            <span className="font-sans text-xs uppercase tracking-[0.22em] sm:text-sm">
               Watch Demo
             </span>
           </div>
