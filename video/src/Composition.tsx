@@ -1,5 +1,5 @@
 import React from "react";
-import { AbsoluteFill, interpolate } from "remotion";
+import { AbsoluteFill, Audio, interpolate, staticFile } from "remotion";
 import { TransitionSeries, springTiming } from "@remotion/transitions";
 import type { TransitionPresentation } from "@remotion/transitions";
 import {
@@ -43,8 +43,31 @@ const timing = springTiming({
   durationInFrames: TRANSITION_DURATION,
 });
 
+const TOTAL_FRAMES = 823;
+const FPS = 30;
+const FADE_IN = FPS * 1; // 1s fade-in
+const FADE_OUT = FPS * 2; // 2s fade-out
+const BG_VOLUME = 0.18;
+
+const bgMusicVolume = (f: number) => {
+  if (f < FADE_IN) {
+    return interpolate(f, [0, FADE_IN], [0, BG_VOLUME]);
+  }
+  if (f > TOTAL_FRAMES - FADE_OUT) {
+    return interpolate(
+      f,
+      [TOTAL_FRAMES - FADE_OUT, TOTAL_FRAMES],
+      [BG_VOLUME, 0],
+    );
+  }
+  return BG_VOLUME;
+};
+
 export const MyComposition: React.FC = () => {
   return (
+    <>
+    {/* Start at 12.83s so the drop at 15s lands on Ingest (abs frame 65) */}
+    <Audio src={staticFile("background.mp3")} volume={bgMusicVolume} startFrom={385} />
     <TransitionSeries>
       <TransitionSeries.Sequence
         durationInFrames={SCENE_DURATIONS.scene1}
@@ -85,5 +108,6 @@ export const MyComposition: React.FC = () => {
         <Scene5_CTA />
       </TransitionSeries.Sequence>
     </TransitionSeries>
+    </>
   );
 };
