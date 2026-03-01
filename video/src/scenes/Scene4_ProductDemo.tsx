@@ -67,14 +67,14 @@ export const Scene4_ProductDemo: React.FC = () => {
               <DemoHeader />
             </div>
             <div style={{ display: "flex", flex: 1, overflow: "hidden" }}>
-              <div style={{ opacity: sidebarOpacity }}>
+              <div style={{ opacity: sidebarOpacity, alignSelf: "stretch" }}>
                 <DemoSidebar showFrom={35} />
               </div>
               <div style={{ opacity: panelOpacity, flex: 1, display: "flex" }}>
                 <DemoQueryPanel
                   typingStart={60}
                   answerStart={150}
-                  answerRevealStart={165}
+                  answerRevealStart={185}
                   evidenceStart={300}
                 />
               </div>

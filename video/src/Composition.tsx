@@ -9,7 +9,6 @@ import {
 } from "./lib/constants";
 import { Scene1_MeetMirage } from "./scenes/Scene1_MeetMirage";
 import { Scene2_PdfStack } from "./scenes/Scene2_PdfStack";
-import { Scene3_Ingest } from "./scenes/Scene3_Ingest";
 import { Scene4_ProductDemo } from "./scenes/Scene4_ProductDemo";
 import { Scene5_CTA } from "./scenes/Scene5_CTA";
 
@@ -72,17 +71,6 @@ export const MyComposition: React.FC = () => {
       <TransitionSeries.Sequence
         durationInFrames={SCENE_DURATIONS.scene3}
       >
-        <Scene3_Ingest />
-      </TransitionSeries.Sequence>
-
-      <TransitionSeries.Transition
-        presentation={fadeScale()}
-        timing={timing}
-      />
-
-      <TransitionSeries.Sequence
-        durationInFrames={SCENE_DURATIONS.scene4}
-      >
         <Scene4_ProductDemo />
       </TransitionSeries.Sequence>
 
@@ -92,7 +80,7 @@ export const MyComposition: React.FC = () => {
       />
 
       <TransitionSeries.Sequence
-        durationInFrames={SCENE_DURATIONS.scene5}
+        durationInFrames={SCENE_DURATIONS.scene4}
       >
         <Scene5_CTA />
       </TransitionSeries.Sequence>
