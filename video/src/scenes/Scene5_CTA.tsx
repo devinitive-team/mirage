@@ -62,7 +62,7 @@ export const Scene5_CTA: React.FC = () => {
         }}
       >
         <div style={{ opacity: logoProgress }}>
-          <MirageLogo size={40} color={COLORS.seaInk} />
+          <MirageLogo size={52} color={COLORS.seaInk} />
         </div>
         <div
           style={{
@@ -70,9 +70,9 @@ export const Scene5_CTA: React.FC = () => {
             transform: `scale(${buttonScale})`,
             background: "#ffffff",
             color: "#000000",
-            fontSize: 20,
+            fontSize: 26,
             fontWeight: 700,
-            padding: "14px 40px",
+            padding: "18px 52px",
           }}
         >
           Join the waitlist
@@ -80,7 +80,7 @@ export const Scene5_CTA: React.FC = () => {
         <div
           style={{
             opacity: urlProgress,
-            fontSize: 16,
+            fontSize: 20,
             color: COLORS.seaInkSoft,
           }}
         >
