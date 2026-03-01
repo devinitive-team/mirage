@@ -1,3 +1,5 @@
+<img width="1440" height="900" alt="Screenshot 2026-03-01 at 15 17 05" src="https://github.com/user-attachments/assets/b343aba2-0190-4121-ad9a-eb4bd5eb9f05" />
+
 # Mirage Video Project (`video`)
 
 Remotion project for rendering Mirage video assets.
