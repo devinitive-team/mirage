@@ -134,7 +134,7 @@ export function HistoryPage() {
 			aria-label="Evidence history workspace"
 		>
 			<aside className="w-72 shrink-0 flex flex-col island-shell rounded-2xl overflow-hidden">
-				<div className="p-4 border-b border-[var(--line)] shrink-0 space-y-3">
+				<div className="p-4 border-b border-[var(--line)] shrink-0 h-[7.75rem] flex flex-col justify-between gap-3">
 					<div>
 						<p className="island-kicker">Asked Questions</p>
 						<p className="mt-1 text-xs text-[var(--sea-ink-soft)]">
@@ -214,10 +214,10 @@ export function HistoryPage() {
 			</aside>
 
 			<div className="flex-1 flex flex-col island-shell rounded-2xl overflow-hidden">
-				<div className="p-4 border-b border-[var(--line)] shrink-0 space-y-2">
+				<div className="p-4 border-b border-[var(--line)] shrink-0 h-[7.75rem] flex flex-col gap-2">
 					<p className="island-kicker">Evidence History</p>
 					{selectedEntry ? (
-						<>
+						<div className="space-y-1">
 							<p className="text-[15px] font-medium text-[var(--sea-ink)]">
 								{selectedEntry.question}
 							</p>
@@ -228,7 +228,7 @@ export function HistoryPage() {
 								{selectedDocumentCount} document
 								{selectedDocumentCount === 1 ? "" : "s"}
 							</p>
-						</>
+						</div>
 					) : (
 						<p className="text-sm text-[var(--sea-ink-soft)]">
 							Select a question from the left to inspect its evidence.
