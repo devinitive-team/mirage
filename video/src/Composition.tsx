@@ -3,6 +3,7 @@ import { AbsoluteFill, Audio, interpolate, staticFile } from "remotion";
 import { TransitionSeries, springTiming } from "@remotion/transitions";
 import type { TransitionPresentation } from "@remotion/transitions";
 import {
+  COLORS,
   SCENE_DURATIONS,
   TRANSITION_DURATION,
   SPRING_CONFIG,
@@ -27,7 +28,14 @@ const FadeScaleComponent: React.FC<{
     : interpolate(presentationProgress, [0, 1], [1, 0.96]);
 
   return (
-    <AbsoluteFill style={{ opacity, transform: `scale(${scale})` }}>
+    <AbsoluteFill
+      style={{
+        opacity,
+        transform: `scale(${scale})`,
+        willChange: "opacity, transform",
+        backfaceVisibility: "hidden",
+      }}
+    >
       {children}
     </AbsoluteFill>
   );
@@ -66,6 +74,8 @@ const bgMusicVolume = (f: number) => {
 export const MyComposition: React.FC = () => {
   return (
     <>
+    {/* Solid base background – prevents transparent-layer bleed during transitions */}
+    <AbsoluteFill style={{ backgroundColor: COLORS.bgBase }} />
     {/* Start at 12.83s so the drop at 15s lands on Ingest (abs frame 65) */}
     <Audio src={staticFile("background.mp3")} volume={bgMusicVolume} startFrom={390} />
     <TransitionSeries>

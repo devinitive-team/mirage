@@ -44,7 +44,7 @@ const CursorPointer: React.FC<{ style?: React.CSSProperties }> = ({
       />
     </g>
     <defs>
-      <filter id="shadow" x="0" y="0" width="28" height="38">
+      <filter id="shadow" filterUnits="userSpaceOnUse" x="-4" y="-2" width="36" height="42">
         <feDropShadow dx="0" dy="2" stdDeviation="2" floodOpacity="0.5" />
       </filter>
     </defs>
@@ -149,11 +149,12 @@ export const Scene5_CTA: React.FC = () => {
           flexDirection: "column",
           alignItems: "center",
           gap: 24,
+          minHeight: 280,
           position: "relative",
         }}
       >
         <div style={{ opacity: logoProgress }}>
-          <MirageLogo size={52} color={COLORS.seaInk} />
+          <MirageLogo size={96} color={COLORS.seaInk} />
         </div>
         <div style={{ position: "relative" }}>
           <div

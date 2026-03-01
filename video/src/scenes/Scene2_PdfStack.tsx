@@ -736,7 +736,7 @@ export const Scene2_PdfStack: React.FC = () => {
               });
 
         const opacity = enterProgress * exitProgress;
-        if (opacity < 0.01) return null;
+        if (opacity < 0.02) return null;
 
         // Alternate layout: steps 0,2 illustration LEFT; step 1 illustration RIGHT
         const illustLeft = i !== 1;
@@ -755,7 +755,8 @@ export const Scene2_PdfStack: React.FC = () => {
               display: "flex",
               justifyContent: "center",
               alignItems: "center",
-              transform: "scale(1.3)",
+              transform: "scale(1.3) translateZ(0)",
+              backfaceVisibility: "hidden",
             }}
           >
             <Illustration localFrame={localFrame} fps={fps} />
@@ -853,6 +854,8 @@ export const Scene2_PdfStack: React.FC = () => {
               justifyContent: "center",
               alignItems: "center",
               transform: `translateX(${slideX}px)`,
+              willChange: "opacity, transform",
+              backfaceVisibility: "hidden",
             }}
           >
             <div

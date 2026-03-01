@@ -53,11 +53,12 @@ export const Scene1_MeetMirage: React.FC = () => {
           display: "flex",
           flexDirection: "column",
           alignItems: "center",
-          gap: 20,
+          gap: 24,
+          minHeight: 280,
         }}
       >
         <div style={{ opacity: logoProgress }}>
-          <MirageLogo size={48} color={COLORS.seaInk} />
+          <MirageLogo size={96} color={COLORS.seaInk} />
         </div>
         <div style={{ display: "flex", gap: 16 }}>
           <span
