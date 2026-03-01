@@ -26,4 +26,5 @@ Use this file as the canonical documentation map.
 - `product-specs/`: behavior-focused specifications.
 - `references/`: external source notes.
 - `design-docs/`: deeper design writeups.
+- `design-docs/marketing-page-styling.md`: current landing-page visual and styling inventory.
 - `generated/`: generated artifacts only.

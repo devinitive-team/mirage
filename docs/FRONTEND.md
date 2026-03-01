@@ -11,7 +11,7 @@ Frontend is split across three apps:
 - `video/`: Remotion 4 for composition-based video rendering.
 
 For the `web/` app, Tailwind CSS is the default styling system for UI components and layout.
-For the `marketing/` app, Tailwind CSS is the default styling system for page and component styling. Do not use global.css.
+For the `marketing/` app, Tailwind CSS is the default styling system, with shared theme tokens/fonts in `marketing/src/styles/global.css`.
 For the `video/` app, use Remotion primitives for timeline-driven visuals and validate changes in Remotion Studio before rendering final artifacts.
 
 ## Product App Controls (`web/`)
@@ -29,8 +29,9 @@ For the `video/` app, use Remotion primitives for timeline-driven visuals and va
 ## Marketing Site Contract (`marketing/`)
 
 - Public landing page served from Astro at `http://localhost:4321/` in development.
-- Primary conversion CTA label is `Try for free` wherever primary CTA appears.
-- Marketing styles are owned in `marketing/src/styles/` and may intentionally differ from `web/` layout while staying brand-aligned.
+- Primary conversion CTA label is currently `Join Waitlist`.
+- Marketing page style choices are documented in `docs/design-docs/marketing-page-styling.md`.
+- Marketing styles are owned in `marketing/src/styles/` and component-local classes/styles in `marketing/src/components/landing/`; they may intentionally differ from `web/` layout while staying brand-aligned.
 - Marketing UI workflow: run `cd marketing && npm run dev`, verify changes with `agent-browser` at `http://localhost:4321`, iterate, then confirm `cd marketing && npm run build` (or `task marketing:build`) passes before handoff.
 
 ## Video Workflow Contract (`video/`)
