@@ -160,133 +160,238 @@ const IngestIllustration: React.FC<{
   );
 };
 
-/* ─── Illustration: Relevance index (graph network) ─── */
+/* ─── Illustration: Relevance index (isometric layers) ─── */
+
+// Inline style constants matching the marketing wireframe aesthetic
+const IX = {
+  bgAxis: {
+    stroke: "rgba(255,255,255,0.2)",
+    strokeWidth: 0.5,
+    strokeDasharray: "2 8",
+    fill: "none",
+  },
+  planeEdge: {
+    fill: "none",
+    stroke: "rgba(255,255,255,0.4)",
+    strokeWidth: 1,
+    strokeLinejoin: "round" as const,
+  },
+  planeFill: { fill: "rgba(255,255,255,0.02)" },
+  gridLine: {
+    fill: "none",
+    stroke: "rgba(255,255,255,0.3)",
+    strokeWidth: 0.5,
+    strokeDasharray: "4 4",
+  },
+  solidLink: {
+    fill: "none",
+    stroke: "rgba(255,255,255,0.9)",
+    strokeWidth: 1.25,
+    strokeLinecap: "round" as const,
+  },
+  dashedLink: {
+    fill: "none",
+    stroke: "rgba(255,255,255,0.7)",
+    strokeWidth: 1,
+    strokeDasharray: "3 4",
+  },
+  proj: {
+    fill: "none",
+    stroke: "rgba(255,255,255,0.5)",
+    strokeWidth: 0.5,
+    strokeDasharray: "1 3",
+  },
+  node: {
+    fill: COLORS.bgBase,
+    stroke: "rgba(255,255,255,0.8)",
+    strokeWidth: 1.5,
+  },
+  nodeInner: { fill: "rgba(255,255,255,0.8)" },
+  techText: {
+    fontFamily: "monospace",
+    fontSize: 8,
+    fill: "rgba(255,255,255,0.6)",
+    letterSpacing: 1,
+  },
+} as const;
 
 const IndexIllustration: React.FC<{
   localFrame: number;
   fps: number;
 }> = ({ localFrame, fps }) => {
-  const nodes: { x: number; y: number; size: number; label: string | null }[] =
-    [
-      { x: 110, y: 110, size: 5, label: null },
-      { x: 50, y: 55, size: 3, label: null },
-      { x: 170, y: 50, size: 3, label: "0.92" },
-      { x: 35, y: 150, size: 3, label: null },
-      { x: 175, y: 140, size: 3, label: "0.87" },
-      { x: 75, y: 180, size: 3, label: null },
-      { x: 150, y: 185, size: 3, label: "0.73" },
-      { x: 60, y: 100, size: 2.5, label: null },
-      { x: 160, y: 95, size: 2.5, label: null },
-    ];
+  const sp = (delay: number) =>
+    spring({ frame: localFrame - delay, fps, config: SPRING_CONFIG });
 
-  const connections = [
-    [0, 1],
-    [0, 2],
-    [0, 3],
-    [0, 4],
-    [0, 5],
-    [0, 6],
-    [1, 7],
-    [2, 8],
-    [3, 5],
-    [4, 6],
-    [7, 0],
-    [8, 0],
-  ];
+  // Staggered layer entrance (bottom → top)
+  const axisP = sp(0);
+  const l3P = sp(3);
+  const l2P = sp(7);
+  const l1P = sp(11);
+  const linksP = sp(14);
+  const markersP = sp(16);
 
-  // Dashed cube wireframe
-  const cubeLines = [
-    { x1: 55, y1: 45, x2: 165, y2: 45 },
-    { x1: 165, y1: 45, x2: 165, y2: 175 },
-    { x1: 165, y1: 175, x2: 55, y2: 175 },
-    { x1: 55, y1: 175, x2: 55, y2: 45 },
-    { x1: 75, y1: 30, x2: 185, y2: 30 },
-    { x1: 185, y1: 30, x2: 185, y2: 160 },
-    { x1: 185, y1: 160, x2: 75, y2: 160 },
-    { x1: 75, y1: 160, x2: 75, y2: 30 },
-    { x1: 55, y1: 45, x2: 75, y2: 30 },
-    { x1: 165, y1: 45, x2: 185, y2: 30 },
-    { x1: 165, y1: 175, x2: 185, y2: 160 },
-    { x1: 55, y1: 175, x2: 75, y2: 160 },
-  ];
+  const lift = (p: number) => interpolate(p, [0, 1], [12, 0]);
 
   return (
     <div style={{ position: "relative", width: 220, height: 220 }}>
-      <svg width={220} height={220} viewBox="0 0 220 220">
-        {/* Dashed cube */}
-        {cubeLines.map((line, i) => {
-          const p = spring({
-            frame: localFrame - 2 - i * 1.5,
-            fps,
-            config: SPRING_CONFIG,
-          });
-          return (
-            <line
-              key={`c${i}`}
-              x1={line.x1}
-              y1={line.y1}
-              x2={line.x1 + (line.x2 - line.x1) * p}
-              y2={line.y1 + (line.y2 - line.y1) * p}
-              stroke="rgba(255,255,255,0.08)"
-              strokeWidth={1}
-              strokeDasharray="4 4"
-            />
-          );
-        })}
+      <svg width={220} height={220} viewBox="0 0 500 500">
+        {/* Background axes */}
+        <g opacity={axisP}>
+          <path d="M 250,0 L 250,500" style={IX.bgAxis} />
+          <path d="M 0,125 L 500,375" style={IX.bgAxis} />
+          <path d="M 0,375 L 500,125" style={IX.bgAxis} />
+        </g>
 
-        {/* Connections */}
-        {connections.map(([from, to], i) => {
-          const p = spring({
-            frame: localFrame - 8 - i * 2,
-            fps,
-            config: SPRING_CONFIG,
-          });
-          return (
-            <line
-              key={`l${i}`}
-              x1={nodes[from].x}
-              y1={nodes[from].y}
-              x2={nodes[from].x + (nodes[to].x - nodes[from].x) * p}
-              y2={nodes[from].y + (nodes[to].y - nodes[from].y) * p}
-              stroke="rgba(255,255,255,0.15)"
-              strokeWidth={1}
-            />
-          );
-        })}
+        {/* Projection lines */}
+        <g opacity={axisP * 0.8}>
+          <path d="M 110,160 L 110,320" style={IX.proj} />
+          <path d="M 390,160 L 390,320" style={IX.proj} />
+          <path d="M 250,90 L 250,250" style={IX.proj} />
+          <path d="M 250,230 L 250,390" style={IX.proj} />
+        </g>
 
-        {/* Nodes */}
-        {nodes.map((node, i) => {
-          const p = spring({
-            frame: localFrame - i * 3,
-            fps,
-            config: SPRING_CONFIG,
-          });
-          return (
-            <g key={`n${i}`} opacity={p}>
-              <circle
-                cx={node.x}
-                cy={node.y}
-                r={node.size * p}
-                fill={
-                  i === 0
-                    ? "rgba(255,255,255,0.8)"
-                    : "rgba(255,255,255,0.4)"
-                }
-              />
-              {node.label && (
-                <text
-                  x={node.x + 8}
-                  y={node.y - 8}
-                  fill="rgba(255,255,255,0.25)"
-                  fontSize={8}
-                  fontFamily={fontFamily}
-                >
-                  {node.label}
-                </text>
-              )}
-            </g>
-          );
-        })}
+        {/* L3: DATA_INDEX (bottom plane) */}
+        <g
+          opacity={l3P}
+          transform={`translate(0, ${lift(l3P)})`}
+        >
+          <polygon
+            points="250,250 390,320 250,390 110,320"
+            style={IX.planeFill}
+          />
+          <polygon
+            points="250,250 390,320 250,390 110,320"
+            style={IX.planeEdge}
+          />
+          <path d="M 156.6,273.3 L 296.6,203.3" style={IX.gridLine} />
+          <path d="M 203.3,296.6 L 343.3,226.6" style={IX.gridLine} />
+          <path d="M 156.6,343.3 L 296.6,273.3" style={IX.gridLine} />
+          <path d="M 203.3,366.6 L 343.3,296.6" style={IX.gridLine} />
+          <circle cx={180} cy={330} r={3} style={IX.node} />
+          <circle cx={273} cy={285} r={3} style={IX.node} />
+          <circle cx={320} cy={330} r={3} style={IX.node} />
+          <text
+            x={360}
+            y={380}
+            style={IX.techText}
+            transform="matrix(0.866, 0.5, -0.866, 0.5, 230, -50)"
+          >
+            L3: DATA_INDEX
+          </text>
+        </g>
+
+        {/* L2: EMBEDDING_SPACE (middle plane) */}
+        <g
+          opacity={l2P}
+          transform={`translate(0, ${lift(l2P)})`}
+        >
+          <polygon
+            points="250,170 390,240 250,310 110,240"
+            style={IX.planeFill}
+          />
+          <polygon
+            points="250,170 390,240 250,310 110,240"
+            style={IX.planeEdge}
+          />
+          <path d="M 138,226 L 278,156" style={IX.gridLine} />
+          <path d="M 166,240 L 306,170" style={IX.gridLine} />
+          <path d="M 194,254 L 334,184" style={IX.gridLine} />
+          <path d="M 222,268 L 362,198" style={IX.gridLine} />
+          <path d="M 138,254 L 278,324" style={IX.gridLine} />
+          <path d="M 166,240 L 306,310" style={IX.gridLine} />
+          <path d="M 194,226 L 334,296" style={IX.gridLine} />
+          <path d="M 222,212 L 362,282" style={IX.gridLine} />
+          <ellipse
+            cx={250}
+            cy={240}
+            rx={60}
+            ry={30}
+            style={{ ...IX.gridLine, strokeDasharray: "2 4", opacity: 0.6 }}
+          />
+          <circle cx={210} cy={220} r={4} style={IX.node} />
+          <circle cx={250} cy={240} r={2.5} style={IX.node} />
+          <circle cx={290} cy={260} r={4} style={IX.node} />
+          <circle cx={300} cy={215} r={3} style={IX.node} />
+          <path d="M 215,220 L 235,220" style={IX.proj} />
+          <text x={240} y={222} style={IX.techText}>
+            [0.82, -0.14, ...]
+          </text>
+          <text
+            x={360}
+            y={300}
+            style={IX.techText}
+            transform="matrix(0.866, 0.5, -0.866, 0.5, 230, -130)"
+          >
+            L2: EMBEDDING_SPACE
+          </text>
+        </g>
+
+        {/* L1: QUERY_VECTOR (top plane) */}
+        <g
+          opacity={l1P}
+          transform={`translate(0, ${lift(l1P)})`}
+        >
+          <polygon
+            points="250,90 390,160 250,230 110,160"
+            style={IX.planeFill}
+          />
+          <polygon
+            points="250,90 390,160 250,230 110,160"
+            style={IX.planeEdge}
+          />
+          <path
+            d="M 180,125 L 320,195"
+            style={{ ...IX.gridLine, opacity: 0.5 }}
+          />
+          <path
+            d="M 180,195 L 320,125"
+            style={{ ...IX.gridLine, opacity: 0.5 }}
+          />
+          <circle cx={250} cy={160} r={8} style={IX.node} />
+          <circle cx={250} cy={160} r={3} style={IX.nodeInner} />
+          <path d="M 250,70 L 250,140" style={IX.solidLink} />
+          <polyline points="245,130 250,142 255,130" style={IX.solidLink} />
+          <text
+            x={360}
+            y={220}
+            style={IX.techText}
+            transform="matrix(0.866, 0.5, -0.866, 0.5, 230, -210)"
+          >
+            L1: QUERY_VECTOR
+          </text>
+        </g>
+
+        {/* Semantic links between layers */}
+        <g opacity={linksP}>
+          <path d="M 250,160 L 210,220" style={IX.solidLink} />
+          <path d="M 250,160 L 290,260" style={IX.solidLink} />
+          <path d="M 250,160 L 300,215" style={IX.solidLink} />
+          <path
+            d="M 210,220 Q 250,260 290,260"
+            style={{ ...IX.dashedLink, strokeDasharray: "2 4" }}
+          />
+          <path d="M 250,240 L 290,260" style={IX.dashedLink} />
+          <path d="M 210,220 L 180,330" style={IX.dashedLink} />
+          <path d="M 290,260 L 273,285" style={IX.dashedLink} />
+          <path d="M 290,260 L 320,330" style={IX.dashedLink} />
+        </g>
+
+        {/* Cross-hair markers */}
+        <g
+          opacity={markersP}
+          style={{
+            fill: "none",
+            stroke: "rgba(255,255,255,0.4)",
+            strokeWidth: 0.75,
+          }}
+        >
+          <path d="M 105,160 L 115,160 M 110,155 L 110,165" />
+          <path d="M 385,160 L 395,160 M 390,155 L 390,165" />
+          <path d="M 105,240 L 115,240 M 110,235 L 110,245" />
+          <path d="M 385,240 L 395,240 M 390,235 L 390,245" />
+          <path d="M 105,320 L 115,320 M 110,315 L 110,325" />
+          <path d="M 385,320 L 395,320 M 390,315 L 390,325" />
+        </g>
       </svg>
     </div>
   );
