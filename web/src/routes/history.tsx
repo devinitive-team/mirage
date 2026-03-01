@@ -6,8 +6,8 @@ import { toast } from "sonner";
 import { PreviewDialog } from "#/components/PreviewDialog";
 import { QueryAnswerSection } from "#/components/QueryAnswerSection";
 import {
-	REFERENCE_LIST_ITEM_HEIGHT,
 	ReferenceListItem,
+	groupReferencesByDocument,
 	type ReferenceListItemData,
 } from "#/components/ReferenceListItem";
 import { Input } from "#/components/ui/input";
@@ -32,8 +32,6 @@ function formatAskedAt(value: string): string {
 		minute: "2-digit",
 	}).format(date);
 }
-
-const HISTORY_REFERENCE_ROW_HEIGHT = REFERENCE_LIST_ITEM_HEIGHT + 8;
 
 export function HistoryPage() {
 	const { data, isLoading } = useHistory();
@@ -80,6 +78,10 @@ export function HistoryPage() {
 		if (!selectedEntry) return [];
 		return evidenceListToReferences(selectedEntry.evidence ?? [], {});
 	}, [selectedEntry]);
+	const groupedSelectedReferences = useMemo(
+		() => groupReferencesByDocument(selectedReferences),
+		[selectedReferences],
+	);
 
 	const selectedDocumentCount = useMemo(
 		() =>
@@ -257,19 +259,16 @@ export function HistoryPage() {
 
 							<section className="space-y-2">
 								<p className="island-kicker">Evidence</p>
-								{selectedReferences.length === 0 ? (
+								{groupedSelectedReferences.length === 0 ? (
 									<div className="rounded-xl border border-[var(--line)] bg-[var(--surface)]/65 p-4 text-sm text-[var(--sea-ink-soft)]">
 										No evidence references were returned for this question.
 									</div>
 								) : (
 									<div className="space-y-2">
-										{selectedReferences.map((reference) => (
-											<div
-												key={reference.id}
-												style={{ height: `${HISTORY_REFERENCE_ROW_HEIGHT}px` }}
-											>
+										{groupedSelectedReferences.map((referenceGroup) => (
+											<div key={referenceGroup.id}>
 												<ReferenceListItem
-													reference={reference}
+													referenceGroup={referenceGroup}
 													onPreview={handlePreview}
 												/>
 											</div>

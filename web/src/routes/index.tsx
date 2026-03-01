@@ -1,6 +1,5 @@
 import { useQueryClient } from "@tanstack/react-query";
 import { createFileRoute } from "@tanstack/react-router";
-import { useVirtualizer } from "@tanstack/react-virtual";
 import {
 	FileText,
 	Loader2,
@@ -22,8 +21,8 @@ import { toast } from "sonner";
 import { PreviewDialog } from "#/components/PreviewDialog";
 import { QueryAnswerSection } from "#/components/QueryAnswerSection";
 import {
-	REFERENCE_LIST_ITEM_HEIGHT,
 	ReferenceListItem,
+	groupReferencesByDocument,
 	type ReferenceListItemData,
 } from "#/components/ReferenceListItem";
 import {
@@ -55,8 +54,6 @@ export const Route = createFileRoute("/")({
 	}),
 	component: Dashboard,
 });
-
-const REFERENCE_ROW_HEIGHT = REFERENCE_LIST_ITEM_HEIGHT + 8;
 
 const STATUS_LABEL: Record<string, string> = {
 	pending: "Uploaded",
@@ -159,7 +156,6 @@ function Dashboard() {
 	const [treeTitlesByDocument, setTreeTitlesByDocument] =
 		useState<NodeTitleLookupByDocument>({});
 	const fileInputRef = useRef<HTMLInputElement>(null);
-	const parentRef = useRef<HTMLDivElement>(null);
 	const inputId = useId();
 
 	const { data, isLoading } = useDocuments();
@@ -210,6 +206,10 @@ function Dashboard() {
 				visibleDocumentIDs.has(reference.documentId),
 			),
 		[references, visibleDocumentIDs],
+	);
+	const visibleReferenceGroups = useMemo(
+		() => groupReferencesByDocument(visibleReferences),
+		[visibleReferences],
 	);
 	const selectedCompleteDocumentIDs = useMemo(
 		() =>
@@ -279,13 +279,6 @@ function Dashboard() {
 			return availableIds.has(current.documentId) ? current : null;
 		});
 	}, [documents]);
-
-	const rowVirtualizer = useVirtualizer({
-		count: visibleReferences.length,
-		getScrollElement: () => parentRef.current,
-		estimateSize: () => REFERENCE_ROW_HEIGHT,
-		overscan: 8,
-	});
 
 	const handleFiles = useCallback(
 		async (files: FileList | null) => {
@@ -817,14 +810,14 @@ function Dashboard() {
 					</div>
 				</div>
 
-				<div ref={parentRef} className="flex-1 min-h-0 overflow-y-auto p-3">
-					{isQuerying && visibleReferences.length > 0 ? (
+				<div className="flex-1 min-h-0 overflow-y-auto p-3">
+					{isQuerying && visibleReferenceGroups.length > 0 ? (
 						<EvidenceLoadingState compact />
 					) : null}
 
 					{queryAnswer ? <QueryAnswerSection answer={queryAnswer} /> : null}
 
-					{visibleReferences.length === 0 ? (
+					{visibleReferenceGroups.length === 0 ? (
 						<div className="h-full flex items-center justify-center px-8 text-center">
 							{isQuerying ? (
 								<EvidenceLoadingState />
@@ -835,27 +828,11 @@ function Dashboard() {
 							)}
 						</div>
 					) : (
-						<div
-							style={{
-								height: `${rowVirtualizer.getTotalSize()}px`,
-								position: "relative",
-							}}
-						>
-							{rowVirtualizer.getVirtualItems().map((virtualItem) => (
-								<div
-									key={virtualItem.key}
-									style={{
-										position: "absolute",
-										top: 0,
-										left: 0,
-										width: "100%",
-										height: `${virtualItem.size}px`,
-										transform: `translateY(${virtualItem.start}px)`,
-									}}
-									className="p-1"
-								>
+						<div className="space-y-2">
+							{visibleReferenceGroups.map((referenceGroup) => (
+								<div key={referenceGroup.id} className="p-1">
 									<ReferenceListItem
-										reference={visibleReferences[virtualItem.index]}
+										referenceGroup={referenceGroup}
 										onPreview={handlePreview}
 									/>
 								</div>
