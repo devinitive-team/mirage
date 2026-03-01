@@ -5,7 +5,22 @@ import viteReact from "@vitejs/plugin-react";
 import { defineConfig } from "vite";
 import tsconfigPaths from "vite-tsconfig-paths";
 
+const isVitest = process.env.VITEST === "true";
+
+const reactPlugin = viteReact(
+	isVitest
+		? {}
+		: {
+				babel: {
+					plugins: ["babel-plugin-react-compiler"],
+				},
+			},
+);
+
 const config = defineConfig({
+	resolve: {
+		dedupe: ["react", "react-dom"],
+	},
 	server: {
 		proxy: {
 			"/api": {
@@ -14,17 +29,15 @@ const config = defineConfig({
 			},
 		},
 	},
-	plugins: [
-		devtools(),
-		tsconfigPaths({ projects: ["./tsconfig.json"] }),
-		tailwindcss(),
-		tanstackStart(),
-		viteReact({
-			babel: {
-				plugins: ["babel-plugin-react-compiler"],
-			},
-		}),
-	],
+	plugins: isVitest
+		? [tsconfigPaths({ projects: ["./tsconfig.json"] }), reactPlugin]
+		: [
+				devtools(),
+				tsconfigPaths({ projects: ["./tsconfig.json"] }),
+				tailwindcss(),
+				tanstackStart(),
+				reactPlugin,
+			],
 });
 
 export default config;

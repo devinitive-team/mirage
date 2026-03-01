@@ -40,6 +40,7 @@ import {
 	useDocuments,
 	useUploadDocument,
 } from "#/hooks/documents";
+import { useEvidenceHistoryStore } from "#/hooks/evidenceHistory";
 import { getDocumentTree, queryDocuments } from "#/lib/api";
 import {
 	buildNodeTitleLookup,
@@ -444,6 +445,7 @@ function Dashboard() {
 	const documents = data?.items ?? [];
 	const upload = useUploadDocument();
 	const removeMany = useDeleteDocuments();
+	const addHistoryEntry = useEvidenceHistoryStore((state) => state.addEntry);
 
 	const documentsById = useMemo(() => {
 		const map = new Map<string, (typeof documents)[number]>();
@@ -790,6 +792,11 @@ function Dashboard() {
 				mergedTreeTitlesByDocument,
 			);
 			setReferences(nextReferences);
+			addHistoryEntry({
+				question: trimmedQuestion,
+				answer: result.answer,
+				evidence: result.evidence ?? [],
+			});
 			setSelectedReference((current) => {
 				if (!current) return current;
 				return nextReferences.some((reference) => reference.id === current.id)
@@ -800,7 +807,7 @@ function Dashboard() {
 			toast.error("Failed to run query.");
 		}
 		setIsQuerying(false);
-	}, [question, queryableDocumentIDs, treeTitlesByDocument]);
+	}, [addHistoryEntry, question, queryableDocumentIDs, treeTitlesByDocument]);
 
 	return (
 		<section

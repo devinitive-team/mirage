@@ -1,7 +1,11 @@
-import { lazy, Suspense, useEffect, useMemo, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { X } from "lucide-react";
 
 import type { ReferenceListItemData } from "#/components/ReferenceListItem";
+import {
+	resolvePreviewDialogState,
+	type PreviewMode,
+} from "#/lib/previewDialogState";
 import {
 	Dialog,
 	DialogClose,
@@ -9,31 +13,17 @@ import {
 	DialogDescription,
 	DialogHeader,
 	DialogTitle,
-} from "@/components/ui/dialog";
+} from "#/components/ui/dialog";
 
 const PdfViewer = lazy(() =>
 	import("./PdfViewer").then((mod) => ({ default: mod.PdfViewer })),
 );
-
-type PreviewMode = "evidence" | "document";
 
 type PreviewDialogProps = {
 	open: boolean;
 	onOpenChange: (open: boolean) => void;
 	reference: ReferenceListItemData | null;
 };
-
-function buildPageRange(pageStart: number, pageEnd: number): Array<number> {
-	const normalizedStart = Math.max(1, Math.floor(Math.min(pageStart, pageEnd)));
-	const normalizedEnd = Math.max(1, Math.floor(Math.max(pageStart, pageEnd)));
-	const pages: Array<number> = [];
-
-	for (let page = normalizedStart; page <= normalizedEnd; page += 1) {
-		pages.push(page);
-	}
-
-	return pages;
-}
 
 export function PreviewDialog({
 	open,
@@ -55,14 +45,12 @@ export function PreviewDialog({
 			? `${reference.nodeTitle} · Page ${reference.pageStart}`
 			: `${reference.nodeTitle} · Pages ${reference.pageStart}-${reference.pageEnd}`
 		: "-";
-	const evidencePageNumbers = useMemo(() => {
-		if (!reference) return [];
-		return buildPageRange(reference.pageStart, reference.pageEnd);
-	}, [reference]);
-	const visiblePageNumbers =
-		mode === "evidence" && evidencePageNumbers.length > 0
-			? evidencePageNumbers
-			: undefined;
+	const {
+		effectiveMode,
+		highlightRanges,
+		showScopeToggle,
+		visiblePageNumbers,
+	} = resolvePreviewDialogState(reference, mode);
 
 	return (
 		<Dialog open={open} onOpenChange={onOpenChange}>
@@ -81,33 +69,35 @@ export function PreviewDialog({
 									<DialogDescription>{contextLabel}</DialogDescription>
 								</div>
 								<div className="flex items-center gap-2 self-start">
-									<fieldset className="inline-flex items-center gap-1 rounded-md border border-[var(--line)] bg-[var(--sand)] p-1">
-										<legend className="sr-only">Preview page mode</legend>
-										<button
-											type="button"
-											className={`rounded border px-2.5 py-1 text-xs font-medium transition-colors ${
-												mode === "evidence"
-													? "border-[var(--lagoon)] bg-[var(--lagoon)] text-[var(--sand)]"
-													: "border-transparent text-[var(--sea-ink)] hover:bg-[var(--surface)]"
-											}`}
-											aria-pressed={mode === "evidence"}
-											onClick={() => setMode("evidence")}
-										>
-											Evidence pages
-										</button>
-										<button
-											type="button"
-											className={`rounded border px-2.5 py-1 text-xs font-medium transition-colors ${
-												mode === "document"
-													? "border-[var(--lagoon)] bg-[var(--lagoon)] text-[var(--sand)]"
-													: "border-transparent text-[var(--sea-ink)] hover:bg-[var(--surface)]"
-											}`}
-											aria-pressed={mode === "document"}
-											onClick={() => setMode("document")}
-										>
-											Whole document
-										</button>
-									</fieldset>
+									{showScopeToggle ? (
+										<fieldset className="inline-flex items-center gap-1 rounded-md border border-[var(--line)] bg-[var(--sand)] p-1">
+											<legend className="sr-only">Preview page mode</legend>
+											<button
+												type="button"
+												className={`rounded border px-2.5 py-1 text-xs font-medium transition-colors ${
+													mode === "evidence"
+														? "border-[var(--lagoon)] bg-[var(--lagoon)] text-[var(--sand)]"
+														: "border-transparent text-[var(--sea-ink)] hover:bg-[var(--surface)]"
+												}`}
+												aria-pressed={mode === "evidence"}
+												onClick={() => setMode("evidence")}
+											>
+												Evidence pages
+											</button>
+											<button
+												type="button"
+												className={`rounded border px-2.5 py-1 text-xs font-medium transition-colors ${
+													mode === "document"
+														? "border-[var(--lagoon)] bg-[var(--lagoon)] text-[var(--sand)]"
+														: "border-transparent text-[var(--sea-ink)] hover:bg-[var(--surface)]"
+												}`}
+												aria-pressed={mode === "document"}
+												onClick={() => setMode("document")}
+											>
+												Whole document
+											</button>
+										</fieldset>
+									) : null}
 									<div className="inline-flex items-center rounded-md border border-[var(--line)] bg-[var(--sand)] p-1">
 										<DialogClose
 											className="inline-flex items-center justify-center rounded border border-transparent px-2.5 py-1 text-xs font-medium text-[var(--sea-ink-soft)] transition-colors hover:border-[var(--line)] hover:bg-[var(--surface)] hover:text-[var(--sea-ink)] focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-[var(--lagoon)] focus-visible:ring-offset-2"
@@ -131,16 +121,9 @@ export function PreviewDialog({
 						{reference ? (
 							<div className="min-h-0 flex-1 overflow-hidden">
 								<PdfViewer
-									key={`${reference.id}-${reference.pageStart}-${reference.pageEnd}-${mode}`}
+									key={`${reference.id}-${reference.pageStart}-${reference.pageEnd}-${effectiveMode}`}
 									documentId={reference.documentId}
-									highlightRanges={[
-										{
-											id: reference.id,
-											pageStart: reference.pageStart,
-											pageEnd: reference.pageEnd,
-											nodeTitle: reference.nodeTitle,
-										},
-									]}
+									highlightRanges={highlightRanges}
 									visiblePageNumbers={visiblePageNumbers}
 								/>
 							</div>

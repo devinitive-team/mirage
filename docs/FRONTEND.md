@@ -18,6 +18,8 @@ Frontend is split across two apps:
 - Query input: text field for natural-language questions, scoped to selected ready documents (or all ready documents when none are selected).
 - Results: fixed-height virtualized evidence cards generated from query responses; each card shows document name, section title, and page range, and opens a PDF preview dialog on click.
 - Preview dialog modes: `Evidence pages` (render only selected pages) and `Whole document` (render entire PDF), both with page-range highlights.
+- Header navigation: route links for `Dashboard` and `History`.
+- History page: left panel lists asked questions captured from query responses during the current frontend session; right panel shows the selected question's answer snapshot plus its evidence references.
 
 ## Marketing Site Contract (`marketing/`)
 
