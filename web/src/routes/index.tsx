@@ -799,7 +799,7 @@ function Dashboard() {
 							type="button"
 							onClick={() => void handleRunQuery()}
 							disabled={isQuerying}
-							className="shrink-0 rounded-lg bg-primary dark:bg-white dark:text-primary px-3 py-2 text-sm font-semibold text-primary-foreground disabled:cursor-not-allowed disabled:opacity-60"
+							className="h-9 w-9 shrink-0 rounded-md bg-primary dark:bg-white dark:text-primary inline-flex items-center justify-center text-sm font-semibold text-primary-foreground disabled:cursor-not-allowed disabled:opacity-60"
 						>
 							{isQuerying ? (
 								<Loader2 className="w-4 h-4 animate-spin" />
