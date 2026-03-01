@@ -102,3 +102,42 @@ func TestLoadRejectsCredentialsWithWildcardOrigin(t *testing.T) {
 		t.Fatalf("Load() error = %q, want CORS validation error", err.Error())
 	}
 }
+
+func TestLoadRejectsInvalidIntegerEnv(t *testing.T) {
+	t.Setenv("MISTRAL_API_KEY", "test-key")
+	t.Setenv("WORKER_COUNT", "invalid")
+
+	_, err := Load()
+	if err == nil {
+		t.Fatal("Load() error = nil, want invalid integer error")
+	}
+	if !strings.Contains(err.Error(), "WORKER_COUNT") {
+		t.Fatalf("Load() error = %q, want WORKER_COUNT parse error", err.Error())
+	}
+}
+
+func TestLoadRejectsInvalidBooleanEnv(t *testing.T) {
+	t.Setenv("MISTRAL_API_KEY", "test-key")
+	t.Setenv("CORS_ALLOW_CREDENTIALS", "not-a-bool")
+
+	_, err := Load()
+	if err == nil {
+		t.Fatal("Load() error = nil, want invalid boolean error")
+	}
+	if !strings.Contains(err.Error(), "CORS_ALLOW_CREDENTIALS") {
+		t.Fatalf("Load() error = %q, want CORS_ALLOW_CREDENTIALS parse error", err.Error())
+	}
+}
+
+func TestLoadRejectsInvalidWorkerCountRange(t *testing.T) {
+	t.Setenv("MISTRAL_API_KEY", "test-key")
+	t.Setenv("WORKER_COUNT", "0")
+
+	_, err := Load()
+	if err == nil {
+		t.Fatal("Load() error = nil, want range validation error")
+	}
+	if !strings.Contains(err.Error(), "WORKER_COUNT") {
+		t.Fatalf("Load() error = %q, want WORKER_COUNT range error", err.Error())
+	}
+}

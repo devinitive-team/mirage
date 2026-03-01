@@ -320,3 +320,61 @@ func TestCalibrateTOCPageOffset_LeavesSectionsUnchangedWithoutPairs(t *testing.T
 		t.Fatalf("unexpected calibrated range %d-%d", calibrated[0].StartPage, calibrated[0].EndPage)
 	}
 }
+
+func TestDetectTOCRejectsFencedJSON(t *testing.T) {
+	pages := []domain.Page{
+		{Index: 0, Markdown: "Preface"},
+	}
+	llm := &mockLLM{
+		responses: []string{
+			"```json\n{\"has_toc\":false,\"toc_end_page\":-1,\"sections\":[]}\n```",
+		},
+	}
+
+	s := &Indexer{llm: llm}
+	if _, err := s.detectTOC(context.Background(), pages); err == nil {
+		t.Fatal("detectTOC error = nil, want strict decode error")
+	}
+}
+
+func TestInferStructureRejectsInvalidJSON(t *testing.T) {
+	pages := []domain.Page{
+		{Index: 0, Markdown: "Page zero"},
+	}
+	llm := &mockLLM{
+		responses: []string{
+			`not-json`,
+		},
+	}
+
+	s := &Indexer{llm: llm}
+	if _, err := s.inferStructure(context.Background(), pages); err == nil {
+		t.Fatal("inferStructure error = nil, want invalid json error")
+	}
+}
+
+func TestCalibrateTOCPageOffsetInvalidJSONFallsBackUnchanged(t *testing.T) {
+	pages := make([]domain.Page, 10)
+	for i := range pages {
+		pages[i] = domain.Page{Index: i, Markdown: "Page content"}
+	}
+
+	toc := tocResult{
+		HasTOC:     true,
+		TOCEndPage: 1,
+		Sections: []tocSection{
+			{Title: "Intro", StartPage: 1, EndPage: 2},
+		},
+	}
+	llm := &mockLLM{
+		responses: []string{
+			`not-json`,
+		},
+	}
+
+	s := &Indexer{llm: llm}
+	calibrated := s.calibrateTOCPageOffset(context.Background(), toc, pages)
+	if calibrated[0].StartPage != 1 || calibrated[0].EndPage != 2 {
+		t.Fatalf("calibrated range = %d-%d, want 1-2", calibrated[0].StartPage, calibrated[0].EndPage)
+	}
+}

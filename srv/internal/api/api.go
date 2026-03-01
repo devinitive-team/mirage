@@ -31,6 +31,15 @@ type CORSConfig struct {
 // New creates a new API with all routes registered. Dependencies may be nil
 // when the API is used only for schema introspection (e.g. OpenAPI generation).
 func New(storage port.Storage, ingest *service.Ingest, retrieval *service.Retrieval, pool *worker.Pool, corsConfig CORSConfig) *API {
+	return newAPI(storage, ingest, retrieval, pool, corsConfig)
+}
+
+// NewSchema creates an API instance used only for schema generation.
+func NewSchema() *API {
+	return newAPI(nil, nil, nil, nil, CORSConfig{})
+}
+
+func newAPI(storage port.Storage, ingest *service.Ingest, retrieval *service.Retrieval, pool *worker.Pool, corsConfig CORSConfig) *API {
 	r := chi.NewMux()
 
 	r.Use(Recovery)

@@ -2,8 +2,10 @@ package service
 
 import (
 	"context"
+	"encoding/json"
 	"fmt"
 	"io"
+	"strings"
 	"testing"
 	"time"
 
@@ -35,9 +37,10 @@ func (m *mockLLM) CompleteJSON(_ context.Context, _ []port.ChatMessage, _ string
 }
 
 type mockStorage struct {
-	docs  map[string]domain.Document
-	trees map[string]domain.TreeIndex
-	pages map[string][]domain.Page
+	docs         map[string]domain.Document
+	trees        map[string]domain.TreeIndex
+	pages        map[string][]domain.Page
+	pageRangeErr map[string]error
 }
 
 func (m *mockStorage) SaveDocument(_ context.Context, _ domain.Document) error { return nil }
@@ -81,6 +84,9 @@ func (m *mockStorage) GetPages(_ context.Context, docID string) ([]domain.Page, 
 }
 
 func (m *mockStorage) GetPageRange(_ context.Context, docID string, start, end int) ([]domain.Page, error) {
+	if err, ok := m.pageRangeErr[docID]; ok {
+		return nil, err
+	}
 	pages, ok := m.pages[docID]
 	if !ok {
 		return nil, domain.ErrNotFound
@@ -400,7 +406,7 @@ func TestAnswerReturnsErrorWhenAnswerCallFails(t *testing.T) {
 	}
 }
 
-func TestAnswerAcceptsFencedJSONAndTrailingCommas(t *testing.T) {
+func TestAnswerRejectsFencedJSONAndTrailingCommas(t *testing.T) {
 	llm := &mockLLM{
 		responses: []string{
 			"```json\n{\"selected_candidates\":[{\"document_id\":\"doc-1\",\"node_id\":\"leaf-1\",\"page_start\":0,\"page_end\":0}],\"reasoning\":\"relevant\",}\n```",
@@ -409,15 +415,12 @@ func TestAnswerAcceptsFencedJSONAndTrailingCommas(t *testing.T) {
 	}
 
 	svc := NewRetrieval(llm, makeSingleLeafStorage(), 3)
-	result, err := svc.Answer(context.Background(), domain.Query{
+	_, err := svc.Answer(context.Background(), domain.Query{
 		Question:    "What happened to revenue?",
 		DocumentIDs: []string{"doc-1"},
 	})
-	if err != nil {
-		t.Fatalf("Answer returned error: %v", err)
-	}
-	if result.Answer != "Decoder handled fenced payloads." {
-		t.Fatalf("answer = %q", result.Answer)
+	if err == nil {
+		t.Fatalf("expected strict json decode failure for fenced payload")
 	}
 }
 
@@ -500,5 +503,118 @@ func TestAnswerNormalizesNonPositiveMaxIterations(t *testing.T) {
 	}
 	if result.Answer != "Normalization worked." {
 		t.Fatalf("answer = %q", result.Answer)
+	}
+}
+
+func TestAnswerErrorsWhenSelectionNormalizesToEmpty(t *testing.T) {
+	llm := &mockLLM{
+		responses: []string{
+			`{"selected_candidates":[{"document_id":"doc-1","node_id":"missing","page_start":0,"page_end":0}],"reasoning":"mismatch"}`,
+		},
+	}
+
+	svc := NewRetrieval(llm, makeSingleLeafStorage(), 1)
+	_, err := svc.Answer(context.Background(), domain.Query{
+		Question:    "What happened to revenue?",
+		DocumentIDs: []string{"doc-1"},
+	})
+	if err == nil {
+		t.Fatal("expected error when normalized selection is empty")
+	}
+	if !strings.Contains(err.Error(), "selected_candidates") {
+		t.Fatalf("error = %q, want selected_candidates mismatch", err.Error())
+	}
+}
+
+func TestAnswerReturnsErrorWhenLeafPageLoadFails(t *testing.T) {
+	llm := &mockLLM{
+		responses: []string{
+			`{"selected_candidates":[{"document_id":"doc-1","node_id":"leaf-1","page_start":0,"page_end":0}],"reasoning":"relevant"}`,
+		},
+	}
+	storage := makeSingleLeafStorage()
+	storage.pageRangeErr = map[string]error{
+		"doc-1": fmt.Errorf("page load failed"),
+	}
+
+	svc := NewRetrieval(llm, storage, 2)
+	_, err := svc.Answer(context.Background(), domain.Query{
+		Question:    "What happened to revenue?",
+		DocumentIDs: []string{"doc-1"},
+	})
+	if err == nil {
+		t.Fatal("expected error when page range loading fails")
+	}
+	if !strings.Contains(err.Error(), "page load failed") {
+		t.Fatalf("error = %q, want page load failed", err.Error())
+	}
+}
+
+func TestAnswerStopsAtMaxEvidenceItems(t *testing.T) {
+	const totalLeaves = maxEvidenceItems + 8
+
+	children := make([]domain.TreeNode, 0, totalLeaves)
+	pages := make([]domain.Page, 0, totalLeaves)
+	selected := make([]selectedCandidate, 0, totalLeaves)
+	for i := 0; i < totalLeaves; i++ {
+		nodeID := fmt.Sprintf("leaf-%02d", i)
+		children = append(children, domain.TreeNode{
+			NodeID:    nodeID,
+			Title:     fmt.Sprintf("Section %d", i),
+			StartPage: i,
+			EndPage:   i,
+		})
+		pages = append(pages, domain.Page{Index: i, Markdown: fmt.Sprintf("content %d", i)})
+		selected = append(selected, selectedCandidate{
+			DocumentID: "doc-1",
+			NodeID:     nodeID,
+			PageStart:  i,
+			PageEnd:    i,
+		})
+	}
+	selectionPayload, err := json.Marshal(branchSelection{
+		SelectedCandidates: selected,
+		Reasoning:          "select all",
+	})
+	if err != nil {
+		t.Fatalf("failed to marshal selection payload: %v", err)
+	}
+
+	llm := &mockLLM{
+		responses: []string{
+			string(selectionPayload),
+			`{"answer":"ok"}`,
+		},
+	}
+	storage := &mockStorage{
+		docs: map[string]domain.Document{
+			"doc-1": makeDoc("doc-1", "Large.pdf"),
+		},
+		trees: map[string]domain.TreeIndex{
+			"doc-1": {
+				DocumentID: "doc-1",
+				Root: domain.TreeNode{
+					NodeID:    "root",
+					Children:  children,
+					StartPage: 0,
+					EndPage:   totalLeaves - 1,
+				},
+			},
+		},
+		pages: map[string][]domain.Page{
+			"doc-1": pages,
+		},
+	}
+
+	svc := NewRetrieval(llm, storage, 1)
+	result, err := svc.Answer(context.Background(), domain.Query{
+		Question:    "Summarize all sections",
+		DocumentIDs: []string{"doc-1"},
+	})
+	if err != nil {
+		t.Fatalf("Answer returned error: %v", err)
+	}
+	if len(result.Evidence) != maxEvidenceItems {
+		t.Fatalf("len(evidence) = %d, want %d", len(result.Evidence), maxEvidenceItems)
 	}
 }

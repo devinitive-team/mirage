@@ -4,8 +4,6 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
-	"io"
-	"net/http"
 	"strings"
 
 	"github.com/devinitive-team/mirage/internal/port"
@@ -52,20 +50,9 @@ func (l *LLM) complete(ctx context.Context, messages []port.ChatMessage, format 
 		ResponseFormat: format,
 	}
 
-	resp, err := l.client.do(ctx, http.MethodPost, "/v1/chat/completions", req)
-	if err != nil {
-		return "", fmt.Errorf("chat request: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
-		return "", fmt.Errorf("chat request returned %d: %s", resp.StatusCode, body)
-	}
-
 	var chatResp chatResponse
-	if err := json.NewDecoder(resp.Body).Decode(&chatResp); err != nil {
-		return "", fmt.Errorf("decode chat response: %w", err)
+	if err := l.client.doJSON(ctx, "POST", "/v1/chat/completions", "chat request", req, &chatResp); err != nil {
+		return "", err
 	}
 
 	if len(chatResp.Choices) == 0 {

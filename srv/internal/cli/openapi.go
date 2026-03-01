@@ -3,7 +3,8 @@ package cli
 import (
 	"context"
 	"encoding/json"
-	"log"
+	"fmt"
+	"io"
 	"os"
 
 	"github.com/devinitive-team/mirage/internal/api"
@@ -15,20 +16,20 @@ func openAPICmd() *cli.Command {
 		Name:  "openapi",
 		Usage: "Print the OpenAPI spec to stdout",
 		Action: func(_ context.Context, _ *cli.Command) error {
-			runOpenAPI()
-			return nil
+			return runOpenAPI(os.Stdout)
 		},
 	}
 }
 
-func runOpenAPI() {
-	a := api.New(nil, nil, nil, nil, api.CORSConfig{})
+func runOpenAPI(w io.Writer) error {
+	a := api.NewSchema()
 
 	spec := a.OpenAPI()
 
-	enc := json.NewEncoder(os.Stdout)
+	enc := json.NewEncoder(w)
 	enc.SetIndent("", "  ")
 	if err := enc.Encode(spec); err != nil {
-		log.Fatalf("encode openapi: %v", err)
+		return fmt.Errorf("encode openapi: %w", err)
 	}
+	return nil
 }

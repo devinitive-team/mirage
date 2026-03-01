@@ -1,6 +1,7 @@
 package fs
 
 import (
+	"bytes"
 	"context"
 	"encoding/json"
 	"errors"
@@ -25,10 +26,6 @@ func New(dataDir string) *Storage {
 }
 
 func (s *Storage) SaveDocument(_ context.Context, doc domain.Document) error {
-	dir := docDir(s.base, doc.ID)
-	if err := os.MkdirAll(dir, 0o755); err != nil {
-		return fmt.Errorf("create doc dir: %w", err)
-	}
 	return writeJSON(metaPath(s.base, doc.ID), doc)
 }
 
@@ -99,16 +96,10 @@ func (s *Storage) SavePDF(_ context.Context, docID string, r io.Reader) error {
 	}
 
 	dst := pdfPath(s.base, docID)
-	f, err := os.Create(dst)
-	if err != nil {
-		return fmt.Errorf("create pdf file: %w", err)
-	}
-	defer f.Close()
-
-	if _, err := io.Copy(f, r); err != nil {
+	if err := writeFileAtomic(dst, r); err != nil {
 		return fmt.Errorf("write pdf: %w", err)
 	}
-	return f.Close()
+	return nil
 }
 
 func (s *Storage) OpenPDF(_ context.Context, docID string) (io.ReadCloser, error) {
@@ -166,27 +157,57 @@ func writeJSON(path string, v any) error {
 		return fmt.Errorf("marshal json: %w", err)
 	}
 
-	tmp := path + ".tmp"
-	if err := os.WriteFile(tmp, data, 0o644); err != nil {
-		return fmt.Errorf("write temp file: %w", err)
-	}
-	if err := os.Rename(tmp, path); err != nil {
-		os.Remove(tmp)
-		return fmt.Errorf("rename temp file: %w", err)
+	if err := writeFileAtomic(path, bytes.NewReader(data)); err != nil {
+		return fmt.Errorf("write json file: %w", err)
 	}
 	return nil
 }
 
 func readJSON(path string, v any) error {
-	data, err := os.ReadFile(path)
+	data, err := readFile(path)
 	if err != nil {
-		if errors.Is(err, os.ErrNotExist) {
-			return domain.ErrNotFound
-		}
-		return fmt.Errorf("read file: %w", err)
+		return err
 	}
 	if err := json.Unmarshal(data, v); err != nil {
 		return fmt.Errorf("unmarshal json: %w", err)
+	}
+	return nil
+}
+
+func readFile(path string) ([]byte, error) {
+	data, err := os.ReadFile(path)
+	if err != nil {
+		if errors.Is(err, os.ErrNotExist) {
+			return nil, domain.ErrNotFound
+		}
+		return nil, fmt.Errorf("read file: %w", err)
+	}
+	return data, nil
+}
+
+func writeFileAtomic(path string, r io.Reader) error {
+	if err := os.MkdirAll(filepath.Dir(path), 0o755); err != nil {
+		return fmt.Errorf("create parent dir: %w", err)
+	}
+
+	tmp := path + ".tmp"
+
+	f, err := os.OpenFile(tmp, os.O_CREATE|os.O_WRONLY|os.O_TRUNC, 0o644)
+	if err != nil {
+		return fmt.Errorf("create temp file: %w", err)
+	}
+	if _, err := io.Copy(f, r); err != nil {
+		_ = f.Close()
+		_ = os.Remove(tmp)
+		return fmt.Errorf("write temp file: %w", err)
+	}
+	if err := f.Close(); err != nil {
+		_ = os.Remove(tmp)
+		return fmt.Errorf("close temp file: %w", err)
+	}
+	if err := os.Rename(tmp, path); err != nil {
+		_ = os.Remove(tmp)
+		return fmt.Errorf("rename temp file: %w", err)
 	}
 	return nil
 }

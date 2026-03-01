@@ -5,6 +5,7 @@ import (
 	"context"
 	"encoding/json"
 	"fmt"
+	"io"
 	"net/http"
 )
 
@@ -42,4 +43,23 @@ func (c *Client) do(ctx context.Context, method, path string, body any) (*http.R
 	}
 
 	return resp, nil
+}
+
+func (c *Client) doJSON(ctx context.Context, method, path, operation string, request, out any) error {
+	resp, err := c.do(ctx, method, path, request)
+	if err != nil {
+		return fmt.Errorf("%s: %w", operation, err)
+	}
+	defer resp.Body.Close()
+
+	if resp.StatusCode != http.StatusOK {
+		body, _ := io.ReadAll(resp.Body)
+		return fmt.Errorf("%s returned %d: %s", operation, resp.StatusCode, body)
+	}
+
+	if err := json.NewDecoder(resp.Body).Decode(out); err != nil {
+		return fmt.Errorf("decode %s response: %w", operation, err)
+	}
+
+	return nil
 }

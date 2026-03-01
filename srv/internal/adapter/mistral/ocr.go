@@ -3,10 +3,8 @@ package mistral
 import (
 	"context"
 	"encoding/base64"
-	"encoding/json"
 	"fmt"
 	"io"
-	"net/http"
 
 	"github.com/devinitive-team/mirage/internal/domain"
 )
@@ -36,20 +34,9 @@ func (o *OCR) ExtractPages(ctx context.Context, fileName string, pdf io.Reader) 
 		},
 	}
 
-	resp, err := o.client.do(ctx, http.MethodPost, "/v1/ocr", req)
-	if err != nil {
-		return nil, fmt.Errorf("ocr request: %w", err)
-	}
-	defer resp.Body.Close()
-
-	if resp.StatusCode != http.StatusOK {
-		body, _ := io.ReadAll(resp.Body)
-		return nil, fmt.Errorf("ocr request returned %d: %s", resp.StatusCode, body)
-	}
-
 	var ocrResp ocrResponse
-	if err := json.NewDecoder(resp.Body).Decode(&ocrResp); err != nil {
-		return nil, fmt.Errorf("decode ocr response: %w", err)
+	if err := o.client.doJSON(ctx, "POST", "/v1/ocr", "ocr request", req, &ocrResp); err != nil {
+		return nil, err
 	}
 
 	pages := make([]domain.Page, len(ocrResp.Pages))

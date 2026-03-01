@@ -11,3 +11,4 @@
 - When introducing strict structured output, audit every `CompleteJSON` callsite and convert all schema hints to proper JSON Schema objects in the same change.
 - For strict structured-output APIs, avoid heuristic schema detection; require JSON Schema input directly and fail fast if it is missing or invalid.
 - When the user requests parity with a reference implementation, mirror the same algorithmic flow (inputs, matching logic, and offset/selection rules) before adding local optimizations.
+- When Mistral structured output (`response_format.type=json_schema`, `strict=true`) is used, default to strict JSON decoding and remove heuristic fallback parsers (fenced extraction/trailing-comma normalization) unless the user explicitly asks for defensive compatibility mode.

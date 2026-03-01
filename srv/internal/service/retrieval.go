@@ -20,11 +20,17 @@ const (
 
 type Retrieval struct {
 	llm           port.LLMProvider
-	storage       port.Storage
+	storage       retrievalStore
 	maxIterations int
 }
 
-func NewRetrieval(llm port.LLMProvider, storage port.Storage, maxIterations int) *Retrieval {
+type retrievalStore interface {
+	GetTree(ctx context.Context, docID string) (domain.TreeIndex, error)
+	GetDocument(ctx context.Context, id string) (domain.Document, error)
+	GetPageRange(ctx context.Context, docID string, start, end int) ([]domain.Page, error)
+}
+
+func NewRetrieval(llm port.LLMProvider, storage retrievalStore, maxIterations int) *Retrieval {
 	return &Retrieval{
 		llm:           llm,
 		storage:       storage,
@@ -397,7 +403,7 @@ func (s *Retrieval) selectBranches(ctx context.Context, question string, candida
 	}`
 
 	var result branchSelection
-	if err := s.completeAndDecodeJSON(ctx, messages, schema, &result); err != nil {
+	if err := completeAndDecodeJSON(ctx, s.llm, messages, schema, &result); err != nil {
 		return branchSelection{}, fmt.Errorf("decode branch selection: %w", err)
 	}
 
@@ -502,7 +508,7 @@ func (s *Retrieval) generateAnswer(ctx context.Context, question, collected stri
 	}`
 
 	var resp answerResponse
-	if err := s.completeAndDecodeJSON(ctx, messages, schema, &resp); err != nil {
+	if err := completeAndDecodeJSON(ctx, s.llm, messages, schema, &resp); err != nil {
 		return "", fmt.Errorf("decode answer: %w", err)
 	}
 
@@ -512,17 +518,6 @@ func (s *Retrieval) generateAnswer(ctx context.Context, question, collected stri
 	}
 
 	return answer, nil
-}
-
-func (s *Retrieval) completeAndDecodeJSON(ctx context.Context, messages []port.ChatMessage, schema string, out any) error {
-	raw, err := s.llm.CompleteJSON(ctx, messages, schema)
-	if err != nil {
-		return fmt.Errorf("llm complete json: %w", err)
-	}
-	if err := unmarshalLLMJSON(raw, out); err != nil {
-		return fmt.Errorf("unmarshal llm json: %w", err)
-	}
-	return nil
 }
 
 func parseAnswerText(raw json.RawMessage) (string, error) {
@@ -552,77 +547,4 @@ func parseAnswerText(raw json.RawMessage) (string, error) {
 	}
 
 	return "", fmt.Errorf("unsupported answer format")
-}
-
-func unmarshalLLMJSON(raw string, out any) error {
-	candidates := []string{strings.TrimSpace(raw)}
-
-	extracted := extractJSONPayload(raw)
-	if extracted != "" && extracted != candidates[0] {
-		candidates = append(candidates, extracted)
-	}
-
-	for _, candidate := range candidates {
-		if err := json.Unmarshal([]byte(candidate), out); err == nil {
-			return nil
-		}
-
-		normalized := normalizeJSON(candidate)
-		if normalized != candidate {
-			if err := json.Unmarshal([]byte(normalized), out); err == nil {
-				return nil
-			}
-		}
-	}
-
-	return fmt.Errorf("invalid json payload")
-}
-
-func extractJSONPayload(raw string) string {
-	trimmed := strings.TrimSpace(raw)
-	if trimmed == "" {
-		return ""
-	}
-
-	if start := strings.Index(trimmed, "```json"); start >= 0 {
-		block := trimmed[start+len("```json"):]
-		if end := strings.Index(block, "```"); end >= 0 {
-			return strings.TrimSpace(block[:end])
-		}
-	}
-
-	if start := strings.Index(trimmed, "```"); start >= 0 {
-		block := trimmed[start+len("```"):]
-		if end := strings.Index(block, "```"); end >= 0 {
-			block = strings.TrimSpace(block[:end])
-			block = strings.TrimPrefix(block, "json")
-			block = strings.TrimSpace(block)
-			if block != "" {
-				return block
-			}
-		}
-	}
-
-	if start, end := strings.Index(trimmed, "{"), strings.LastIndex(trimmed, "}"); start >= 0 && end > start {
-		return strings.TrimSpace(trimmed[start : end+1])
-	}
-	if start, end := strings.Index(trimmed, "["), strings.LastIndex(trimmed, "]"); start >= 0 && end > start {
-		return strings.TrimSpace(trimmed[start : end+1])
-	}
-
-	return trimmed
-}
-
-func normalizeJSON(raw string) string {
-	cleaned := strings.TrimSpace(raw)
-	if cleaned == "" {
-		return ""
-	}
-
-	cleaned = strings.NewReplacer("None", "null", "\r", " ", "\n", " ").Replace(cleaned)
-	cleaned = strings.Join(strings.Fields(cleaned), " ")
-	cleaned = strings.ReplaceAll(cleaned, ",}", "}")
-	cleaned = strings.ReplaceAll(cleaned, ",]", "]")
-
-	return cleaned
 }

@@ -2,12 +2,13 @@ package cli
 
 import (
 	"context"
-	"log"
+	"errors"
+	"fmt"
 	"log/slog"
 	"net/http"
-	"os"
 	"os/signal"
 	"syscall"
+	"time"
 
 	"github.com/devinitive-team/mirage/internal/adapter/fs"
 	"github.com/devinitive-team/mirage/internal/adapter/mistral"
@@ -22,19 +23,65 @@ func runCmd() *cli.Command {
 	return &cli.Command{
 		Name:  "run",
 		Usage: "Start the HTTP server",
-		Action: func(_ context.Context, _ *cli.Command) error {
-			runServer()
-			return nil
+		Action: func(ctx context.Context, _ *cli.Command) error {
+			return runServer(ctx)
 		},
 	}
 }
 
-func runServer() {
+func runServer(ctx context.Context) error {
 	cfg, err := config.Load()
 	if err != nil {
-		log.Fatalf("load config: %v", err)
+		return fmt.Errorf("load config: %w", err)
 	}
 
+	runtime := buildRuntime(cfg)
+
+	serverCtx, stop := signal.NotifyContext(ctx, syscall.SIGINT, syscall.SIGTERM)
+	defer stop()
+
+	serveErr := make(chan error, 1)
+	go func() {
+		slog.Info("starting server", "addr", cfg.ListenAddr)
+		err := runtime.server.ListenAndServe()
+		if err != nil && !errors.Is(err, http.ErrServerClosed) {
+			serveErr <- fmt.Errorf("server: %w", err)
+			return
+		}
+		serveErr <- nil
+	}()
+
+	select {
+	case err := <-serveErr:
+		runtime.pool.Shutdown()
+		return err
+	case <-serverCtx.Done():
+		slog.Info("shutting down")
+		shutdownCtx, cancel := context.WithTimeout(context.Background(), 15*time.Second)
+		defer cancel()
+
+		if err := runtime.server.Shutdown(shutdownCtx); err != nil && !errors.Is(err, http.ErrServerClosed) {
+			_ = runtime.server.Close()
+			runtime.pool.Shutdown()
+			return fmt.Errorf("shutdown server: %w", err)
+		}
+
+		if err := <-serveErr; err != nil {
+			runtime.pool.Shutdown()
+			return err
+		}
+
+		runtime.pool.Shutdown()
+		return nil
+	}
+}
+
+type appRuntime struct {
+	server *http.Server
+	pool   *worker.Pool
+}
+
+func buildRuntime(cfg config.Config) appRuntime {
 	storage := fs.New(cfg.DataDir)
 
 	client := mistral.NewClient(cfg.MistralAPIKey, cfg.MistralBaseURL)
@@ -60,18 +107,8 @@ func runServer() {
 		Addr:    cfg.ListenAddr,
 		Handler: a.Handler(),
 	}
-
-	go func() {
-		sig := make(chan os.Signal, 1)
-		signal.Notify(sig, syscall.SIGINT, syscall.SIGTERM)
-		<-sig
-		slog.Info("shutting down")
-		pool.Shutdown()
-		srv.Close()
-	}()
-
-	slog.Info("starting server", "addr", cfg.ListenAddr)
-	if err := srv.ListenAndServe(); err != nil && err != http.ErrServerClosed {
-		log.Fatalf("server: %v", err)
+	return appRuntime{
+		server: srv,
+		pool:   pool,
 	}
 }

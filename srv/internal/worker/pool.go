@@ -2,13 +2,19 @@ package worker
 
 import (
 	"context"
+	"errors"
 	"log/slog"
 	"sync"
 )
 
+var ErrPoolClosed = errors.New("worker pool is shut down")
+
 type Pool struct {
-	jobs chan Job
-	wg   sync.WaitGroup
+	jobs         chan Job
+	wg           sync.WaitGroup
+	mu           sync.RWMutex
+	closed       bool
+	shutdownOnce sync.Once
 }
 
 func New(size int) *Pool {
@@ -31,11 +37,22 @@ func (p *Pool) worker() {
 	}
 }
 
-func (p *Pool) Submit(job Job) {
+func (p *Pool) Submit(job Job) error {
+	p.mu.RLock()
+	defer p.mu.RUnlock()
+	if p.closed {
+		return ErrPoolClosed
+	}
 	p.jobs <- job
+	return nil
 }
 
 func (p *Pool) Shutdown() {
-	close(p.jobs)
-	p.wg.Wait()
+	p.shutdownOnce.Do(func() {
+		p.mu.Lock()
+		p.closed = true
+		close(p.jobs)
+		p.mu.Unlock()
+		p.wg.Wait()
+	})
 }

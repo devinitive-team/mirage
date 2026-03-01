@@ -15,17 +15,26 @@ import (
 
 	"github.com/devinitive-team/mirage/internal/domain"
 	"github.com/devinitive-team/mirage/internal/port"
-	"github.com/devinitive-team/mirage/internal/service"
 	"github.com/devinitive-team/mirage/internal/worker"
 )
 
-type DocumentHandler struct {
-	storage port.Storage
-	ingest  *service.Ingest
-	pool    *worker.Pool
+type documentIngestor interface {
+	Process(ctx context.Context, docID string) error
 }
 
-func NewDocumentHandler(storage port.Storage, ingest *service.Ingest, pool *worker.Pool) *DocumentHandler {
+type jobSubmitter interface {
+	Submit(job worker.Job) error
+}
+
+type DocumentHandler struct {
+	storage port.Storage
+	ingest  documentIngestor
+	pool    jobSubmitter
+}
+
+const pdfMediaType = "application/pdf"
+
+func NewDocumentHandler(storage port.Storage, ingest documentIngestor, pool jobSubmitter) *DocumentHandler {
 	return &DocumentHandler{
 		storage: storage,
 		ingest:  ingest,
@@ -65,7 +74,7 @@ func (h *DocumentHandler) RegisterRoutes(api huma.API) {
 			"200": {
 				Description: "Document PDF binary",
 				Content: map[string]*huma.MediaType{
-					"application/pdf": {},
+					pdfMediaType: {},
 				},
 			},
 		},
@@ -88,40 +97,16 @@ func (h *DocumentHandler) RegisterRoutes(api huma.API) {
 }
 
 func (h *DocumentHandler) Upload(ctx context.Context, input *UploadDocumentInput) (*DocumentOutput, error) {
-	contentType := input.ContentType
-	if contentType == "" {
-		return nil, huma.Error400BadRequest("missing content type")
+	if h.pool == nil || h.ingest == nil {
+		return nil, fmt.Errorf("upload handler is not configured")
 	}
-	_, params, err := mime.ParseMediaType(contentType)
+
+	fileName, pdfBytes, err := parseUploadPDF(input)
 	if err != nil {
-		return nil, huma.Error400BadRequest("invalid content type", err)
+		return nil, err
 	}
 
-	reader := multipart.NewReader(bytes.NewReader(input.RawBody), params["boundary"])
-	part, err := reader.NextPart()
-	if err != nil {
-		return nil, huma.Error400BadRequest("failed to read multipart form", err)
-	}
-	defer part.Close()
-
-	fileName := part.FileName()
-	if fileName == "" {
-		return nil, huma.Error400BadRequest("file name is required")
-	}
-
-	pdfBytes, err := io.ReadAll(part)
-	if err != nil {
-		return nil, huma.Error400BadRequest("failed to read file", err)
-	}
-
-	now := time.Now().UTC()
-	doc := domain.Document{
-		ID:        ulid.Make().String(),
-		Name:      fileName,
-		Status:    domain.DocumentStatusPending,
-		CreatedAt: now,
-		UpdatedAt: now,
-	}
+	doc := newPendingDocument(fileName)
 
 	if err := h.storage.SaveDocument(ctx, doc); err != nil {
 		return nil, fmt.Errorf("save document: %w", err)
@@ -131,13 +116,9 @@ func (h *DocumentHandler) Upload(ctx context.Context, input *UploadDocumentInput
 		return nil, fmt.Errorf("save pdf: %w", err)
 	}
 
-	docID := doc.ID
-	h.pool.Submit(worker.Job{
-		ID: docID,
-		Fn: func(ctx context.Context) error {
-			return h.ingest.Process(ctx, docID)
-		},
-	})
+	if err := h.enqueueIngestJob(doc.ID); err != nil {
+		return nil, fmt.Errorf("enqueue ingest job: %w", err)
+	}
 
 	resp := &DocumentOutput{
 		Body: documentToBody(doc),
@@ -175,10 +156,7 @@ func (h *DocumentHandler) List(ctx context.Context, input *ListDocumentsInput) (
 func (h *DocumentHandler) Get(ctx context.Context, input *GetDocumentInput) (*DocumentOutput, error) {
 	doc, err := h.storage.GetDocument(ctx, input.DocumentID)
 	if err != nil {
-		if errors.Is(err, domain.ErrNotFound) {
-			return nil, huma.Error404NotFound("document not found")
-		}
-		return nil, fmt.Errorf("get document: %w", err)
+		return nil, documentOpError("get document", err)
 	}
 
 	return &DocumentOutput{Body: documentToBody(doc)}, nil
@@ -187,10 +165,7 @@ func (h *DocumentHandler) Get(ctx context.Context, input *GetDocumentInput) (*Do
 func (h *DocumentHandler) GetPDF(ctx context.Context, input *GetDocumentPDFInput) (*GetDocumentPDFOutput, error) {
 	pdf, err := h.storage.OpenPDF(ctx, input.DocumentID)
 	if err != nil {
-		if errors.Is(err, domain.ErrNotFound) {
-			return nil, huma.Error404NotFound("document not found")
-		}
-		return nil, fmt.Errorf("open pdf: %w", err)
+		return nil, documentOpError("open pdf", err)
 	}
 	defer pdf.Close()
 
@@ -200,7 +175,7 @@ func (h *DocumentHandler) GetPDF(ctx context.Context, input *GetDocumentPDFInput
 	}
 
 	return &GetDocumentPDFOutput{
-		ContentType: "application/pdf",
+		ContentType: pdfMediaType,
 		Body:        raw,
 	}, nil
 }
@@ -208,10 +183,7 @@ func (h *DocumentHandler) GetPDF(ctx context.Context, input *GetDocumentPDFInput
 func (h *DocumentHandler) GetTree(ctx context.Context, input *GetDocumentTreeInput) (*GetDocumentTreeOutput, error) {
 	tree, err := h.storage.GetTree(ctx, input.DocumentID)
 	if err != nil {
-		if errors.Is(err, domain.ErrNotFound) {
-			return nil, huma.Error404NotFound("document not found")
-		}
-		return nil, fmt.Errorf("get tree: %w", err)
+		return nil, documentOpError("get tree", err)
 	}
 
 	return &GetDocumentTreeOutput{
@@ -222,11 +194,64 @@ func (h *DocumentHandler) GetTree(ctx context.Context, input *GetDocumentTreeInp
 func (h *DocumentHandler) Delete(ctx context.Context, input *DeleteDocumentInput) (*struct{}, error) {
 	err := h.storage.DeleteDocument(ctx, input.DocumentID)
 	if err != nil {
-		if errors.Is(err, domain.ErrNotFound) {
-			return nil, huma.Error404NotFound("document not found")
-		}
-		return nil, fmt.Errorf("delete document: %w", err)
+		return nil, documentOpError("delete document", err)
 	}
 
 	return nil, nil
+}
+
+func parseUploadPDF(input *UploadDocumentInput) (string, []byte, error) {
+	contentType := input.ContentType
+	if contentType == "" {
+		return "", nil, huma.Error400BadRequest("missing content type")
+	}
+	_, params, err := mime.ParseMediaType(contentType)
+	if err != nil {
+		return "", nil, huma.Error400BadRequest("invalid content type", err)
+	}
+
+	reader := multipart.NewReader(bytes.NewReader(input.RawBody), params["boundary"])
+	part, err := reader.NextPart()
+	if err != nil {
+		return "", nil, huma.Error400BadRequest("failed to read multipart form", err)
+	}
+	defer part.Close()
+
+	fileName := part.FileName()
+	if fileName == "" {
+		return "", nil, huma.Error400BadRequest("file name is required")
+	}
+
+	pdfBytes, err := io.ReadAll(part)
+	if err != nil {
+		return "", nil, huma.Error400BadRequest("failed to read file", err)
+	}
+	return fileName, pdfBytes, nil
+}
+
+func newPendingDocument(fileName string) domain.Document {
+	now := time.Now().UTC()
+	return domain.Document{
+		ID:        ulid.Make().String(),
+		Name:      fileName,
+		Status:    domain.DocumentStatusPending,
+		CreatedAt: now,
+		UpdatedAt: now,
+	}
+}
+
+func (h *DocumentHandler) enqueueIngestJob(docID string) error {
+	return h.pool.Submit(worker.Job{
+		ID: docID,
+		Fn: func(ctx context.Context) error {
+			return h.ingest.Process(ctx, docID)
+		},
+	})
+}
+
+func documentOpError(op string, err error) error {
+	if errors.Is(err, domain.ErrNotFound) {
+		return huma.Error404NotFound("document not found")
+	}
+	return fmt.Errorf("%s: %w", op, err)
 }

@@ -12,12 +12,16 @@ import (
 
 type Indexer struct {
 	llm              port.LLMProvider
-	storage          port.Storage
+	storage          indexStore
 	maxPagesPerNode  int
 	maxTokensPerNode int
 }
 
-func NewIndexer(llm port.LLMProvider, storage port.Storage, maxPagesPerNode, maxTokensPerNode int) *Indexer {
+type indexStore interface {
+	SaveTree(ctx context.Context, tree domain.TreeIndex) error
+}
+
+func NewIndexer(llm port.LLMProvider, storage indexStore, maxPagesPerNode, maxTokensPerNode int) *Indexer {
 	return &Indexer{
 		llm:              llm,
 		storage:          storage,
@@ -95,13 +99,13 @@ func (s *Indexer) Build(ctx context.Context, docID string, pages []domain.Page) 
 
 	var root domain.TreeNode
 	if toc.HasTOC && len(toc.Sections) > 0 {
-		root = s.buildFromTOC(s.calibrateTOCPageOffset(ctx, toc, pages), pages)
+		root = s.buildFromTOC(s.calibrateTOCPageOffset(ctx, toc, pages))
 	} else {
 		structure, err := s.inferStructure(ctx, pages)
 		if err != nil {
 			return domain.TreeIndex{}, fmt.Errorf("infer structure: %w", err)
 		}
-		root = s.buildFromTOC(structure.Sections, pages)
+		root = s.buildFromTOC(structure.Sections)
 	}
 
 	root.Title = "Root"
@@ -153,13 +157,8 @@ func (s *Indexer) detectTOC(ctx context.Context, pages []domain.Page) (tocResult
 	` + tocSectionDefsJSONSchema + `
 	}`
 
-	raw, err := s.llm.CompleteJSON(ctx, messages, schema)
-	if err != nil {
-		return tocResult{}, fmt.Errorf("llm complete json: %w", err)
-	}
-
 	var result tocResult
-	if err := json.Unmarshal([]byte(raw), &result); err != nil {
+	if err := completeAndDecodeJSON(ctx, s.llm, messages, schema, &result); err != nil {
 		return tocResult{}, fmt.Errorf("unmarshal toc result: %w", err)
 	}
 
@@ -221,13 +220,8 @@ func (s *Indexer) calibrateTOCPageOffset(ctx context.Context, toc tocResult, pag
 		"required": ["sections"]
 	}`
 
-	raw, err := s.llm.CompleteJSON(ctx, messages, schema)
-	if err != nil {
-		return sections
-	}
-
 	var physical tocPhysicalResult
-	if err := json.Unmarshal([]byte(raw), &physical); err != nil {
+	if err := completeAndDecodeJSON(ctx, s.llm, messages, schema, &physical); err != nil {
 		return sections
 	}
 
@@ -266,20 +260,15 @@ func (s *Indexer) inferStructure(ctx context.Context, pages []domain.Page) (infe
 	` + tocSectionDefsJSONSchema + `
 	}`
 
-	raw, err := s.llm.CompleteJSON(ctx, messages, schema)
-	if err != nil {
-		return inferredStructure{}, fmt.Errorf("llm complete json: %w", err)
-	}
-
 	var result inferredStructure
-	if err := json.Unmarshal([]byte(raw), &result); err != nil {
+	if err := completeAndDecodeJSON(ctx, s.llm, messages, schema, &result); err != nil {
 		return inferredStructure{}, fmt.Errorf("unmarshal inferred structure: %w", err)
 	}
 
 	return result, nil
 }
 
-func (s *Indexer) buildFromTOC(sections []tocSection, pages []domain.Page) domain.TreeNode {
+func (s *Indexer) buildFromTOC(sections []tocSection) domain.TreeNode {
 	var root domain.TreeNode
 	root.Children = make([]domain.TreeNode, 0, len(sections))
 	for _, sec := range sections {
