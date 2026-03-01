@@ -4,550 +4,550 @@
  */
 
 export interface paths {
-    "/api/v1/documents": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List documents */
-        get: operations["list-documents"];
-        put?: never;
-        /** Upload a PDF document */
-        post: operations["upload-document"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/documents/{document-id}": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get document */
-        get: operations["get-document"];
-        put?: never;
-        post?: never;
-        /** Delete document */
-        delete: operations["delete-document"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/documents/{document-id}/pdf": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get document PDF */
-        get: operations["get-document-pdf"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/documents/{document-id}/tree": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** Get document tree */
-        get: operations["get-document-tree"];
-        put?: never;
-        post?: never;
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/history": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        /** List query history */
-        get: operations["list-history"];
-        put?: never;
-        post?: never;
-        /** Clear query history */
-        delete: operations["clear-history"];
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
-    "/api/v1/query": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        get?: never;
-        put?: never;
-        /** Query documents */
-        post: operations["query-documents"];
-        delete?: never;
-        options?: never;
-        head?: never;
-        patch?: never;
-        trace?: never;
-    };
+	"/api/v1/documents": {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** List documents */
+		get: operations["list-documents"];
+		put?: never;
+		/** Upload a PDF document */
+		post: operations["upload-document"];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	"/api/v1/documents/{document-id}": {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** Get document */
+		get: operations["get-document"];
+		put?: never;
+		post?: never;
+		/** Delete document */
+		delete: operations["delete-document"];
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	"/api/v1/documents/{document-id}/pdf": {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** Get document PDF */
+		get: operations["get-document-pdf"];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	"/api/v1/documents/{document-id}/tree": {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** Get document tree */
+		get: operations["get-document-tree"];
+		put?: never;
+		post?: never;
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	"/api/v1/history": {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		/** List query history */
+		get: operations["list-history"];
+		put?: never;
+		post?: never;
+		/** Clear query history */
+		delete: operations["clear-history"];
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
+	"/api/v1/query": {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		get?: never;
+		put?: never;
+		/** Query documents */
+		post: operations["query-documents"];
+		delete?: never;
+		options?: never;
+		head?: never;
+		patch?: never;
+		trace?: never;
+	};
 }
 export type webhooks = Record<string, never>;
 export interface components {
-    schemas: {
-        DocumentBody: {
-            /**
-             * Format: uri
-             * @description A URL to the JSON Schema for this object.
-             * @example https://example.com/schemas/DocumentBody.json
-             */
-            readonly $schema?: string;
-            /** Format: date-time */
-            created_at: string;
-            description?: string;
-            error?: string;
-            id: string;
-            name: string;
-            /** Format: int64 */
-            page_count: number;
-            status: string;
-            /** Format: date-time */
-            updated_at: string;
-        };
-        ErrorDetail: {
-            /** @description Where the error occurred, e.g. 'body.items[3].tags' or 'path.thing-id' */
-            location?: string;
-            /** @description Error message text */
-            message?: string;
-            /** @description The value at the given location */
-            value?: unknown;
-        };
-        ErrorModel: {
-            /**
-             * Format: uri
-             * @description A URL to the JSON Schema for this object.
-             * @example https://example.com/schemas/ErrorModel.json
-             */
-            readonly $schema?: string;
-            /**
-             * @description A human-readable explanation specific to this occurrence of the problem.
-             * @example Property foo is required but is missing.
-             */
-            detail?: string;
-            /** @description Optional list of individual error details */
-            errors?: components["schemas"]["ErrorDetail"][] | null;
-            /**
-             * Format: uri
-             * @description A URI reference that identifies the specific occurrence of the problem.
-             * @example https://example.com/error-log/abc123
-             */
-            instance?: string;
-            /**
-             * Format: int64
-             * @description HTTP status code
-             * @example 400
-             */
-            status?: number;
-            /**
-             * @description A short, human-readable summary of the problem type. This value should not change between occurrences of the error.
-             * @example Bad Request
-             */
-            title?: string;
-            /**
-             * Format: uri
-             * @description A URI reference to human-readable documentation for the error.
-             * @default about:blank
-             * @example https://example.com/errors/example
-             */
-            type: string;
-        };
-        EvidenceBody: {
-            document_id: string;
-            document_name: string;
-            node_id: string;
-            node_title: string;
-            /** Format: int64 */
-            page_end: number;
-            /** Format: int64 */
-            page_start: number;
-        };
-        HistoryEntryBody: {
-            answer: string;
-            asked_at: string;
-            evidence: components["schemas"]["EvidenceBody"][] | null;
-            id: string;
-            question: string;
-        };
-        ListDocumentsBody: {
-            /**
-             * Format: uri
-             * @description A URL to the JSON Schema for this object.
-             * @example https://example.com/schemas/ListDocumentsBody.json
-             */
-            readonly $schema?: string;
-            items: components["schemas"]["DocumentBody"][] | null;
-            /** Format: int64 */
-            page: number;
-            /** Format: int64 */
-            page_size: number;
-            /** Format: int64 */
-            pages: number;
-            /** Format: int64 */
-            total: number;
-        };
-        ListHistoryBody: {
-            /**
-             * Format: uri
-             * @description A URL to the JSON Schema for this object.
-             * @example https://example.com/schemas/ListHistoryBody.json
-             */
-            readonly $schema?: string;
-            items: components["schemas"]["HistoryEntryBody"][] | null;
-        };
-        QueryBody: {
-            /**
-             * Format: uri
-             * @description A URL to the JSON Schema for this object.
-             * @example https://example.com/schemas/QueryBody.json
-             */
-            readonly $schema?: string;
-            document_ids: string[] | null;
-            question: string;
-        };
-        QueryResultBody: {
-            /**
-             * Format: uri
-             * @description A URL to the JSON Schema for this object.
-             * @example https://example.com/schemas/QueryResultBody.json
-             */
-            readonly $schema?: string;
-            answer: string;
-            evidence: components["schemas"]["EvidenceBody"][] | null;
-        };
-        TreeBody: {
-            /**
-             * Format: uri
-             * @description A URL to the JSON Schema for this object.
-             * @example https://example.com/schemas/TreeBody.json
-             */
-            readonly $schema?: string;
-            document_id: string;
-            root: components["schemas"]["TreeNodeBody"];
-        };
-        TreeNodeBody: {
-            children: components["schemas"]["TreeNodeBody"][] | null;
-            /** Format: int64 */
-            end_page: number;
-            node_id: string;
-            /** Format: int64 */
-            start_page: number;
-            summary: string;
-            title: string;
-        };
-    };
-    responses: never;
-    parameters: never;
-    requestBodies: never;
-    headers: never;
-    pathItems: never;
+	schemas: {
+		DocumentBody: {
+			/**
+			 * Format: uri
+			 * @description A URL to the JSON Schema for this object.
+			 * @example https://example.com/schemas/DocumentBody.json
+			 */
+			readonly $schema?: string;
+			/** Format: date-time */
+			created_at: string;
+			description?: string;
+			error?: string;
+			id: string;
+			name: string;
+			/** Format: int64 */
+			page_count: number;
+			status: string;
+			/** Format: date-time */
+			updated_at: string;
+		};
+		ErrorDetail: {
+			/** @description Where the error occurred, e.g. 'body.items[3].tags' or 'path.thing-id' */
+			location?: string;
+			/** @description Error message text */
+			message?: string;
+			/** @description The value at the given location */
+			value?: unknown;
+		};
+		ErrorModel: {
+			/**
+			 * Format: uri
+			 * @description A URL to the JSON Schema for this object.
+			 * @example https://example.com/schemas/ErrorModel.json
+			 */
+			readonly $schema?: string;
+			/**
+			 * @description A human-readable explanation specific to this occurrence of the problem.
+			 * @example Property foo is required but is missing.
+			 */
+			detail?: string;
+			/** @description Optional list of individual error details */
+			errors?: components["schemas"]["ErrorDetail"][] | null;
+			/**
+			 * Format: uri
+			 * @description A URI reference that identifies the specific occurrence of the problem.
+			 * @example https://example.com/error-log/abc123
+			 */
+			instance?: string;
+			/**
+			 * Format: int64
+			 * @description HTTP status code
+			 * @example 400
+			 */
+			status?: number;
+			/**
+			 * @description A short, human-readable summary of the problem type. This value should not change between occurrences of the error.
+			 * @example Bad Request
+			 */
+			title?: string;
+			/**
+			 * Format: uri
+			 * @description A URI reference to human-readable documentation for the error.
+			 * @default about:blank
+			 * @example https://example.com/errors/example
+			 */
+			type: string;
+		};
+		EvidenceBody: {
+			document_id: string;
+			document_name: string;
+			node_id: string;
+			node_title: string;
+			/** Format: int64 */
+			page_end: number;
+			/** Format: int64 */
+			page_start: number;
+		};
+		HistoryEntryBody: {
+			answer: string;
+			asked_at: string;
+			evidence: components["schemas"]["EvidenceBody"][] | null;
+			id: string;
+			question: string;
+		};
+		ListDocumentsBody: {
+			/**
+			 * Format: uri
+			 * @description A URL to the JSON Schema for this object.
+			 * @example https://example.com/schemas/ListDocumentsBody.json
+			 */
+			readonly $schema?: string;
+			items: components["schemas"]["DocumentBody"][] | null;
+			/** Format: int64 */
+			page: number;
+			/** Format: int64 */
+			page_size: number;
+			/** Format: int64 */
+			pages: number;
+			/** Format: int64 */
+			total: number;
+		};
+		ListHistoryBody: {
+			/**
+			 * Format: uri
+			 * @description A URL to the JSON Schema for this object.
+			 * @example https://example.com/schemas/ListHistoryBody.json
+			 */
+			readonly $schema?: string;
+			items: components["schemas"]["HistoryEntryBody"][] | null;
+		};
+		QueryBody: {
+			/**
+			 * Format: uri
+			 * @description A URL to the JSON Schema for this object.
+			 * @example https://example.com/schemas/QueryBody.json
+			 */
+			readonly $schema?: string;
+			document_ids: string[] | null;
+			question: string;
+		};
+		QueryResultBody: {
+			/**
+			 * Format: uri
+			 * @description A URL to the JSON Schema for this object.
+			 * @example https://example.com/schemas/QueryResultBody.json
+			 */
+			readonly $schema?: string;
+			answer: string;
+			evidence: components["schemas"]["EvidenceBody"][] | null;
+		};
+		TreeBody: {
+			/**
+			 * Format: uri
+			 * @description A URL to the JSON Schema for this object.
+			 * @example https://example.com/schemas/TreeBody.json
+			 */
+			readonly $schema?: string;
+			document_id: string;
+			root: components["schemas"]["TreeNodeBody"];
+		};
+		TreeNodeBody: {
+			children: components["schemas"]["TreeNodeBody"][] | null;
+			/** Format: int64 */
+			end_page: number;
+			node_id: string;
+			/** Format: int64 */
+			start_page: number;
+			summary: string;
+			title: string;
+		};
+	};
+	responses: never;
+	parameters: never;
+	requestBodies: never;
+	headers: never;
+	pathItems: never;
 }
 export type $defs = Record<string, never>;
 export interface operations {
-    "list-documents": {
-        parameters: {
-            query?: {
-                page?: number;
-                page_size?: number;
-            };
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ListDocumentsBody"];
-                };
-            };
-            /** @description Error */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ErrorModel"];
-                };
-            };
-        };
-    };
-    "upload-document": {
-        parameters: {
-            query?: never;
-            header: {
-                "Content-Type": string;
-            };
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "*/*"?: never;
-            };
-        };
-        responses: {
-            /** @description Accepted */
-            202: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DocumentBody"];
-                };
-            };
-            /** @description Error */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ErrorModel"];
-                };
-            };
-        };
-    };
-    "get-document": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                "document-id": string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["DocumentBody"];
-                };
-            };
-            /** @description Error */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ErrorModel"];
-                };
-            };
-        };
-    };
-    "delete-document": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                "document-id": string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description No Content */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Error */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ErrorModel"];
-                };
-            };
-        };
-    };
-    "get-document-pdf": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                "document-id": string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description Document PDF binary */
-            200: {
-                headers: {
-                    "Content-Type"?: string;
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/pdf": unknown;
-                };
-            };
-            /** @description Error */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ErrorModel"];
-                };
-            };
-        };
-    };
-    "get-document-tree": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path: {
-                "document-id": string;
-            };
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["TreeBody"];
-                };
-            };
-            /** @description Error */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ErrorModel"];
-                };
-            };
-        };
-    };
-    "list-history": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["ListHistoryBody"];
-                };
-            };
-            /** @description Error */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ErrorModel"];
-                };
-            };
-        };
-    };
-    "clear-history": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody?: never;
-        responses: {
-            /** @description No Content */
-            204: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content?: never;
-            };
-            /** @description Error */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ErrorModel"];
-                };
-            };
-        };
-    };
-    "query-documents": {
-        parameters: {
-            query?: never;
-            header?: never;
-            path?: never;
-            cookie?: never;
-        };
-        requestBody: {
-            content: {
-                "application/json": components["schemas"]["QueryBody"];
-            };
-        };
-        responses: {
-            /** @description OK */
-            200: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/json": components["schemas"]["QueryResultBody"];
-                };
-            };
-            /** @description Error */
-            default: {
-                headers: {
-                    [name: string]: unknown;
-                };
-                content: {
-                    "application/problem+json": components["schemas"]["ErrorModel"];
-                };
-            };
-        };
-    };
+	"list-documents": {
+		parameters: {
+			query?: {
+				page?: number;
+				page_size?: number;
+			};
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description OK */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/json": components["schemas"]["ListDocumentsBody"];
+				};
+			};
+			/** @description Error */
+			default: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ErrorModel"];
+				};
+			};
+		};
+	};
+	"upload-document": {
+		parameters: {
+			query?: never;
+			header: {
+				"Content-Type": string;
+			};
+			path?: never;
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				"*/*"?: never;
+			};
+		};
+		responses: {
+			/** @description Accepted */
+			202: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/json": components["schemas"]["DocumentBody"];
+				};
+			};
+			/** @description Error */
+			default: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ErrorModel"];
+				};
+			};
+		};
+	};
+	"get-document": {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				"document-id": string;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description OK */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/json": components["schemas"]["DocumentBody"];
+				};
+			};
+			/** @description Error */
+			default: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ErrorModel"];
+				};
+			};
+		};
+	};
+	"delete-document": {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				"document-id": string;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description No Content */
+			204: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content?: never;
+			};
+			/** @description Error */
+			default: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ErrorModel"];
+				};
+			};
+		};
+	};
+	"get-document-pdf": {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				"document-id": string;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description Document PDF binary */
+			200: {
+				headers: {
+					"Content-Type"?: string;
+					[name: string]: unknown;
+				};
+				content: {
+					"application/pdf": unknown;
+				};
+			};
+			/** @description Error */
+			default: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ErrorModel"];
+				};
+			};
+		};
+	};
+	"get-document-tree": {
+		parameters: {
+			query?: never;
+			header?: never;
+			path: {
+				"document-id": string;
+			};
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description OK */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/json": components["schemas"]["TreeBody"];
+				};
+			};
+			/** @description Error */
+			default: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ErrorModel"];
+				};
+			};
+		};
+	};
+	"list-history": {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description OK */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/json": components["schemas"]["ListHistoryBody"];
+				};
+			};
+			/** @description Error */
+			default: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ErrorModel"];
+				};
+			};
+		};
+	};
+	"clear-history": {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody?: never;
+		responses: {
+			/** @description No Content */
+			204: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content?: never;
+			};
+			/** @description Error */
+			default: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ErrorModel"];
+				};
+			};
+		};
+	};
+	"query-documents": {
+		parameters: {
+			query?: never;
+			header?: never;
+			path?: never;
+			cookie?: never;
+		};
+		requestBody: {
+			content: {
+				"application/json": components["schemas"]["QueryBody"];
+			};
+		};
+		responses: {
+			/** @description OK */
+			200: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/json": components["schemas"]["QueryResultBody"];
+				};
+			};
+			/** @description Error */
+			default: {
+				headers: {
+					[name: string]: unknown;
+				};
+				content: {
+					"application/problem+json": components["schemas"]["ErrorModel"];
+				};
+			};
+		};
+	};
 }
