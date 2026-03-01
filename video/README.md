@@ -10,8 +10,8 @@ Remotion project for rendering Mirage video assets.
   - `id`: `promo`
   - `size`: `1280x720`
   - `fps`: `30`
-  - `duration`: `60` frames
-- `src/Composition.tsx` currently returns `null`, so rendered output is blank until composition content is implemented.
+  - `duration`: `823` frames (~27 seconds)
+- `src/Composition.tsx` renders the promo video with scene-based sequences, shared components, and animation utilities.
 
 ## Prerequisites
 

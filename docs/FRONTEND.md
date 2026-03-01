@@ -18,7 +18,7 @@ For the `video/` app, use Remotion primitives for timeline-driven visuals and va
 
 - Document upload: file picker for PDFs.
 - Document list: searchable uploaded-file list with row status, per-file preview, per-file delete, multi-select checkboxes, `Delete selected`, and `Delete all` actions.
-  Status labels are user-facing: `Uploaded` (backend `pending`), `Processing`, `Ready`, `Failed`.
+  Status labels are user-facing: `Queued` (backend `pending`), `Indexing` (backend `processing`), `Ready` (backend `complete`), `Failed` (backend `failed`).
 - Upload and delete actions show non-blocking toast notifications for success and error outcomes.
 - Query input: text field for natural-language questions, scoped to selected ready documents (or all ready documents when none are selected).
 - Results: evidence cards grouped by document; each group renders a responsive grid of clickable preview tiles (scales from one column up to six columns by viewport), each tile showing a page screenshot and, for multi-page evidence, additional rendered PDF pages stacked behind the first one, and opens the PDF preview on the selected evidence pages.
