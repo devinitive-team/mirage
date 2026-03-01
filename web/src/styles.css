@@ -256,6 +256,11 @@ pre code {
   border-color: color-mix(in oklab, var(--lagoon-deep) 35%, var(--line));
 }
 
+.feature-card.feature-card--static:hover {
+  transform: none;
+  border-color: var(--line);
+}
+
 .reference-list-item {
   border: 1px solid var(--reference-item-border);
   background: var(--reference-item-bg);

@@ -228,7 +228,7 @@ export function QueryAnswerSection({
 	return (
 		<section
 			className={cn(
-				"feature-card mb-4 overflow-hidden rounded-2xl border border-[var(--line)]",
+				"feature-card feature-card--static mb-4 overflow-hidden rounded-2xl border border-[var(--line)]",
 				className,
 			)}
 		>
