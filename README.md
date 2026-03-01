@@ -2,7 +2,7 @@
 
 ### **[🔮 mirage.lukaszgut.com](https://mirage.lukaszgut.com/)**
 
-![photo_2026-03-01 15 02 10](https://github.com/user-attachments/assets/ccb7026b-9057-4980-92f8-0122d40a8122)
+![Mirage screenshot](.github/assets/readme-screenshot.png)
 
 AI-powered document search for PDF-heavy workflows. Built during the **Mistral Worldwide Hackathon 2026**.
 
