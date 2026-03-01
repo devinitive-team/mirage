@@ -35,7 +35,7 @@ Upload PDFs, ask questions in plain language, and get answers with page-level ev
 ### Setup
 
 ```bash
-cp srv/.env.example srv/.env   # then set MISTRAL_API_KEY
+cp srv/.env.example srv/.env    # then set MISTRAL_API_KEY
 task setup                      # install dependencies
 task dev                        # start API + web app
 ```
