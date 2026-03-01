@@ -1,3 +1,5 @@
+<img width="1180" height="818" alt="Screenshot 2026-03-01 at 15 14 37" src="https://github.com/user-attachments/assets/1bf5d099-9079-4851-a9e4-3d858acbd553" />
+
 # Mirage Marketing Site (`marketing`)
 
 Astro marketing site for Mirage.
