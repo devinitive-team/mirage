@@ -13,6 +13,9 @@ includes:
   video:
     taskfile: video/Taskfile.yml
     dir: video
+  email:
+    taskfile: email/Taskfile.yml
+    dir: email
 
 tasks:
   setup:
@@ -20,6 +23,7 @@ tasks:
     cmds:
       - task: srv:install
       - task: web:install
+      - task: email:install
       - task: video:install
 
   build:

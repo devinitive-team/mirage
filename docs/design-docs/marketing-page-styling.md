@@ -64,9 +64,10 @@ Snapshot date: 2026-03-01.
 - Overline uses mono uppercase label with short horizontal rules.
 - Primary heading is display-heavy (`text-4xl sm:text-5xl lg:text-7xl`, tight tracking) and balanced line wrapping.
 - Supporting paragraph uses subdued slate tone (`text-slate-600`, `sm:text-lg`).
-- Primary form is embedded ConvertKit markup with site-level overrides:
-  - Input and submit button are forced to square corners (`border-radius: 0px` inline styles).
-  - Submit button is black with white text.
+- Primary form is custom markup with local component styles:
+  - Input and submit button use square corners.
+  - Submit button uses black-on-white inversion between themes.
+  - Form submits JSON to the waitlist API endpoint (`/api/waitlist` by default).
 - Demo media block:
   - Container: bordered panel with light border and translucent white surface.
   - Animated border sheen via `ShineBorder`.
@@ -95,7 +96,7 @@ Snapshot date: 2026-03-01.
 ### Final CTA
 
 - Dominant closing headline (`text-5xl sm:text-6xl lg:text-7xl`, `font-extrabold`) centered on the page.
-- Reuses the same ConvertKit form component, centered and width-constrained.
+- Reuses the same custom waitlist form component, centered and width-constrained.
 
 ### Footer
 
@@ -123,13 +124,13 @@ Snapshot date: 2026-03-01.
   - Active theme sets `html.dark`, `data-theme`, and `color-scheme`.
   - Footer toggle (`data-theme-toggle`) switches themes, persists preference, updates icon/label, and updates `aria-label`/`aria-pressed`.
   - When no stored preference exists, system theme changes are applied live.
-  - Embedded ConvertKit form controls have dark-theme overrides for input, focus ring, and submit button contrast.
+  - Waitlist form controls include dark-theme overrides for input, focus ring, and submit button contrast.
 
 ## Responsive Behavior
 
 - Mobile collapses multi-column regions into stacked flow while preserving border rhythm.
 - Typography scales down by Tailwind breakpoints (`sm`, `md`, `lg`) rather than separate mobile-only components.
-- ConvertKit form remains full-width-first; larger breakpoints switch to horizontal input/button layout.
+- Waitlist form remains full-width-first; larger breakpoints switch to horizontal input/button layout.
 
 ## Runtime Verification Artifacts
 

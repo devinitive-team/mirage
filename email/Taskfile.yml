@@ -1,0 +1,22 @@
+version: '3'
+
+tasks:
+  install:
+    desc: Install npm dependencies
+    cmds:
+      - npm install
+
+  dev:
+    desc: Start Cloudflare Worker in local dev mode
+    cmds:
+      - npm run dev
+
+  typecheck:
+    desc: Run TypeScript type checks
+    cmds:
+      - npm run typecheck
+
+  deploy:
+    desc: Deploy worker to Cloudflare
+    cmds:
+      - npm run deploy

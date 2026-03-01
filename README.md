@@ -27,6 +27,7 @@ Mirage uses **PageIndex: Document Index for Vectorless, Reasoning-based RAG**.
 - `srv/` - Go backend API and indexing/retrieval pipeline.
 - `web/` - React app for upload, query, and evidence review.
 - `marketing/` - Astro marketing site.
+- `email/` - Hono + Cloudflare Worker service for waitlist capture.
 - `video/` - Remotion project for video assets.
 - `docs/` - system-of-record documentation.
 
@@ -35,6 +36,7 @@ Project-specific READMEs:
 - [`srv/README.md`](srv/README.md)
 - [`web/README.md`](web/README.md)
 - [`marketing/README.md`](marketing/README.md)
+- [`email/README.md`](email/README.md)
 - [`video/README.md`](video/README.md)
 
 ## Quick Start

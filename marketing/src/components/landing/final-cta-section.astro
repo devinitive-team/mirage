@@ -1,12 +1,6 @@
 ---
 import { BlurFade } from "@/components/ui/blur-fade";
 import EmailForm from "./email-form.astro";
-
-interface Props {
-  ctaHref: string;
-}
-
-const { ctaHref } = Astro.props;
 ---
 
 <section class="relative isolate mt-16 overflow-hidden" aria-label="Final conversion section">
@@ -240,12 +234,13 @@ const { ctaHref } = Astro.props;
 </section>
 
 <style>
-  .final-cta-form :global(form[data-uid="121137e280"]) {
+  .final-cta-form :global(.waitlist-form-wrap) {
     width: 100%;
     max-width: 48rem;
     margin-inline: auto;
+    margin-top: 0;
   }
-  .final-cta-form :global(.formkit-fields) {
+  .final-cta-form :global(.waitlist-form) {
     justify-content: center;
   }
 </style>

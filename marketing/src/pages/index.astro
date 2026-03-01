@@ -71,12 +71,12 @@ const ctaHref = buildTryForFreeUrl(tryForFreeUrl, Astro.url);
     <SiteHeader ctaHref={ctaHref} />
 
     <main class="pb-20 pt-8 md:pt-12">
-      <HeroSection ctaHref={ctaHref} />
+      <HeroSection />
       <ProofStripSection />
       <WorkflowSection />
       <ProofSection />
       <FaqSection />
-      <FinalCtaSection ctaHref={ctaHref} />
+      <FinalCtaSection />
     </main>
 
     <SiteFooter />
@@ -188,7 +188,12 @@ const ctaHref = buildTryForFreeUrl(tryForFreeUrl, Astro.url);
               values.forEach((value) => destination.searchParams.append(key, value));
             });
 
-            anchor.setAttribute("href", destination.toString());
+            const nextHref =
+              destination.origin === window.location.origin
+                ? `${destination.pathname}${destination.search}${destination.hash}`
+                : destination.toString();
+
+            anchor.setAttribute("href", nextHref);
           } catch {
             // Keep original href when URL parsing fails.
           }

@@ -1,0 +1,13 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "mirage-email",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-03-01",
+  "d1_databases": [
+    {
+      "binding": "mirage_emails",
+      "database_name": "mirage-emails",
+      "database_id": "6e96a994-d20b-4bf0-8bd0-f84a2755c573"
+    }
+  ]
+}

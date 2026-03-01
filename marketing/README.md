@@ -8,8 +8,8 @@ Astro marketing site for Mirage.
 
 - Serves the public landing page at `/`.
 - Renders hero/proof/workflow/FAQ/final CTA sections.
-- Uses a Kit (ConvertKit) embedded form for waitlist signup.
-- Routes `Join Waitlist` CTAs to `PUBLIC_TRY_FOR_FREE_URL` and forwards inbound attribution params (`utm_*`, `gclid`, `ref`).
+- Uses a custom waitlist form that posts to the production worker endpoint.
+- Routes `Join Waitlist` CTAs to the production Mirage app and forwards inbound attribution params (`utm_*`, `gclid`, `ref`).
 
 ## Stack
 
@@ -56,15 +56,15 @@ task dev
 task build
 ```
 
-## Environment Variables
+## Production Links
 
-- `PUBLIC_TRY_FOR_FREE_URL` (optional): CTA destination URL.
-  - Default: `http://localhost:3000`
+- CTA destination URL is hardcoded in `src/config/site.ts`.
+- Waitlist API endpoint URL is hardcoded in `src/config/site.ts`.
 
 ## Current Scope
 
 - This project currently has no dedicated lint/test scripts.
-- Waitlist form submission is handled by embedded Kit form markup in `src/components/landing/email-form.astro`.
+- Waitlist form submission uses fetch-based JSON POST in `src/components/landing/email-form.astro`.
 
 ## Related Docs
 
