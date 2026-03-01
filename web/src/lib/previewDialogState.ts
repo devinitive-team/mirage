@@ -36,6 +36,18 @@ function buildPageRange(pageStart: number, pageEnd: number): Array<number> {
 	return pages;
 }
 
+export function formatPreviewContextLabel(
+	reference: PreviewReference | null,
+): string {
+	if (!reference) return "-";
+	if (reference.nodeId === UPLOADED_FILE_PREVIEW_NODE_ID) {
+		return reference.nodeTitle;
+	}
+	return reference.pageStart === reference.pageEnd
+		? `${reference.nodeTitle} · Page ${reference.pageStart}`
+		: `${reference.nodeTitle} · Pages ${reference.pageStart}-${reference.pageEnd}`;
+}
+
 export function resolvePreviewDialogState(
 	reference: PreviewReference | null,
 	mode: PreviewMode,
@@ -60,15 +72,16 @@ export function resolvePreviewDialogState(
 			effectiveMode === "evidence"
 				? buildPageRange(reference.pageStart, reference.pageEnd)
 				: undefined,
-		highlightRanges: isUploadedFilePreview
-			? []
-			: [
-					{
-						id: reference.id,
-						pageStart: reference.pageStart,
-						pageEnd: reference.pageEnd,
-						nodeTitle: reference.nodeTitle,
-					},
-				],
+		highlightRanges:
+			isUploadedFilePreview || effectiveMode === "evidence"
+				? []
+				: [
+						{
+							id: reference.id,
+							pageStart: reference.pageStart,
+							pageEnd: reference.pageEnd,
+							nodeTitle: reference.nodeTitle,
+						},
+					],
 	};
 }

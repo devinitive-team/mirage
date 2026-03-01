@@ -3,6 +3,7 @@ import { X } from "lucide-react";
 
 import type { ReferenceListItemData } from "#/components/ReferenceListItem";
 import {
+	formatPreviewContextLabel,
 	resolvePreviewDialogState,
 	type PreviewMode,
 } from "#/lib/previewDialogState";
@@ -40,11 +41,7 @@ export function PreviewDialog({
 		setMode("evidence");
 	}, [reference]);
 
-	const contextLabel = reference
-		? reference.pageStart === reference.pageEnd
-			? `${reference.nodeTitle} · Page ${reference.pageStart}`
-			: `${reference.nodeTitle} · Pages ${reference.pageStart}-${reference.pageEnd}`
-		: "-";
+	const contextLabel = formatPreviewContextLabel(reference);
 	const {
 		effectiveMode,
 		highlightRanges,
