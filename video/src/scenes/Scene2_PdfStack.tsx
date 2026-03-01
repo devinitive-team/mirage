@@ -61,101 +61,165 @@ const STEPS: StepDef[] = [
 
 /* ─── Illustration: Ingest (PDF stack) ─── */
 
+// Inline style constants for the Ingest wireframe
+const IG = {
+  bgGrid: {
+    stroke: "rgba(255,255,255,0.15)",
+    strokeWidth: 0.5,
+    strokeDasharray: "2 6",
+    fill: "none",
+  },
+  axes: {
+    stroke: "rgba(255,255,255,0.35)",
+    strokeWidth: 0.75,
+    strokeDasharray: "4 4",
+    fill: "none",
+  },
+  wireframe: {
+    fill: "none",
+    stroke: "rgba(255,255,255,0.8)",
+    strokeWidth: 1.5,
+    strokeLinejoin: "round" as const,
+    strokeLinecap: "round" as const,
+  },
+  details: {
+    fill: "none",
+    stroke: "rgba(255,255,255,0.6)",
+    strokeWidth: 0.75,
+    strokeLinejoin: "round" as const,
+    strokeLinecap: "round" as const,
+  },
+  highlight: {
+    fill: "none",
+    stroke: "rgba(255,255,255,0.8)",
+    strokeWidth: 1.75,
+    strokeLinejoin: "round" as const,
+    strokeLinecap: "round" as const,
+  },
+  nodes: {
+    fill: "none",
+    stroke: "rgba(255,255,255,0.8)",
+    strokeWidth: 1,
+  },
+} as const;
+
 const IngestIllustration: React.FC<{
   localFrame: number;
   fps: number;
 }> = ({ localFrame, fps }) => {
-  const pages = [
-    { xOff: 0, yOff: 0, rot: -2 },
-    { xOff: 10, yOff: -10, rot: 0.5 },
-    { xOff: 20, yOff: -20, rot: -1 },
-    { xOff: 30, yOff: -30, rot: 0 },
-  ];
+  const sp = (delay: number) =>
+    spring({ frame: localFrame - delay, fps, config: SPRING_CONFIG });
+
+  const gridP = sp(0);
+  const axesP = sp(2);
+  const stackP = sp(5);
+  const pageP = sp(8);
+  const textP = sp(11);
+  const nodesP = sp(13);
+  const bracketP = sp(15);
+
+  const lift = (p: number) => interpolate(p, [0, 1], [10, 0]);
 
   return (
     <div style={{ position: "relative", width: 220, height: 220 }}>
-      {/* Background grid */}
-      <svg
-        width={220}
-        height={220}
-        style={{ position: "absolute", top: 0, left: 0 }}
-      >
-        {[40, 80, 120, 160].map((pos) => (
-          <React.Fragment key={pos}>
-            <line
-              x1={pos}
-              y1={20}
-              x2={pos}
-              y2={200}
-              stroke="rgba(255,255,255,0.04)"
-              strokeWidth={1}
-            />
-            <line
-              x1={20}
-              y1={pos}
-              x2={200}
-              y2={pos}
-              stroke="rgba(255,255,255,0.04)"
-              strokeWidth={1}
-            />
-          </React.Fragment>
-        ))}
+      <svg width={220} height={220} viewBox="0 0 400 400">
+        {/* Background grid */}
+        <g opacity={gridP} style={IG.bgGrid}>
+          <path d="M 0,200 L 400,0 M 0,250 L 400,50 M 0,300 L 400,100 M 0,350 L 400,150 M 0,400 L 400,200" />
+          <path d="M 400,200 L 0,0 M 400,250 L 0,50 M 400,300 L 0,100 M 400,350 L 0,150 M 400,400 L 0,200" />
+          <path d="M 100,0 L 100,400 M 200,0 L 200,400 M 300,0 L 300,400" />
+        </g>
+
+        {/* Axes / scaffold */}
+        <g opacity={axesP} style={IG.axes}>
+          <path d="M 200,320 L 300,270 L 210,225 L 110,275 Z" />
+          <path d="M 200,280 L 200,320 M 300,230 L 300,270 M 110,235 L 110,275 M 210,155 L 210,225" />
+          <path d="M 200,280 L 350,205" />
+          <path d="M 200,280 L 50,205" />
+          <path d="M 200,280 L 200,60" />
+        </g>
+
+        {/* Page stack edges */}
+        <g
+          opacity={stackP}
+          transform={`translate(0, ${lift(stackP)})`}
+          style={IG.wireframe}
+        >
+          <path d="M 110,205 L 110,235" />
+          <path d="M 200,250 L 200,280" />
+          <path d="M 300,200 L 300,230" />
+          <path d="M 110,235 L 200,280 L 300,230" />
+          <path d="M 110,229 L 200,274 L 300,224" />
+          <path d="M 110,223 L 200,268 L 300,218" />
+          <path d="M 110,217 L 200,262 L 300,212" />
+          <path d="M 110,211 L 200,256 L 300,206" />
+        </g>
+
+        {/* Top page surface */}
+        <g
+          opacity={pageP}
+          transform={`translate(0, ${lift(pageP)})`}
+          style={IG.wireframe}
+        >
+          <path d="M 200,250 L 300,200 L 228,164 L 190,165 L 110,205 Z" />
+          <path d="M 190,165 L 208,174 L 228,164" />
+          <path
+            d="M 190,165 L 228,164"
+            style={{ ...IG.details, strokeDasharray: "2 2" }}
+          />
+        </g>
+
+        {/* Highlighted text lines on page */}
+        <g
+          opacity={textP}
+          transform={`translate(0, ${lift(textP)})`}
+          style={IG.highlight}
+        >
+          <path d="M 138,209 L 165,222.5" />
+          <path d="M 138,209 L 158,199 L 171.5,205.75 L 151.5,215.75" />
+          <path d="M 168,194 L 195,207.5" />
+          <path d="M 168,194 L 183,186.5 L 201.5,190.75 L 210,200 L 195,207.5" />
+          <path d="M 198,179 L 225,192.5" />
+          <path d="M 198,179 L 218,169" />
+          <path d="M 211.5,185.75 L 226.5,178.25" />
+        </g>
+
+        {/* Detail lines */}
+        <g
+          opacity={textP}
+          transform={`translate(0, ${lift(textP)})`}
+          style={IG.details}
+        >
+          <path d="M 178.5,229.25 L 238.5,199.25" />
+          <path d="M 187.5,233.75 L 257.5,198.75" />
+          <path d="M 196.5,238.25 L 246.5,213.25" />
+        </g>
+
+        {/* Nodes */}
+        <g opacity={nodesP} style={IG.nodes}>
+          <circle cx={200} cy={250} r={2.5} />
+          <circle cx={300} cy={200} r={2.5} />
+          <circle cx={110} cy={205} r={2.5} />
+          <circle cx={190} cy={165} r={2.5} />
+          <circle cx={228} cy={164} r={2.5} />
+          <circle cx={208} cy={174} r={2.5} />
+          <circle cx={200} cy={280} r={2.5} />
+          <circle cx={300} cy={230} r={2.5} />
+          <circle cx={110} cy={235} r={2.5} />
+          <circle cx={138} cy={209} r={1.5} />
+          <circle cx={168} cy={194} r={1.5} />
+          <circle cx={198} cy={179} r={1.5} />
+        </g>
+
+        {/* Measurement bracket */}
+        <g opacity={bracketP} style={IG.details}>
+          <path d="M 110,205 L 85,192.5" />
+          <path d="M 110,235 L 85,222.5" />
+          <path d="M 90,195 L 90,225" strokeWidth={1} />
+          <path d="M 86,195 L 94,195" strokeWidth={1.5} />
+          <path d="M 86,225 L 94,225" strokeWidth={1.5} />
+        </g>
       </svg>
-
-      {/* PDF cards dropping in */}
-      {pages.map((page, i) => {
-        const dropProgress = spring({
-          frame: localFrame - i * 6,
-          fps,
-          config: SPRING_CONFIG,
-        });
-        const dropY = interpolate(dropProgress, [0, 1], [-80, 0]);
-
-        return (
-          <div
-            key={i}
-            style={{
-              position: "absolute",
-              left: 40 + page.xOff,
-              top: 50 + page.yOff,
-              width: 100,
-              height: 130,
-              background: "rgba(255,255,255,0.04)",
-              border: `1px solid ${COLORS.line}`,
-              padding: 12,
-              display: "flex",
-              flexDirection: "column",
-              gap: 5,
-              opacity: dropProgress,
-              transform: `translateY(${dropY}px) rotate(${page.rot}deg)`,
-            }}
-          >
-            {i === pages.length - 1 && (
-              <span
-                style={{
-                  fontSize: 9,
-                  fontWeight: 700,
-                  color: "rgba(255,255,255,0.2)",
-                  letterSpacing: 1.5,
-                  marginBottom: 2,
-                }}
-              >
-                PDF
-              </span>
-            )}
-            {[0.8, 0.6, 0.9, 0.5, 0.7].map((w, j) => (
-              <div
-                key={j}
-                style={{
-                  height: 2.5,
-                  width: `${w * 100}%`,
-                  background: "rgba(255,255,255,0.08)",
-                }}
-              />
-            ))}
-          </div>
-        );
-      })}
     </div>
   );
 };
@@ -397,160 +461,243 @@ const IndexIllustration: React.FC<{
   );
 };
 
-/* ─── Illustration: Cited answers ─── */
+/* ─── Illustration: Cited answers (isometric response + sources) ─── */
+
+// Inline style constants for the Verify wireframe
+const VF = {
+  frame: {
+    stroke: "rgba(255,255,255,0.3)",
+    strokeWidth: 0.5,
+    fill: "none",
+  },
+  bgGrid: {
+    stroke: "rgba(255,255,255,0.2)",
+    strokeWidth: 0.5,
+    strokeDasharray: "2 6",
+    fill: "none",
+  },
+  surface: { fill: "rgba(255,255,255,0.03)" },
+  outline: {
+    fill: "none",
+    stroke: "rgba(255,255,255,0.8)",
+    strokeWidth: 1.5,
+    strokeLinejoin: "round" as const,
+  },
+  outlineThin: {
+    fill: "none",
+    stroke: "rgba(255,255,255,0.8)",
+    strokeWidth: 0.75,
+    strokeLinejoin: "round" as const,
+  },
+  docText: {
+    fill: "none",
+    stroke: "rgba(255,255,255,0.8)",
+    strokeWidth: 1.25,
+    strokeLinecap: "round" as const,
+    opacity: 0.8,
+  },
+  linkPath: {
+    fill: "none",
+    stroke: "rgba(255,255,255,0.7)",
+    strokeWidth: 1,
+    strokeDasharray: "4 4",
+  },
+  linkSolid: {
+    fill: "none",
+    stroke: "rgba(255,255,255,0.7)",
+    strokeWidth: 1,
+  },
+  nodeOuter: {
+    fill: COLORS.bgBase,
+    stroke: "rgba(255,255,255,0.8)",
+    strokeWidth: 1,
+  },
+  nodeInner: { fill: "rgba(255,255,255,0.8)" },
+  techText: {
+    fontFamily: "monospace",
+    fontSize: 9,
+    fill: "rgba(255,255,255,0.75)",
+    letterSpacing: "0.1em",
+  },
+  citeText: {
+    fontFamily: "monospace",
+    fontSize: 7,
+    fill: "rgba(255,255,255,0.8)",
+    fontWeight: 700,
+  },
+} as const;
 
 const VerifyIllustration: React.FC<{
   localFrame: number;
   fps: number;
 }> = ({ localFrame, fps }) => {
-  const cardProgress = spring({
-    frame: localFrame,
-    fps,
-    config: SPRING_CONFIG,
-  });
+  const sp = (delay: number) =>
+    spring({ frame: localFrame - delay, fps, config: SPRING_CONFIG });
 
-  const citations = [
-    { label: "src_01", x: 15, y: 155 },
-    { label: "src_02", x: 85, y: 170 },
-    { label: "doc_03", x: 150, y: 155 },
-  ];
+  const frameP = sp(0);
+  const gridP = sp(2);
+  const cardP = sp(4);
+  const textP = sp(7);
+  const citesP = sp(10);
+  const linksP = sp(12);
+  const srcP = [sp(14), sp(16), sp(18)];
+  const labelsP = sp(19);
+
+  const lift = (p: number) => interpolate(p, [0, 1], [10, 0]);
 
   return (
     <div style={{ position: "relative", width: 220, height: 220 }}>
-      {/* Corner brackets */}
-      <svg
-        width={220}
-        height={220}
-        style={{ position: "absolute", top: 0, left: 0 }}
-      >
+      <svg width={220} height={220} viewBox="0 0 500 500">
+        {/* Corner frame */}
+        <g opacity={frameP} style={VF.frame}>
+          <path d="M 40,60 L 40,40 L 60,40 M 460,60 L 460,40 L 440,40" />
+          <path d="M 40,440 L 40,460 L 60,460 M 460,440 L 460,460 L 440,460" />
+          <path d="M 250,20 L 250,40 M 250,460 L 250,480" />
+          <path d="M 20,250 L 40,250 M 460,250 L 480,250" />
+        </g>
+
+        {/* Background grid */}
+        <g opacity={gridP} style={VF.bgGrid}>
+          <polygon points="250,210 370,270 250,330 130,270" />
+          <path d="M 250,50 L 250,210 M 370,110 L 370,270 M 130,110 L 130,270" />
+        </g>
+
+        {/* Source documents (SRC_01, SRC_02, SRC_03) */}
         {[
-          "M 15,15 L 15,35",
-          "M 15,15 L 35,15",
-          "M 205,15 L 205,35",
-          "M 205,15 L 185,15",
-          "M 15,205 L 15,185",
-          "M 15,205 L 35,205",
-          "M 205,205 L 205,185",
-          "M 205,205 L 185,205",
-        ].map((d, i) => (
-          <path
+          {
+            pts: "170,230 210,250 170,270 130,250",
+            sides: "M 130,250 L 130,265 M 170,270 L 170,285 M 210,250 L 210,265",
+            bottom: "M 130,265 L 170,285 L 210,265",
+            inner: "M 130,255 L 170,275 L 210,255 M 130,260 L 170,280 L 210,260",
+            diamond: "170,245 180,250 170,255 160,250",
+            label: "SRC_01",
+            lx: 95,
+            ly: 295,
+            hookD: "M 130,285 L 130,292 L 125,292",
+          },
+          {
+            pts: "330,230 370,250 330,270 290,250",
+            sides: "M 290,250 L 290,265 M 330,270 L 330,285 M 370,250 L 370,265",
+            bottom: "M 290,265 L 330,285 L 370,265",
+            inner: "M 290,255 L 330,275 L 370,255 M 290,260 L 330,280 L 370,260",
+            diamond: "330,245 340,250 330,255 320,250",
+            label: "SRC_02",
+            lx: 365,
+            ly: 295,
+            hookD: "M 370,285 L 370,292 L 360,292",
+          },
+          {
+            pts: "250,310 290,330 250,350 210,330",
+            sides: "M 210,330 L 210,345 M 250,350 L 250,365 M 290,330 L 290,345",
+            bottom: "M 210,345 L 250,365 L 290,345",
+            inner: "M 210,335 L 250,355 L 290,335 M 210,340 L 250,360 L 290,340",
+            diamond: "250,325 260,330 250,335 240,330",
+            label: "SRC_03",
+            lx: 260,
+            ly: 380,
+            hookD: "M 250,365 L 250,377 L 255,377",
+          },
+        ].map((src, i) => (
+          <g
             key={i}
-            d={d}
-            stroke="rgba(255,255,255,0.08)"
-            strokeWidth={1}
-            fill="none"
-          />
-        ))}
-        <text
-          x={35}
-          y={28}
-          fill="rgba(255,255,255,0.12)"
-          fontSize={8}
-          fontFamily={fontFamily}
-        >
-          GENERATED_RESPONSE
-        </text>
-      </svg>
-
-      {/* Answer card */}
-      <div
-        style={{
-          position: "absolute",
-          top: 35,
-          left: 25,
-          width: 170,
-          height: 90,
-          background: "rgba(255,255,255,0.04)",
-          border: `1px solid ${COLORS.line}`,
-          padding: 14,
-          display: "flex",
-          flexDirection: "column",
-          gap: 6,
-          opacity: cardProgress,
-          transform: `scale(${interpolate(cardProgress, [0, 1], [0.95, 1])})`,
-        }}
-      >
-        {[0.95, 0.75, 0.85, 0.6, 0.4].map((w, j) => {
-          const lineP = spring({
-            frame: localFrame - 3 - j * 2,
-            fps,
-            config: SPRING_CONFIG,
-          });
-          return (
-            <div
-              key={j}
-              style={{
-                height: 2.5,
-                width: `${w * lineP * 100}%`,
-                background:
-                  j === 0
-                    ? "rgba(255,255,255,0.18)"
-                    : "rgba(255,255,255,0.08)",
-              }}
-            />
-          );
-        })}
-      </div>
-
-      {/* Dashed lines from card to citations */}
-      <svg
-        width={220}
-        height={220}
-        style={{ position: "absolute", top: 0, left: 0, pointerEvents: "none" }}
-      >
-        {citations.map((cit, i) => {
-          const p = spring({
-            frame: localFrame - 15 - i * 4,
-            fps,
-            config: SPRING_CONFIG,
-          });
-          const sx = 110;
-          const sy = 125;
-          return (
-            <line
-              key={i}
-              x1={sx}
-              y1={sy}
-              x2={sx + (cit.x + 25 - sx) * p}
-              y2={sy + (cit.y - sy) * p}
-              stroke="rgba(255,255,255,0.1)"
-              strokeWidth={1}
-              strokeDasharray="3 3"
-              opacity={p}
-            />
-          );
-        })}
-      </svg>
-
-      {/* Citation badges */}
-      {citations.map((cit, i) => {
-        const p = spring({
-          frame: localFrame - 12 - i * 4,
-          fps,
-          config: SPRING_CONFIG,
-        });
-        return (
-          <div
-            key={i}
-            style={{
-              position: "absolute",
-              top: cit.y,
-              left: cit.x,
-              padding: "4px 8px",
-              border: `1px solid ${COLORS.line}`,
-              background: "rgba(255,255,255,0.03)",
-              fontSize: 9,
-              fontFamily,
-              color: "rgba(255,255,255,0.4)",
-              letterSpacing: 0.5,
-              opacity: p,
-              transform: `translateY(${interpolate(p, [0, 1], [8, 0])}px)`,
-            }}
+            opacity={srcP[i]}
+            transform={`translate(0, ${lift(srcP[i])})`}
           >
-            {cit.label}
-          </div>
-        );
-      })}
+            <polygon points={src.pts} style={VF.surface} />
+            <polygon points={src.pts} style={VF.outlineThin} />
+            <path d={src.sides} style={VF.outlineThin} />
+            <path d={src.bottom} style={VF.outlineThin} />
+            <path d={src.inner} style={{ ...VF.outlineThin, opacity: 0.4 }} />
+            <polygon
+              points={src.diamond}
+              style={VF.nodeInner}
+              opacity={0.2}
+            />
+            <polygon points={src.diamond} style={VF.outlineThin} />
+            <text x={src.lx} y={src.ly} style={VF.techText}>
+              {src.label}
+            </text>
+            <path d={src.hookD} style={VF.linkSolid} />
+          </g>
+        ))}
+
+        {/* Dashed connection lines */}
+        <g opacity={linksP}>
+          <path d="M 190,120 L 190,240 L 170,250" style={VF.linkPath} />
+          <polygon
+            points="187,185 190,177 193,185"
+            style={VF.nodeInner}
+            opacity={0.7}
+          />
+          <path d="M 250,125 L 250,330" style={VF.linkPath} />
+          <polygon
+            points="247,235 250,227 253,235"
+            style={VF.nodeInner}
+            opacity={0.7}
+          />
+          <path d="M 300,120 L 300,235 L 330,250" style={VF.linkPath} />
+          <polygon
+            points="297,185 300,177 303,185"
+            style={VF.nodeInner}
+            opacity={0.7}
+          />
+        </g>
+
+        {/* Response card (top isometric plane) */}
+        <g
+          opacity={cardP}
+          transform={`translate(0, ${lift(cardP)})`}
+        >
+          <polygon
+            points="250,50 370,110 250,170 130,110"
+            style={VF.surface}
+          />
+          <polygon
+            points="250,50 370,110 250,170 130,110"
+            style={{ ...VF.outline, fill: COLORS.bgBase }}
+          />
+        </g>
+
+        {/* Text lines on card */}
+        <g
+          opacity={textP}
+          transform={`translate(0, ${lift(textP)})`}
+          style={VF.docText}
+        >
+          <path d="M 160,120 L 250,75" />
+          <path d="M 170,130 L 182,124 M 198,116 L 270,80" />
+          <path d="M 180,140 L 290,85" />
+          <path d="M 200,150 L 242,129 M 258,121 L 320,90" />
+          <path d="M 220,160 L 292,124 M 308,116 L 340,100" />
+        </g>
+
+        {/* Citation markers on card */}
+        <g opacity={citesP} transform={`translate(0, ${lift(citesP)})`}>
+          <circle cx={190} cy={120} r={5} style={VF.nodeOuter} />
+          <circle cx={190} cy={120} r={1.5} style={VF.nodeInner} />
+          <text x={187.5} y={112} style={VF.citeText}>
+            [1]
+          </text>
+          <circle cx={250} cy={125} r={5} style={VF.nodeOuter} />
+          <circle cx={250} cy={125} r={1.5} style={VF.nodeInner} />
+          <text x={247.5} y={117} style={VF.citeText}>
+            [3]
+          </text>
+          <circle cx={300} cy={120} r={5} style={VF.nodeOuter} />
+          <circle cx={300} cy={120} r={1.5} style={VF.nodeInner} />
+          <text x={297.5} y={112} style={VF.citeText}>
+            [2]
+          </text>
+        </g>
+
+        {/* GENERATED_RESPONSE label */}
+        <g opacity={labelsP}>
+          <path d="M 250,50 L 250,38 L 255,38" style={VF.linkSolid} />
+          <text x={260} y={41} style={VF.techText}>
+            GENERATED_RESPONSE
+          </text>
+        </g>
+      </svg>
     </div>
   );
 };
