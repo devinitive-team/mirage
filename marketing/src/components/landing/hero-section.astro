@@ -1,5 +1,5 @@
 ---
-import { BorderBeam } from "@/components/ui/border-beam";
+import { ShineBorder } from "@/components/ui/shine-border";
 import EmailForm from "./email-form.astro";
 
 interface Props {
@@ -33,11 +33,19 @@ const { ctaHref } = Astro.props;
 
       <EmailForm />
 
-      <div class="rounded-2xl border bg-white/50 p-3 border-black/10 mt-12">
+      <div
+        class="relative mt-12 overflow-hidden rounded-3xl border border-black/10 bg-white/50 p-3"
+      >
+        <ShineBorder
+          aria-hidden="true"
+          borderWidth={1}
+          duration={25}
+          shineColor={["#444", "#fff", "#444"]}
+        />
         <img
           src="/hero-light.png"
           alt="Mirage product preview with cited answers and document context"
-          class="border border-black/10 rounded-xl h-auto w-full object-contain transition-transform duration-700 ease-out"
+          class="border border-black/10 rounded-2xl h-auto w-full object-contain transition-transform duration-700 ease-out"
           loading="eager"
           fetchpriority="high"
           decoding="async"
