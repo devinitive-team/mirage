@@ -36,7 +36,7 @@ Snapshot date: 2026-03-01.
   - Light mode uses neutral grayscale surfaces with dark text.
   - Dark mode uses near-black surfaces with zinc-toned text and separators.
   - Frequent 1px separators (`border-black/10` with dark-mode `border-white/15`) instead of elevated cards.
-  - Minimal corner rounding on most layout blocks; stronger rounding reserved for media/overlays.
+  - Border-radius policy: we do not use rounded borders anywhere.
 - Accent color appears mostly in small utility markers, chips, and inline diagram elements, not as large surface fills.
 - Visual hierarchy relies on typography scale and spacing, not heavy color contrast blocks.
 
@@ -68,9 +68,9 @@ Snapshot date: 2026-03-01.
   - Input and submit button are forced to square corners (`border-radius: 0px` inline styles).
   - Submit button is black with white text.
 - Demo media block:
-  - Container: rounded 3xl panel with light border and translucent white surface.
+  - Container: bordered panel with light border and translucent white surface.
   - Animated border sheen via `ShineBorder`.
-  - Thumbnail uses rounded 2xl image with hover scale/brightness shift and swaps source by theme (`/hero-light.png` and `/hero-dark.png`).
+  - Thumbnail uses hover scale/brightness shift and swaps source by theme (`/hero-light.png` and `/hero-dark.png`).
   - Centered black translucent “Watch Demo” chip with circular white play icon.
 
 ### Proof Strip
