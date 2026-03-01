@@ -79,6 +79,9 @@ describe("HistoryPage", () => {
 			).toBeTruthy();
 		});
 		expect(screen.getByText("Q4_Report.pdf")).toBeTruthy();
+		expect(
+			screen.getByText("Open preview to inspect evidence context."),
+		).toBeTruthy();
 
 		fireEvent.click(
 			screen.getByRole("button", {

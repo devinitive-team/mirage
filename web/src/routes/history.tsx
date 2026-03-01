@@ -1,17 +1,15 @@
 import { createFileRoute } from "@tanstack/react-router";
-import {
-	Clock3,
-	FileSearch,
-	FileText,
-	History,
-	Loader2,
-	MessageSquareText,
-	Trash2,
-	X,
-} from "lucide-react";
-import { type CSSProperties, useEffect, useMemo, useState } from "react";
+import { Clock3, FileSearch, History, Loader2, Trash2, X } from "lucide-react";
+import { useCallback, useEffect, useMemo, useState } from "react";
 import { toast } from "sonner";
 
+import { PreviewDialog } from "#/components/PreviewDialog";
+import { QueryAnswerSection } from "#/components/QueryAnswerSection";
+import {
+	REFERENCE_LIST_ITEM_HEIGHT,
+	ReferenceListItem,
+	type ReferenceListItemData,
+} from "#/components/ReferenceListItem";
 import { Input } from "#/components/ui/input";
 import { useClearHistory, useHistory } from "#/hooks/history";
 import { evidenceListToReferences } from "#/lib/evidence";
@@ -35,57 +33,7 @@ function formatAskedAt(value: string): string {
 	}).format(date);
 }
 
-function renderPageRange(pageStart: number, pageEnd: number): string {
-	if (pageStart === pageEnd) return `Page ${pageStart}`;
-	return `Pages ${pageStart}-${pageEnd}`;
-}
-
-function HistoryEvidenceCard({
-	documentName,
-	nodeTitle,
-	pageStart,
-	pageEnd,
-	animationDelayMs,
-}: {
-	documentName: string;
-	nodeTitle: string;
-	pageStart: number;
-	pageEnd: number;
-	animationDelayMs: number;
-}) {
-	const animationStyle: CSSProperties = {
-		animationDelay: `${animationDelayMs}ms`,
-	};
-
-	return (
-		<article
-			className="reference-list-item rise-in rounded-xl p-3 flex flex-col gap-2"
-			style={animationStyle}
-		>
-			<header className="flex items-start justify-between gap-3">
-				<div className="min-w-0 flex items-center gap-2">
-					<FileText className="reference-list-item__icon w-4 h-4 shrink-0" />
-					<p className="reference-list-item__title truncate text-sm font-semibold">
-						{documentName}
-					</p>
-				</div>
-				<span className="reference-list-item__page shrink-0 rounded-full px-2 py-0.5 text-xs font-semibold">
-					{renderPageRange(pageStart, pageEnd)}
-				</span>
-			</header>
-
-			<p className="text-xs font-medium text-[var(--sea-ink-soft)] truncate">
-				{nodeTitle}
-			</p>
-
-			<div className="reference-list-item__excerpt min-h-0 rounded-lg overflow-hidden px-2 py-1.5">
-				<p className="text-sm leading-6 text-[var(--sea-ink)]">
-					Evidence captured from a previous query response.
-				</p>
-			</div>
-		</article>
-	);
-}
+const HISTORY_REFERENCE_ROW_HEIGHT = REFERENCE_LIST_ITEM_HEIGHT + 8;
 
 export function HistoryPage() {
 	const { data, isLoading } = useHistory();
@@ -93,6 +41,9 @@ export function HistoryPage() {
 	const historyEntries = data?.items ?? [];
 	const [searchQuery, setSearchQuery] = useState("");
 	const [selectedEntryID, setSelectedEntryID] = useState<string | null>(null);
+	const [isPreviewOpen, setIsPreviewOpen] = useState(false);
+	const [selectedReference, setSelectedReference] =
+		useState<ReferenceListItemData | null>(null);
 
 	const normalizedSearchQuery = searchQuery.trim().toLowerCase();
 	const filteredEntries = useMemo(
@@ -136,11 +87,38 @@ export function HistoryPage() {
 		[selectedReferences],
 	);
 
+	useEffect(() => {
+		setSelectedReference((current) => {
+			if (!current) return null;
+			return selectedReferences.some((reference) => reference.id === current.id)
+				? current
+				: null;
+		});
+	}, [selectedReferences]);
+
+	useEffect(() => {
+		if (!selectedReference) {
+			setIsPreviewOpen(false);
+		}
+	}, [selectedReference]);
+
 	const handleClearHistory = () => {
 		clearHistory.mutate(undefined, {
 			onError: () => toast.error("Failed to clear history."),
 		});
 	};
+
+	const handlePreview = useCallback((reference: ReferenceListItemData) => {
+		setSelectedReference(reference);
+		setIsPreviewOpen(true);
+	}, []);
+
+	const handlePreviewOpenChange = useCallback((open: boolean) => {
+		setIsPreviewOpen(open);
+		if (!open) {
+			setSelectedReference(null);
+		}
+	}, []);
 
 	return (
 		<section
@@ -270,26 +248,12 @@ export function HistoryPage() {
 				<div className="flex-1 min-h-0 overflow-y-auto p-3">
 					{selectedEntry ? (
 						<div className="space-y-3">
-							<section className="feature-card overflow-hidden rounded-2xl border border-[var(--line)]">
-								<header className="flex items-start gap-3 border-b border-[var(--line)] bg-[var(--surface-strong)]/95 px-4 py-3">
-									<div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full border border-[var(--line)] bg-[var(--lagoon)]/10">
-										<MessageSquareText className="h-4 w-4 text-[var(--lagoon-deep)]" />
-									</div>
-									<div className="min-w-0">
-										<p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-[var(--sea-ink-soft)]">
-											Answer Snapshot
-										</p>
-										<p className="text-xs text-[var(--sea-ink-soft)]">
-											Response recorded when this question was asked.
-										</p>
-									</div>
-								</header>
-								<div className="bg-[var(--surface-strong)]/80 px-4 py-3">
-									<p className="rounded-lg border border-[var(--line)] bg-[var(--surface)]/70 px-3 py-2 text-[15px] leading-7 whitespace-pre-wrap text-[var(--sea-ink)]">
-										{selectedEntry.answer}
-									</p>
-								</div>
-							</section>
+							<QueryAnswerSection
+								answer={selectedEntry.answer}
+								title="Answer Snapshot"
+								description="Response recorded when this question was asked."
+								className="mb-0"
+							/>
 
 							<section className="space-y-2">
 								<p className="island-kicker">Evidence</p>
@@ -299,15 +263,16 @@ export function HistoryPage() {
 									</div>
 								) : (
 									<div className="space-y-2">
-										{selectedReferences.map((reference, index) => (
-											<HistoryEvidenceCard
+										{selectedReferences.map((reference) => (
+											<div
 												key={reference.id}
-												documentName={reference.documentName}
-												nodeTitle={reference.nodeTitle}
-												pageStart={reference.pageStart}
-												pageEnd={reference.pageEnd}
-												animationDelayMs={Math.min(index, 6) * 55}
-											/>
+												style={{ height: `${HISTORY_REFERENCE_ROW_HEIGHT}px` }}
+											>
+												<ReferenceListItem
+													reference={reference}
+													onPreview={handlePreview}
+												/>
+											</div>
 										))}
 									</div>
 								)}
@@ -324,6 +289,12 @@ export function HistoryPage() {
 					)}
 				</div>
 			</div>
+
+			<PreviewDialog
+				open={isPreviewOpen}
+				onOpenChange={handlePreviewOpenChange}
+				reference={selectedReference}
+			/>
 		</section>
 	);
 }
