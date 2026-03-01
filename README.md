@@ -1,8 +1,17 @@
 # Mirage
 
-Universal, relevance search over your documents at any scale.
+Universal, relevance search over your PDF documents at any scale. Unbounded by the limits of LLMs context window.
 
-Upload PDFs and text documents, and Mirage makes them searchable. Ask questions in plain language and get precise answers with references back to the original pages. It works whether you have ten documents or ten thousand — no manual tagging, no keyword guessing. Just drop your files in and start asking questions.
+Mirage is an AI-powered document search system using page-index algorithm.
+
+It helps teams find answers inside large sets of PDFs without manually tagging or keyword tuning. You upload documents, Mirage indexes them, and you ask questions in plain language. The system returns answers with page-level evidence so results are verifiable.
+
+In this repository, Mirage is a monorepo with:
+
+- `srv/`: Go backend API for ingestion, OCR/indexing, retrieval, and history.
+- `web/`: React app for upload, search, and evidence review.
+- `marketing/`: Astro marketing site.
+- `video/`: Remotion project for product videos.
 
 ## Getting Started
 
