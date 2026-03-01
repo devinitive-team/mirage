@@ -2,6 +2,8 @@
 
 ![photo_2026-03-01 15 02 10](https://github.com/user-attachments/assets/ccb7026b-9057-4980-92f8-0122d40a8122)
 
+**[🔮 mirage.lukaszgut.com](https://mirage.lukaszgut.com/)** — Try the live demo
+
 AI-powered document search for PDF-heavy workflows. Built during the **Mistral Worldwide Hackathon 2026**.
 
 Upload PDFs, ask questions in plain language, and get answers with page-level evidence — reviewable and traceable. Powered by **PageIndex: Document Index for Vectorless, Reasoning-based RAG**.
