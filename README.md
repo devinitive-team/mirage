@@ -37,7 +37,7 @@ Upload PDFs, ask questions in plain language, and get answers with page-level ev
 ```bash
 cp srv/.env.example srv/.env   # then set MISTRAL_API_KEY
 task setup                      # install dependencies
-task run                        # start API + web app
+task dev                        # start API + web app
 ```
 
 The web app runs at `http://localhost:3000` and the API at `http://localhost:2137`.

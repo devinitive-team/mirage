@@ -26,7 +26,7 @@ Prerequisite: Astro 5 requires Node.js `>=18.20.8` for `marketing` dev/build com
 For `video/` work, iterate with this closed loop while implementing:
 
 1. Start Remotion Studio in watch mode:
-   `cd video && npm run dev` (or `task video:studio`).
+   `cd video && npm run dev` (or `task video:dev`).
 2. Validate the current change in Studio timeline playback and composition controls.
 3. Render the current state to a deterministic artifact:
    `task video:render` (outputs `video/out/promo.mp4`).
@@ -35,11 +35,13 @@ For `video/` work, iterate with this closed loop while implementing:
 
 Before handoff on `video/` changes, run:
 
-- `task video:validate` (runs `task video:lint`, `task video:build`, and `task video:render`)
+- `task video:lint`
+- `task video:build`
+- `task video:render`
 
 For any UI or behavior change, also run interactive validation by driving the app in a browser:
 
-1. Start the app: `task run` (server on `:2137`, `web` on `:3000`, `marketing` on `:4321`).
+1. Start the app: `task dev` (server on `:2137`, `web` on `:3000`).
 
 2. `agent-browser` scripted verification (required):
    - Open the app:

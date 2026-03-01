@@ -11,8 +11,8 @@ tasks:
     cmds:
       - go build -o dist/mirage ./cmd/mirage
 
-  run:
-    desc: Run the server
+  dev:
+    desc: Run the server in dev mode
     dotenv: ['.env']
     cmds:
       - go run ./cmd/mirage run

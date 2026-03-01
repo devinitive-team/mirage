@@ -23,7 +23,7 @@ cp .env.example .env
 # set MISTRAL_API_KEY in .env
 
 task install
-task run
+task dev
 ```
 
 Default listen address: `:2137`.
@@ -42,7 +42,7 @@ Taskfile:
 ```bash
 task install  # go mod download
 task build    # build dist/mirage
-task run      # go run ./cmd/mirage run (loads .env)
+task dev      # go run ./cmd/mirage run (loads .env)
 task openapi  # write openapi.json
 task test     # go test ./...
 task lint     # go vet ./...

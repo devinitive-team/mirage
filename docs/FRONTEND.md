@@ -42,7 +42,7 @@ For the `video/` app, use Remotion primitives for timeline-driven visuals and va
 Use a closed loop for every video change:
 
 1. Start Remotion Studio:
-   `cd video && npm run dev` (or `task video:dev` / `task video:studio` from repo root). This opens Studio for interactive composition validation.
+   `cd video && npm run dev` (or `task video:dev` from repo root). This opens Studio for interactive composition validation.
 2. Make visual/timing changes and validate them directly in Studio timeline playback.
 3. Render a deterministic artifact:
    `task video:render` (writes `video/out/promo.mp4`).

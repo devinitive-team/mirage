@@ -56,8 +56,6 @@ task video:build
 task video:lint
 task video:compositions
 task video:render
-task video:validate
-task render
 ```
 
 Taskfile shortcuts from `video/`:

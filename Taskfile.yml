@@ -23,6 +23,7 @@ tasks:
     cmds:
       - task: srv:install
       - task: web:install
+      - task: marketing:install
       - task: email:install
       - task: video:install
 
@@ -31,6 +32,8 @@ tasks:
     cmds:
       - task: srv:build
       - task: web:build
+      - task: marketing:build
+      - task: video:build
 
   test:
     desc: Run all tests
@@ -41,7 +44,6 @@ tasks:
   format:
     desc: Format all projects
     cmds:
-      # - task: srv:format
       - task: web:format
 
   lint:
@@ -49,36 +51,21 @@ tasks:
     cmds:
       - task: srv:lint
       - task: web:lint
+      - task: video:lint
 
   typecheck:
     desc: Run TypeScript type checks
     cmds:
       - task: web:typecheck
+      - task: email:typecheck
 
   codegen:
     desc: Generate TypeScript types from the OpenAPI spec
     cmds:
       - task: web:codegen
 
-  run:
+  dev:
     desc: Run server and frontend in dev mode
     deps:
-      - srv:run
+      - srv:dev
       - web:dev
-
-  render:
-    desc: Render the Remotion video project
-    cmds:
-      - task: video:render
-
-  video:studio:
-    desc: Start Remotion Studio (video/)
-    cmds:
-      - task: video:dev
-
-  video:validate:
-    desc: Validate Remotion output with lint, build, and render
-    cmds:
-      - task: video:lint
-      - task: video:build
-      - task: video:render

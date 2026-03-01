@@ -28,6 +28,26 @@ npm install
 npm run dev
 ```
 
+## Commands
+
+Taskfile shortcuts from repo root:
+
+```bash
+task email:install
+task email:dev
+task email:typecheck
+task email:deploy
+```
+
+Taskfile shortcuts from `email/`:
+
+```bash
+task install
+task dev
+task typecheck
+task deploy
+```
+
 ## Cloudflare Setup And Deploy
 
 1. Authenticate Wrangler:
