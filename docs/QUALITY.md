@@ -14,6 +14,8 @@ When a change touches only `marketing/`, still run:
 
 For `marketing/` page work, iterate with this loop while implementing:
 
+Prerequisite: Astro 5 requires Node.js `>=18.20.8` for `marketing` dev/build commands.
+
 1. Start the marketing app in watch mode:
    `cd marketing && npm run dev`
 2. Validate the current change with `agent-browser` against `http://localhost:4321`.
@@ -64,7 +66,7 @@ For `marketing/` page changes, run this minimum scripted `agent-browser` check:
    `agent-browser open http://localhost:4321`
 2. Wait for load completion:
    `agent-browser wait --load networkidle`
-3. Validate key visible content and CTA text (for example `Try for free`) with `get text` / `is visible`.
+3. Validate key visible content and CTA text (for example `Join Waitlist`) with `get text` / `is visible`.
 4. Capture a screenshot:
    `agent-browser screenshot`
 5. Close the browser:
