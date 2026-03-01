@@ -39,15 +39,8 @@ func NewRetrieval(llm port.LLMProvider, storage retrievalStore, maxIterations in
 }
 
 type branchSelection struct {
-	SelectedCandidates []selectedCandidate `json:"selected_candidates"`
-	Reasoning          string              `json:"reasoning"`
-}
-
-type selectedCandidate struct {
-	DocumentID string `json:"document_id"`
-	NodeID     string `json:"node_id"`
-	PageStart  int    `json:"page_start"`
-	PageEnd    int    `json:"page_end"`
+	NodeList []string `json:"node_list"`
+	Thinking string   `json:"thinking"`
 }
 
 type answerResponse struct {
@@ -64,18 +57,8 @@ type candidateNode struct {
 	Children   []candidateNode
 }
 
-func (c candidateNode) selectionKey() string {
-	return fmt.Sprintf("%s|%s|%d|%d", c.DocumentID, c.NodeID, c.StartPage, c.EndPage)
-}
-
-func (c selectedCandidate) selectionKey() string {
-	return fmt.Sprintf(
-		"%s|%s|%d|%d",
-		strings.TrimSpace(c.DocumentID),
-		strings.TrimSpace(c.NodeID),
-		c.PageStart,
-		c.PageEnd,
-	)
+func (c candidateNode) nodeRef() string {
+	return fmt.Sprintf("%s:%s", c.DocumentID, c.NodeID)
 }
 
 func (s *Retrieval) Answer(ctx context.Context, query domain.Query) (domain.QueryResult, error) {
@@ -113,16 +96,7 @@ func (s *Retrieval) Answer(ctx context.Context, query domain.Query) (domain.Quer
 	evidenceByKey := make(map[string]struct{})
 
 	for iteration := 0; iteration < maxIterations && len(frontier) > 0; iteration++ {
-		slog.InfoContext(
-			ctx,
-			"retrieval frontier",
-			"iteration",
-			iteration,
-			"frontier_size",
-			len(frontier),
-			"frontier",
-			summarizeCandidates(frontier, 24),
-		)
+		slog.InfoContext(ctx, "retrieval frontier", "iteration", iteration, "frontier_size", len(frontier))
 
 		selection, err := s.selectBranches(ctx, query.Question, frontier, iteration)
 		if err != nil {
@@ -138,30 +112,12 @@ func (s *Retrieval) Answer(ctx context.Context, query domain.Query) (domain.Quer
 			)
 			return domain.QueryResult{}, err
 		}
-		slog.InfoContext(
-			ctx,
-			"retrieval selected_candidates response",
-			"iteration",
-			iteration,
-			"selected_candidate_count",
-			len(selection.SelectedCandidates),
-			"selected_candidate_keys",
-			summarizeSelectedCandidateKeys(selection.SelectedCandidates, 24),
-		)
+		slog.InfoContext(ctx, "retrieval branch selection", "iteration", iteration, "node_count", len(selection.NodeList))
 
-		selected := normalizeSelectedCandidates(frontier, selection.SelectedCandidates)
-		slog.InfoContext(
-			ctx,
-			"retrieval selected candidates normalized",
-			"iteration",
-			iteration,
-			"selected_size",
-			len(selected),
-			"selected",
-			summarizeCandidates(selected, 24),
-		)
+		selected := normalizeSelectedCandidates(frontier, selection.NodeList)
+		slog.InfoContext(ctx, "retrieval candidates matched", "iteration", iteration, "selected", len(selected))
 		if len(selected) == 0 {
-			err := fmt.Errorf("selected_candidates did not match available candidates")
+			err := fmt.Errorf("node_list did not match available candidates")
 			slog.ErrorContext(
 				ctx,
 				"retrieval failed",
@@ -173,10 +129,6 @@ func (s *Retrieval) Answer(ctx context.Context, query domain.Query) (domain.Quer
 				err,
 				"available_candidates",
 				len(frontier),
-				"frontier",
-				summarizeCandidates(frontier, 24),
-				"selected_candidate_keys",
-				summarizeSelectedCandidateKeys(selection.SelectedCandidates, 24),
 			)
 			return domain.QueryResult{}, err
 		}
@@ -211,7 +163,7 @@ func (s *Retrieval) Answer(ctx context.Context, query domain.Query) (domain.Quer
 				}
 				appendCollectedContent(&collectedContent, cand, pages)
 
-				key := cand.selectionKey()
+				key := cand.nodeRef()
 				if _, exists := evidenceByKey[key]; exists {
 					continue
 				}
@@ -237,7 +189,7 @@ func (s *Retrieval) Answer(ctx context.Context, query domain.Query) (domain.Quer
 			}
 
 			for _, child := range cand.Children {
-				key := child.selectionKey()
+				key := child.nodeRef()
 				if _, exists := nextFrontierByKey[key]; exists {
 					continue
 				}
@@ -360,7 +312,7 @@ func treeNodeToCandidate(docID string, node domain.TreeNode) candidateNode {
 func (s *Retrieval) selectBranches(ctx context.Context, question string, candidates []candidateNode, iteration int) (branchSelection, error) {
 	var sb strings.Builder
 	for _, c := range candidates {
-		fmt.Fprintf(&sb, "- [%s] %s (doc %s, pages %d-%d): %s\n", c.selectionKey(), c.Title, c.DocumentID, c.StartPage, c.EndPage, c.Summary)
+		fmt.Fprintf(&sb, "- [%s] %s (doc %s, pages %d-%d): %s\n", c.nodeRef(), c.Title, c.DocumentID, c.StartPage, c.EndPage, c.Summary)
 	}
 
 	messages := []port.ChatMessage{
@@ -371,7 +323,7 @@ func (s *Retrieval) selectBranches(ctx context.Context, question string, candida
 		{
 			Role: "user",
 			Content: fmt.Sprintf(
-				"Question: %s\n\nAvailable sections (iteration %d):\n%s\n\nReturn selected_candidates as objects with these exact fields copied from the list: document_id, node_id, page_start, page_end. Do not return labels or extra text.",
+				"Question: %s\n\nAvailable sections (iteration %d):\n%s\n\nReturn JSON only with keys \"thinking\" and \"node_list\". node_list must be an array of node refs copied exactly from the bracketed refs in Available sections.",
 				question,
 				iteration,
 				sb.String(),
@@ -383,23 +335,13 @@ func (s *Retrieval) selectBranches(ctx context.Context, question string, candida
 		"type": "object",
 		"additionalProperties": false,
 		"properties": {
-			"selected_candidates": {
+			"node_list": {
 				"type": "array",
-				"items": {
-					"type": "object",
-					"additionalProperties": false,
-					"properties": {
-						"document_id": { "type": "string" },
-						"node_id": { "type": "string" },
-						"page_start": { "type": "integer" },
-						"page_end": { "type": "integer" }
-					},
-					"required": ["document_id", "node_id", "page_start", "page_end"]
-				}
+				"items": { "type": "string" }
 			},
-			"reasoning": { "type": "string" }
+			"thinking": { "type": "string" }
 		},
-		"required": ["selected_candidates", "reasoning"]
+		"required": ["node_list", "thinking"]
 	}`
 
 	var result branchSelection
@@ -410,79 +352,32 @@ func (s *Retrieval) selectBranches(ctx context.Context, question string, candida
 	return result, nil
 }
 
-func normalizeSelectedCandidates(candidates []candidateNode, selected []selectedCandidate) []candidateNode {
-	candidateByKey := make(map[string]candidateNode, len(candidates))
+func normalizeSelectedCandidates(candidates []candidateNode, nodeList []string) []candidateNode {
+	candidateByNodeRef := make(map[string]candidateNode, len(candidates))
 	for _, cand := range candidates {
-		candidateByKey[cand.selectionKey()] = cand
+		candidateByNodeRef[cand.nodeRef()] = cand
 	}
 
-	filtered := make([]candidateNode, 0, len(selected))
-	seen := make(map[string]struct{}, len(selected))
-	for _, raw := range selected {
-		key := raw.selectionKey()
-		if key == "" {
+	filtered := make([]candidateNode, 0, len(nodeList))
+	seen := make(map[string]struct{}, len(nodeList))
+	for _, raw := range nodeList {
+		nodeRef := strings.TrimSpace(raw)
+		if nodeRef == "" {
 			continue
 		}
 
-		cand, ok := candidateByKey[key]
+		cand, ok := candidateByNodeRef[nodeRef]
 		if !ok {
 			continue
 		}
 
-		selectionKey := cand.selectionKey()
-		if _, exists := seen[selectionKey]; exists {
+		if _, exists := seen[nodeRef]; exists {
 			continue
 		}
-		seen[selectionKey] = struct{}{}
+		seen[nodeRef] = struct{}{}
 		filtered = append(filtered, cand)
 	}
 	return filtered
-}
-
-func summarizeCandidates(candidates []candidateNode, limit int) []string {
-	if limit < 1 {
-		limit = 1
-	}
-
-	summary := make([]string, 0, min(limit, len(candidates)))
-	for i, cand := range candidates {
-		if i >= limit {
-			break
-		}
-
-		title := strings.TrimSpace(cand.Title)
-		if title == "" {
-			title = "<untitled>"
-		}
-
-		summary = append(summary, fmt.Sprintf("%s [%s]", cand.selectionKey(), title))
-	}
-
-	if len(candidates) > limit {
-		summary = append(summary, fmt.Sprintf("... +%d more", len(candidates)-limit))
-	}
-
-	return summary
-}
-
-func summarizeSelectedCandidateKeys(candidates []selectedCandidate, limit int) []string {
-	if limit < 1 {
-		limit = 1
-	}
-
-	summary := make([]string, 0, min(limit, len(candidates)))
-	for i, cand := range candidates {
-		if i >= limit {
-			break
-		}
-		summary = append(summary, cand.selectionKey())
-	}
-
-	if len(candidates) > limit {
-		summary = append(summary, fmt.Sprintf("... +%d more", len(candidates)-limit))
-	}
-
-	return summary
 }
 
 func (s *Retrieval) generateAnswer(ctx context.Context, question, collected string) (string, error) {

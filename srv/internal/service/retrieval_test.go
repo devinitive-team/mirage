@@ -144,7 +144,7 @@ func makeSingleLeafStorage() *mockStorage {
 func TestAnswerBuildsEvidenceFromVisitedLeafPages(t *testing.T) {
 	llm := &mockLLM{
 		responses: []string{
-			`{"selected_candidates":[{"document_id":"doc-1","node_id":"leaf-1","page_start":0,"page_end":1}],"reasoning":"relevant"}`,
+			`{"node_list":["doc-1:leaf-1"],"thinking":"relevant"}`,
 			`{"answer":"Revenue improved year-over-year."}`,
 		},
 	}
@@ -209,8 +209,8 @@ func TestAnswerBuildsEvidenceFromVisitedLeafPages(t *testing.T) {
 func TestAnswerEvidenceIncludesOnlyLeafNodes(t *testing.T) {
 	llm := &mockLLM{
 		responses: []string{
-			`{"selected_candidates":[{"document_id":"doc-1","node_id":"parent","page_start":0,"page_end":1}],"reasoning":"drill down"}`,
-			`{"selected_candidates":[{"document_id":"doc-1","node_id":"leaf","page_start":1,"page_end":1}],"reasoning":"exact section"}`,
+			`{"node_list":["doc-1:parent"],"thinking":"drill down"}`,
+			`{"node_list":["doc-1:leaf"],"thinking":"exact section"}`,
 			`{"answer":"The policy changed in Q2."}`,
 		},
 	}
@@ -270,7 +270,7 @@ func TestAnswerEvidenceIncludesOnlyLeafNodes(t *testing.T) {
 func TestAnswerDeduplicatesEvidenceByLeafKey(t *testing.T) {
 	llm := &mockLLM{
 		responses: []string{
-			`{"selected_candidates":[{"document_id":"doc-1","node_id":"dup","page_start":0,"page_end":0}],"reasoning":"matches"}`,
+			`{"node_list":["doc-1:dup"],"thinking":"matches"}`,
 			`{"answer":"Duplicated branches were handled."}`,
 		},
 	}
@@ -324,7 +324,7 @@ func TestAnswerDeduplicatesEvidenceByLeafKey(t *testing.T) {
 func TestAnswerAcceptsObjectWrappedAnswerText(t *testing.T) {
 	llm := &mockLLM{
 		responses: []string{
-			`{"selected_candidates":[{"document_id":"doc-1","node_id":"leaf-1","page_start":0,"page_end":0}],"reasoning":"relevant"}`,
+			`{"node_list":["doc-1:leaf-1"],"thinking":"relevant"}`,
 			`{"answer":{"text":"Revenue improved year-over-year."}}`,
 		},
 	}
@@ -389,7 +389,7 @@ func TestAnswerReturnsErrorWhenSelectResponseIsMalformed(t *testing.T) {
 func TestAnswerReturnsErrorWhenAnswerCallFails(t *testing.T) {
 	llm := &mockLLM{
 		responses: []string{
-			`{"selected_candidates":[{"document_id":"doc-1","node_id":"leaf-1","page_start":0,"page_end":0}],"reasoning":"relevant"}`,
+			`{"node_list":["doc-1:leaf-1"],"thinking":"relevant"}`,
 		},
 		errors: map[int]error{
 			1: fmt.Errorf("answer model unavailable"),
@@ -409,7 +409,7 @@ func TestAnswerReturnsErrorWhenAnswerCallFails(t *testing.T) {
 func TestAnswerRejectsFencedJSONAndTrailingCommas(t *testing.T) {
 	llm := &mockLLM{
 		responses: []string{
-			"```json\n{\"selected_candidates\":[{\"document_id\":\"doc-1\",\"node_id\":\"leaf-1\",\"page_start\":0,\"page_end\":0}],\"reasoning\":\"relevant\",}\n```",
+			"```json\n{\"node_list\":[\"doc-1:leaf-1\"],\"thinking\":\"relevant\",}\n```",
 			`{"answer":{"content":"Decoder handled fenced payloads."}}`,
 		},
 	}
@@ -427,7 +427,7 @@ func TestAnswerRejectsFencedJSONAndTrailingCommas(t *testing.T) {
 func TestAnswerAvoidsCrossDocumentNodeIDCollisions(t *testing.T) {
 	llm := &mockLLM{
 		responses: []string{
-			`{"selected_candidates":[{"document_id":"doc-2","node_id":"0001","page_start":0,"page_end":0}],"reasoning":"target document"}`,
+			`{"node_list":["doc-2:0001"],"thinking":"target document"}`,
 			`{"answer":"The selected company is from Document B."}`,
 		},
 	}
@@ -488,7 +488,7 @@ func TestAnswerAvoidsCrossDocumentNodeIDCollisions(t *testing.T) {
 func TestAnswerNormalizesNonPositiveMaxIterations(t *testing.T) {
 	llm := &mockLLM{
 		responses: []string{
-			`{"selected_candidates":[{"document_id":"doc-1","node_id":"leaf-1","page_start":0,"page_end":0}],"reasoning":"relevant"}`,
+			`{"node_list":["doc-1:leaf-1"],"thinking":"relevant"}`,
 			`{"answer":"Normalization worked."}`,
 		},
 	}
@@ -509,7 +509,7 @@ func TestAnswerNormalizesNonPositiveMaxIterations(t *testing.T) {
 func TestAnswerErrorsWhenSelectionNormalizesToEmpty(t *testing.T) {
 	llm := &mockLLM{
 		responses: []string{
-			`{"selected_candidates":[{"document_id":"doc-1","node_id":"missing","page_start":0,"page_end":0}],"reasoning":"mismatch"}`,
+			`{"node_list":["doc-1:missing"],"thinking":"mismatch"}`,
 		},
 	}
 
@@ -521,15 +521,15 @@ func TestAnswerErrorsWhenSelectionNormalizesToEmpty(t *testing.T) {
 	if err == nil {
 		t.Fatal("expected error when normalized selection is empty")
 	}
-	if !strings.Contains(err.Error(), "selected_candidates") {
-		t.Fatalf("error = %q, want selected_candidates mismatch", err.Error())
+	if !strings.Contains(err.Error(), "node_list") {
+		t.Fatalf("error = %q, want node_list mismatch", err.Error())
 	}
 }
 
 func TestAnswerReturnsErrorWhenLeafPageLoadFails(t *testing.T) {
 	llm := &mockLLM{
 		responses: []string{
-			`{"selected_candidates":[{"document_id":"doc-1","node_id":"leaf-1","page_start":0,"page_end":0}],"reasoning":"relevant"}`,
+			`{"node_list":["doc-1:leaf-1"],"thinking":"relevant"}`,
 		},
 	}
 	storage := makeSingleLeafStorage()
@@ -555,7 +555,7 @@ func TestAnswerStopsAtMaxEvidenceItems(t *testing.T) {
 
 	children := make([]domain.TreeNode, 0, totalLeaves)
 	pages := make([]domain.Page, 0, totalLeaves)
-	selected := make([]selectedCandidate, 0, totalLeaves)
+	selected := make([]string, 0, totalLeaves)
 	for i := 0; i < totalLeaves; i++ {
 		nodeID := fmt.Sprintf("leaf-%02d", i)
 		children = append(children, domain.TreeNode{
@@ -565,16 +565,11 @@ func TestAnswerStopsAtMaxEvidenceItems(t *testing.T) {
 			EndPage:   i,
 		})
 		pages = append(pages, domain.Page{Index: i, Markdown: fmt.Sprintf("content %d", i)})
-		selected = append(selected, selectedCandidate{
-			DocumentID: "doc-1",
-			NodeID:     nodeID,
-			PageStart:  i,
-			PageEnd:    i,
-		})
+		selected = append(selected, fmt.Sprintf("doc-1:%s", nodeID))
 	}
 	selectionPayload, err := json.Marshal(branchSelection{
-		SelectedCandidates: selected,
-		Reasoning:          "select all",
+		NodeList: selected,
+		Thinking: "select all",
 	})
 	if err != nil {
 		t.Fatalf("failed to marshal selection payload: %v", err)
